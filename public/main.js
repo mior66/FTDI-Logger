@@ -25,6 +25,8 @@ const quoteText = document.getElementById('quote-text');
 // Test Plan Elements
 const testPlanTabs = document.getElementById('test-plan-tabs');
 const testPlanTableContainer = document.getElementById('test-plan-table-container');
+const selectedTestCaseDisplay = document.getElementById('selected-test-case-display');
+const clearSelectedTestCaseButton = document.getElementById('clear-selected-test-case');
 
 // State variables
 let isConnected = false;
@@ -33,6 +35,8 @@ let errorEntries = [];
 let currentTestPlanFile = null;
 let testPlanData = null;
 let activeSheetName = null;
+let selectedTestCases = new Set(); // Store selected test case rows
+let currentlyDisplayedTestCase = null; // Store the currently displayed test case ID
 
 // Initialize the application
 function init() {
@@ -56,6 +60,7 @@ function init() {
     saveLogButton.addEventListener('click', saveLog);
     clearErrorsButton.addEventListener('click', clearErrors);
     saveErrorsButton.addEventListener('click', saveErrors);
+    clearSelectedTestCaseButton.addEventListener('click', clearSelectedTestCase);
     
     // Test plan data is loaded automatically
     
@@ -662,10 +667,81 @@ function displayTestPlanSheet(sheetName) {
         // Create table body
         const tbody = document.createElement('tbody');
         
+        // Find the index of the column that likely contains test case numbers
+        // Usually it's the first column, but we'll look for columns with "Test" or "#" in the header
+        let testCaseColumnIndex = 0;
+        for (let j = 0; j < headers.length; j++) {
+            const headerText = headers[j]?.toString().toLowerCase() || '';
+            if (headerText.includes('test') && (headerText.includes('#') || headerText.includes('number') || headerText.includes('case'))) {
+                testCaseColumnIndex = j;
+                break;
+            }
+        }
+        
+        // Create a map to store test case groups
+        const testCaseGroups = new Map();
+        let currentTestCaseId = null;
+        let currentGroupRows = [];
+        
+        // First pass: identify test case groups
+        for (let i = 1; i < sheetData.length; i++) {
+            const rowData = sheetData[i];
+            const testCaseValue = rowData[testCaseColumnIndex];
+            
+            // Check if this row starts a new test case
+            // We consider it a new test case if the test case column has a value that:
+            // 1. Is not empty/undefined
+            // 2. Contains numeric characters (likely a test case number)
+            // 3. Starts with "Test" or contains "#"
+            const isTestCaseRow = testCaseValue && (
+                (typeof testCaseValue === 'string' && 
+                 (testCaseValue.match(/\d/) || 
+                  testCaseValue.toLowerCase().startsWith('test') || 
+                  testCaseValue.includes('#'))) ||
+                (typeof testCaseValue === 'number')
+            );
+            
+            if (isTestCaseRow) {
+                // Start a new test case group
+                currentTestCaseId = `${sheetName}-test-${testCaseValue}`;
+                currentGroupRows = [];
+                testCaseGroups.set(currentTestCaseId, currentGroupRows);
+            }
+            
+            if (currentTestCaseId) {
+                // Add this row to the current test case group
+                currentGroupRows.push(i);
+            }
+        }
+        
         // Add data rows (skip the header row)
         for (let i = 1; i < sheetData.length; i++) {
             const row = document.createElement('tr');
             const rowData = sheetData[i];
+            
+            // Create a unique row identifier
+            const rowId = `${sheetName}-row-${i}`;
+            row.dataset.rowId = rowId;
+            
+            // Check if this row was previously selected
+            if (selectedTestCases.has(rowId)) {
+                row.classList.add('selected-test-case');
+            }
+            
+            // Determine if this row is a test case header row
+            const testCaseValue = rowData[testCaseColumnIndex];
+            const isTestCaseRow = testCaseValue && (
+                (typeof testCaseValue === 'string' && 
+                 (testCaseValue.match(/\d/) || 
+                  testCaseValue.toLowerCase().startsWith('test') || 
+                  testCaseValue.includes('#'))) ||
+                (typeof testCaseValue === 'number')
+            );
+            
+            if (isTestCaseRow) {
+                row.classList.add('test-case-header');
+                row.dataset.testCaseId = `${sheetName}-test-${testCaseValue}`;
+            }
             
             // Handle rows with fewer cells than the header
             for (let j = 0; j < headers.length; j++) {
@@ -673,6 +749,85 @@ function displayTestPlanSheet(sheetName) {
                 cell.textContent = rowData[j] !== undefined ? rowData[j] : '';
                 row.appendChild(cell);
             }
+            
+            // Add click event to make the row selectable
+            row.addEventListener('click', function() {
+                // Determine which test case group this row belongs to
+                let groupToToggle = [];
+                let testCaseId = null;
+                
+                if (this.dataset.testCaseId) {
+                    // This is a test case header row
+                    testCaseId = this.dataset.testCaseId;
+                    groupToToggle = testCaseGroups.get(testCaseId) || [];
+                } else {
+                    // This is a regular row, find which test case it belongs to
+                    for (const [id, rows] of testCaseGroups.entries()) {
+                        if (rows.includes(i)) {
+                            testCaseId = id;
+                            groupToToggle = rows;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!testCaseId || groupToToggle.length === 0) {
+                    // If we couldn't find a group, just toggle this single row
+                    this.classList.toggle('selected-test-case');
+                    if (this.classList.contains('selected-test-case')) {
+                        selectedTestCases.add(rowId);
+                    } else {
+                        selectedTestCases.delete(rowId);
+                    }
+                    return;
+                }
+                
+                // Determine if we're selecting or deselecting
+                const isSelecting = !this.classList.contains('selected-test-case');
+                
+                // Get all rows in this test case group
+                const groupRows = [];
+                for (const rowIndex of groupToToggle) {
+                    const groupRowId = `${sheetName}-row-${rowIndex}`;
+                    const groupRow = tbody.querySelector(`tr[data-row-id="${groupRowId}"]`);
+                    if (groupRow) {
+                        groupRows.push({ row: groupRow, id: groupRowId });
+                    }
+                }
+                
+                // Apply selection/deselection to all rows in the group
+                groupRows.forEach(({ row, id }) => {
+                    if (isSelecting) {
+                        row.classList.add('selected-test-case');
+                        selectedTestCases.add(id);
+                        
+                        // Add animation to each row
+                        row.animate([
+                            { backgroundColor: 'rgba(0, 114, 255, 0.2)' },
+                            { backgroundColor: 'rgba(0, 114, 255, 0.1)' }
+                        ], {
+                            duration: 300,
+                            easing: 'ease-out',
+                            delay: 50 * Math.random() // Stagger the animations slightly
+                        });
+                    } else {
+                        row.classList.remove('selected-test-case');
+                        selectedTestCases.delete(id);
+                    }
+                });
+                
+                // Extract the test case number for the notification
+                const testCaseNumber = testCaseId.split('-test-')[1];
+                showNotification(`Test case ${testCaseNumber} ${isSelecting ? 'selected' : 'unselected'} with ${groupRows.length} rows`, 'info');
+                
+                // If selecting, display this test case in the panel
+                if (isSelecting) {
+                    displaySelectedTestCase(testCaseId, sheetName, groupToToggle);
+                } else if (currentlyDisplayedTestCase === testCaseId) {
+                    // If deselecting the currently displayed test case, clear the panel
+                    clearSelectedTestCase();
+                }
+            });
             
             tbody.appendChild(row);
         }
@@ -688,6 +843,86 @@ function displayTestPlanSheet(sheetName) {
     }
     
     testPlanTableContainer.appendChild(table);
+}
+
+// Display the selected test case in the panel
+function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
+    // Store the currently displayed test case ID
+    currentlyDisplayedTestCase = testCaseId;
+    
+    // Clear the display area
+    selectedTestCaseDisplay.innerHTML = '';
+    
+    if (!testPlanData || !testPlanData.sheets || !testPlanData.sheets[sheetName]) {
+        return;
+    }
+    
+    // Get the sheet data
+    const sheetData = testPlanData.sheets[sheetName];
+    
+    // Get the headers (first row)
+    const headers = sheetData[0];
+    
+    // Create a title for the test case
+    const testCaseNumber = testCaseId.split('-test-')[1];
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'test-case-title';
+    titleDiv.textContent = `Test Case ${testCaseNumber} from ${sheetName}`;
+    selectedTestCaseDisplay.appendChild(titleDiv);
+    
+    // Create a table for the test case data
+    const table = document.createElement('table');
+    
+    // Create the header row
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    
+    headers.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header || '';
+        headerRow.appendChild(th);
+    });
+    
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    
+    // Create the table body
+    const tbody = document.createElement('tbody');
+    
+    // Add the test case rows
+    rowIndices.forEach(rowIndex => {
+        if (rowIndex < sheetData.length) {
+            const rowData = sheetData[rowIndex];
+            const row = document.createElement('tr');
+            
+            // Add cells for each column
+            for (let j = 0; j < headers.length; j++) {
+                const cell = document.createElement('td');
+                cell.textContent = rowData[j] !== undefined ? rowData[j] : '';
+                row.appendChild(cell);
+            }
+            
+            tbody.appendChild(row);
+        }
+    });
+    
+    table.appendChild(tbody);
+    selectedTestCaseDisplay.appendChild(table);
+    
+    // Add a subtle entrance animation
+    selectedTestCaseDisplay.animate([
+        { opacity: 0, transform: 'translateY(-10px)' },
+        { opacity: 1, transform: 'translateY(0)' }
+    ], {
+        duration: 300,
+        easing: 'ease-out'
+    });
+}
+
+// Clear the selected test case panel
+function clearSelectedTestCase() {
+    currentlyDisplayedTestCase = null;
+    selectedTestCaseDisplay.innerHTML = '<div class="test-case-placeholder">No test case selected. Select a test case from the Test Plan below.</div>';
 }
 
 // Initialize the application when the DOM is loaded

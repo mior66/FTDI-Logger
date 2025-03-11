@@ -378,6 +378,140 @@ button.primary:hover {
     background-color: #f0f8ff;
 }
 
+/* Selected test case styles */
+.test-plan-table tr.selected-test-case {
+    background-color: rgba(0, 114, 255, 0.1);
+    border-left: 3px solid #0072ff;
+    font-weight: 500;
+    position: relative;
+}
+
+.test-plan-table tr.selected-test-case:hover {
+    background-color: rgba(0, 114, 255, 0.15);
+    cursor: pointer;
+}
+
+.test-plan-table tr.selected-test-case td:first-child {
+    font-weight: bold;
+    color: #0072ff;
+}
+
+/* Test case header row styles */
+.test-plan-table tr.test-case-header {
+    border-top: 2px solid #ddd;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.test-plan-table tr.test-case-header td:first-child {
+    font-weight: bold;
+    color: #333;
+}
+
+.test-plan-table tr.test-case-header:hover {
+    background-color: rgba(0, 114, 255, 0.08);
+}
+
+.test-plan-table tr.test-case-header.selected-test-case {
+    background-color: rgba(0, 114, 255, 0.15);
+    border-left: 4px solid #0072ff;
+    border-top: 2px solid #0072ff;
+}
+
+.test-plan-table tr.test-case-header.selected-test-case td:first-child {
+    color: #0072ff;
+}
+
+/* Add notification style for info messages */
+#notification.info {
+    background-color: #0072ff;
+}
+
+/* Selected Test Case Display Panel */
+.selected-test-case-panel {
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    background-color: #fff;
+}
+
+.selected-test-case-panel .test-case-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: linear-gradient(135deg, #0a2a12, #0d5c23);
+    color: white;
+}
+
+.selected-test-case-panel .test-case-header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.selected-test-case-panel .test-case-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.selected-test-case-panel .small-button {
+    padding: 5px 10px;
+    font-size: 12px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.selected-test-case-panel .small-button:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+#selected-test-case-display {
+    padding: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#selected-test-case-display table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+#selected-test-case-display table th {
+    background-color: #f5f5f5;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #ddd;
+}
+
+#selected-test-case-display table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+}
+
+#selected-test-case-display .test-case-placeholder {
+    color: #999;
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+}
+
+#selected-test-case-display .test-case-title {
+    font-weight: bold;
+    font-size: 16px;
+    color: #0072ff;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+}
+
 .test-plan-placeholder {
     display: flex;
     justify-content: center;
