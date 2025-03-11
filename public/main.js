@@ -9,15 +9,20 @@ const disconnectButton = document.getElementById('disconnect-button');
 const refreshPortsButton = document.getElementById('refresh-ports');
 const clearLogButton = document.getElementById('clear-log');
 const saveLogButton = document.getElementById('save-log');
+const clearErrorsButton = document.getElementById('clear-errors');
+const saveErrorsButton = document.getElementById('save-errors');
 const autoscrollCheckbox = document.getElementById('autoscroll');
+const errorAutoscrollCheckbox = document.getElementById('error-autoscroll');
 const timestampCheckbox = document.getElementById('timestamp');
 const logWindow = document.getElementById('log-window');
+const errorWindow = document.getElementById('error-window');
 const connectionStatus = document.getElementById('connection-status');
 const notification = document.getElementById('notification');
 
 // State variables
 let isConnected = false;
 let logEntries = [];
+let errorEntries = [];
 
 // Initialize the application
 function init() {
@@ -33,6 +38,24 @@ function init() {
     refreshPortsButton.addEventListener('click', refreshPorts);
     clearLogButton.addEventListener('click', clearLog);
     saveLogButton.addEventListener('click', saveLog);
+    clearErrorsButton.addEventListener('click', clearErrors);
+    saveErrorsButton.addEventListener('click', saveErrors);
+    
+    // Add test button for error detection
+    const testButton = document.createElement('button');
+    testButton.textContent = 'Test Error Detection';
+    testButton.style.position = 'fixed';
+    testButton.style.bottom = '10px';
+    testButton.style.right = '10px';
+    testButton.style.zIndex = '1000';
+    testButton.style.padding = '8px 16px';
+    testButton.style.backgroundColor = '#007bff';
+    testButton.style.color = 'white';
+    testButton.style.border = 'none';
+    testButton.style.borderRadius = '4px';
+    testButton.style.cursor = 'pointer';
+    testButton.addEventListener('click', testErrorDetection);
+    document.body.appendChild(testButton);
     
     // Set up socket event listeners
     setupSocketListeners();
@@ -262,10 +285,13 @@ function addLogEntry(timestamp, message) {
     
     // Handle special characters and control codes
     // This preserves whitespace and line breaks
-    const formattedMessage = message
+    let formattedMessage = message
         .replace(/\r\n|\r|\n/g, '<br>')
         .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
         .replace(/ /g, '&nbsp;');
+    
+    // Apply color coding based on message content
+    formattedMessage = applyColorCoding(formattedMessage);
     
     messageElement.innerHTML = formattedMessage;
     
@@ -280,8 +306,75 @@ function addLogEntry(timestamp, message) {
         logWindow.scrollTop = logWindow.scrollHeight;
     }
     
+    // Check if the message contains error-related keywords
+    const lowerCaseMessage = message.toLowerCase();
+    if (lowerCaseMessage.includes('error') || 
+        lowerCaseMessage.includes('failure') || 
+        lowerCaseMessage.includes('fail') || 
+        lowerCaseMessage.includes('fails') || 
+        lowerCaseMessage.includes('failed') || 
+        lowerCaseMessage.includes('unexpected') || 
+        lowerCaseMessage.includes('exception') || 
+        lowerCaseMessage.includes('comparison failed') ||
+        lowerCaseMessage.includes('sha-256')) {
+        addErrorEntry(timestamp, message);
+    }
+    
     // Log to console for debugging
     console.log(`Log entry: ${timestamp} - ${message}`);
+}
+
+// Add an entry to the error window
+function addErrorEntry(timestamp, message) {
+    // Create error entry object
+    const entry = { timestamp, message };
+    errorEntries.push(entry);
+    
+    // Create DOM elements for the error entry
+    const errorEntry = document.createElement('div');
+    errorEntry.className = 'log-entry';
+    
+    // Determine the line color based on message content
+    const lowerCaseMessage = message.toLowerCase();
+    if (lowerCaseMessage.includes('error')) {
+        errorEntry.classList.add('error-line');
+    } else if (lowerCaseMessage.includes('fail') || lowerCaseMessage.includes('failure')) {
+        errorEntry.classList.add('failure-line');
+    } else if (lowerCaseMessage.includes('unexpected')) {
+        errorEntry.classList.add('unexpected-line');
+    } else if (lowerCaseMessage.includes('exception')) {
+        errorEntry.classList.add('exception-line');
+    }
+    
+    // Always add timestamp to error entries
+    const timestampElement = document.createElement('span');
+    timestampElement.className = 'log-timestamp';
+    timestampElement.textContent = formatTimestamp(timestamp);
+    errorEntry.appendChild(timestampElement);
+    
+    const messageElement = document.createElement('span');
+    messageElement.className = 'log-message';
+    
+    // Handle special characters and control codes
+    let formattedMessage = message
+        .replace(/\r\n|\r|\n/g, '<br>')
+        .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+        .replace(/ /g, '&nbsp;');
+    
+    // In the main log, we still want inline coloring
+    // But in the error window, we're using full line coloring via the parent element
+    messageElement.innerHTML = formattedMessage;
+    
+    // Add message element to the error entry
+    errorEntry.appendChild(messageElement);
+    
+    // Add the error entry to the error window
+    errorWindow.appendChild(errorEntry);
+    
+    // Auto-scroll if enabled
+    if (errorAutoscrollCheckbox.checked) {
+        errorWindow.scrollTop = errorWindow.scrollHeight;
+    }
 }
 
 // Format timestamp for display - matching CoolTerm's Time+Millis format
@@ -301,6 +394,13 @@ function clearLog() {
     logWindow.innerHTML = '';
     logEntries = [];
     showNotification('Log cleared', 'success');
+}
+
+// Clear the errors window
+function clearErrors() {
+    errorWindow.innerHTML = '';
+    errorEntries = [];
+    showNotification('Errors cleared', 'success');
 }
 
 // Save the log to a file
@@ -335,6 +435,98 @@ function saveLog() {
     }, 0);
     
     showNotification('Log saved to file', 'success');
+}
+
+// Save the errors to a file
+function saveErrors() {
+    // Create error log content
+    const errorContent = errorEntries.map(entry => 
+        `${formatTimestamp(entry.timestamp)} ${entry.message}`
+    ).join('\n');
+    
+    // If no errors, show notification and return
+    if (!errorContent) {
+        showNotification('No errors to save', 'error');
+        return;
+    }
+    
+    // Create a blob with the error content
+    const blob = new Blob([errorContent], { type: 'text/plain' });
+    
+    // Create a download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    
+    // Generate filename with current date and time
+    const now = new Date();
+    const filename = `error_log_${now.toISOString().replace(/[:.]/g, '-')}.txt`;
+    
+    a.href = url;
+    a.download = filename;
+    
+    // Trigger the download
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 0);
+    
+    showNotification('Error log saved to file', 'success');
+}
+
+// Test function to simulate error messages
+function testErrorDetection() {
+    const testMessages = [
+        { message: 'Normal log message without issues', shouldDetect: false },
+        { message: 'Error: Connection timed out', shouldDetect: true },
+        { message: 'Operation completed with no errors', shouldDetect: true },
+        { message: 'SHA-256 comparison failed', shouldDetect: true },
+        { message: 'Exception thrown in module', shouldDetect: true },
+        { message: 'Task failed successfully', shouldDetect: true },
+        { message: 'Failure detected in system', shouldDetect: true },
+        { message: 'Unexpected result in calculation', shouldDetect: true },
+        { message: 'Multiple issues: Error, Failure and Exception in one line', shouldDetect: true },
+        { message: 'Errors were found in the log file', shouldDetect: true },
+        { message: 'The operation fails when memory is full', shouldDetect: true },
+        { message: 'Unexpected behavior in the algorithm', shouldDetect: true },
+        { message: 'Exceptions need to be handled properly', shouldDetect: true }
+    ];
+    
+    // Process each test message
+    testMessages.forEach((test, index) => {
+        setTimeout(() => {
+            const timestamp = new Date().toISOString();
+            addLogEntry(timestamp, `TEST ${index+1}: ${test.message}`);
+            
+            // Verify if detection worked as expected
+            setTimeout(() => {
+                const detected = errorEntries.some(entry => entry.message.includes(test.message));
+                const result = (detected === test.shouldDetect) ? 'PASSED' : 'FAILED';
+                console.log(`Error detection test ${index+1}: ${result}`);
+            }, 100);
+        }, index * 500);
+    });
+}
+
+// Apply color coding to message based on content
+function applyColorCoding(message) {
+    // Create a case-insensitive regex for each category
+    const errorRegex = /\b(error|errors)\b/gi;
+    const failureRegex = /\b(fail|fails|failure|failed)\b/gi;
+    const unexpectedRegex = /\b(unexpected)\b/gi;
+    const exceptionRegex = /\b(exception|exceptions)\b/gi;
+    
+    // Apply color coding with spans
+    let coloredMessage = message
+        .replace(errorRegex, match => `<span class="error-text">${match}</span>`)
+        .replace(failureRegex, match => `<span class="failure-text">${match}</span>`)
+        .replace(unexpectedRegex, match => `<span class="unexpected-text">${match}</span>`)
+        .replace(exceptionRegex, match => `<span class="exception-text">${match}</span>`);
+    
+    return coloredMessage;
 }
 
 // Show a notification
