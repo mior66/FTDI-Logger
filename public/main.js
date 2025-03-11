@@ -8,7 +8,7 @@ let errorToLogMap = new Map();
 const portSelect = document.getElementById('port-select');
 const connectButton = document.getElementById('connect-button');
 const disconnectButton = document.getElementById('disconnect-button');
-const refreshPortsButton = document.getElementById('refresh-ports');
+
 const clearLogButton = document.getElementById('clear-log');
 const saveLogButton = document.getElementById('save-log');
 const clearErrorsButton = document.getElementById('clear-errors');
@@ -20,6 +20,7 @@ const logWindow = document.getElementById('log-window');
 const errorWindow = document.getElementById('error-window');
 const connectionStatus = document.getElementById('connection-status');
 const notification = document.getElementById('notification');
+const quoteText = document.getElementById('quote-text');
 
 // Test Plan Elements
 const testPlanTabs = document.getElementById('test-plan-tabs');
@@ -44,32 +45,19 @@ function init() {
     // Load the test plan data automatically
     loadTestPlanData();
     
+    // Display a random inspirational quote
+    displayRandomQuote();
+    
     // Set up event listeners
     connectButton.addEventListener('click', connectToPort);
     disconnectButton.addEventListener('click', disconnectFromPort);
-    refreshPortsButton.addEventListener('click', refreshPorts);
+
     clearLogButton.addEventListener('click', clearLog);
     saveLogButton.addEventListener('click', saveLog);
     clearErrorsButton.addEventListener('click', clearErrors);
     saveErrorsButton.addEventListener('click', saveErrors);
     
     // Test plan data is loaded automatically
-    
-    // Add test button for error detection
-    const testButton = document.createElement('button');
-    testButton.textContent = 'Test Error Detection';
-    testButton.style.position = 'fixed';
-    testButton.style.bottom = '10px';
-    testButton.style.right = '10px';
-    testButton.style.zIndex = '1000';
-    testButton.style.padding = '8px 16px';
-    testButton.style.backgroundColor = '#007bff';
-    testButton.style.color = 'white';
-    testButton.style.border = 'none';
-    testButton.style.borderRadius = '4px';
-    testButton.style.cursor = 'pointer';
-    testButton.addEventListener('click', testErrorDetection);
-    document.body.appendChild(testButton);
     
     // Set up socket event listeners
     setupSocketListeners();
@@ -181,34 +169,9 @@ function loadDefaultSettings() {
                 }
             }
             
-            // Set default values for other settings
-            for (let i = 0; i < baudRateSelect.options.length; i++) {
-                if (parseInt(baudRateSelect.options[i].value) === settings.defaultBaudRate) {
-                    baudRateSelect.selectedIndex = i;
-                    break;
-                }
-            }
+            // Using fixed baud rate of 115200 as per requirements
             
-            for (let i = 0; i < dataBitsSelect.options.length; i++) {
-                if (parseInt(dataBitsSelect.options[i].value) === settings.defaultDataBits) {
-                    dataBitsSelect.selectedIndex = i;
-                    break;
-                }
-            }
-            
-            for (let i = 0; i < paritySelect.options.length; i++) {
-                if (paritySelect.options[i].value === settings.defaultParity) {
-                    paritySelect.selectedIndex = i;
-                    break;
-                }
-            }
-            
-            for (let i = 0; i < stopBitsSelect.options.length; i++) {
-                if (parseInt(stopBitsSelect.options[i].value) === settings.defaultStopBits) {
-                    stopBitsSelect.selectedIndex = i;
-                    break;
-                }
-            }
+            // Using fixed serial port settings as per requirements
         })
         .catch(error => {
             console.error('Error loading default settings:', error);
@@ -254,8 +217,6 @@ function updateConnectionStatus(status) {
         connectButton.disabled = true;
         disconnectButton.disabled = false;
         portSelect.disabled = true;
-        baudRateSelect.disabled = true;
-        refreshPortsButton.disabled = true;
         
         showNotification('Connected successfully', 'success');
     } else {
@@ -264,8 +225,6 @@ function updateConnectionStatus(status) {
         connectButton.disabled = false;
         disconnectButton.disabled = true;
         portSelect.disabled = false;
-        baudRateSelect.disabled = false;
-        refreshPortsButton.disabled = false;
         
         if (logEntries.length > 0) {
             showNotification('Disconnected from port', 'error');
@@ -506,39 +465,7 @@ function saveErrors() {
     showNotification('Error log saved to file', 'success');
 }
 
-// Test function to simulate error messages
-function testErrorDetection() {
-    const testMessages = [
-        { message: 'Normal log message without issues', shouldDetect: false },
-        { message: 'Error: Connection timed out', shouldDetect: true },
-        { message: 'Operation completed with no errors', shouldDetect: true },
-        { message: 'SHA-256 comparison failed', shouldDetect: true },
-        { message: 'Exception thrown in module', shouldDetect: true },
-        { message: 'Task failed successfully', shouldDetect: true },
-        { message: 'Failure detected in system', shouldDetect: true },
-        { message: 'Unexpected result in calculation', shouldDetect: true },
-        { message: 'Multiple issues: Error, Failure and Exception in one line', shouldDetect: true },
-        { message: 'Errors were found in the log file', shouldDetect: true },
-        { message: 'The operation fails when memory is full', shouldDetect: true },
-        { message: 'Unexpected behavior in the algorithm', shouldDetect: true },
-        { message: 'Exceptions need to be handled properly', shouldDetect: true }
-    ];
-    
-    // Process each test message
-    testMessages.forEach((test, index) => {
-        setTimeout(() => {
-            const timestamp = new Date().toISOString();
-            addLogEntry(timestamp, `TEST ${index+1}: ${test.message}`);
-            
-            // Verify if detection worked as expected
-            setTimeout(() => {
-                const detected = errorEntries.some(entry => entry.message.includes(test.message));
-                const result = (detected === test.shouldDetect) ? 'PASSED' : 'FAILED';
-                console.log(`Error detection test ${index+1}: ${result}`);
-            }, 100);
-        }, index * 500);
-    });
-}
+
 
 // Apply color coding to message based on content
 function applyColorCoding(message) {
@@ -628,6 +555,18 @@ function showNotification(message, type = 'success') {
     setTimeout(() => {
         notification.classList.add('hidden');
     }, 3000);
+}
+
+// Display a random inspirational quote
+function displayRandomQuote() {
+    if (typeof inspirationalQuotes !== 'undefined' && inspirationalQuotes.length > 0) {
+        const randomIndex = Math.floor(Math.random() * inspirationalQuotes.length);
+        const quote = inspirationalQuotes[randomIndex];
+        quoteText.textContent = quote;
+    } else {
+        console.error('Inspirational quotes not loaded');
+        quoteText.textContent = 'The best way to predict the future is to create it.';
+    }
 }
 
 // Load test plan data automatically from the server

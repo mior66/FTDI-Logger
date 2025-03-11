@@ -8,6 +8,9 @@
 </head>
 <body>
     <div class="container">
+        <div id="quote-container" class="quote-container">
+            <p id="quote-text" class="quote-text"></p>
+        </div>
         <header>
             <h1>Adam's FTDI Logger</h1>
             <p class="subtitle">A sleek, real-time serial monitor for FTDI devices</p>
@@ -21,7 +24,6 @@
                     <option value="">-- Select Port --</option>
                     <option value="usbserial-141101" selected>usbserial-141101</option>
                 </select>
-                <button id="refresh-ports">Refresh</button>
             </div>
             
 
@@ -114,6 +116,7 @@
     </div>
     
     <script src="/socket.io/socket.io.js"></script>
+    <script src="quotes.js"></script>
     <script src="main.js"></script>
 </body>
 </html>
