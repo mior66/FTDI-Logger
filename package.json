@@ -1,0 +1,16 @@
+{
+  "name": "ftdi-logger",
+  "version": "1.0.0",
+  "description": "Web app that displays logging from FTDI chip on USB port",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "serialport": "^10.5.0",
+    "socket.io": "^4.7.2"
+  },
+  "author": "",
+  "license": "MIT"
+}

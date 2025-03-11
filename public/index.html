@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FTDI Logger</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>FTDI Serial Logger</h1>
+        </header>
+        
+        <div class="connection-panel">
+            <div class="form-group">
+                <label for="port-select">Serial Port:</label>
+                <select id="port-select">
+                    <option value="">-- Select Port --</option>
+                    <option value="usbserial-141101" selected>usbserial-141101</option>
+                </select>
+                <button id="refresh-ports">Refresh</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="baud-rate">Baud Rate:</label>
+                <select id="baud-rate">
+                    <option value="9600">9600</option>
+                    <option value="19200">19200</option>
+                    <option value="38400">38400</option>
+                    <option value="57600">57600</option>
+                    <option value="115200" selected>115200</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="data-bits">Data Bits:</label>
+                <select id="data-bits">
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8" selected>8</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="parity">Parity:</label>
+                <select id="parity">
+                    <option value="none" selected>None</option>
+                    <option value="even">Even</option>
+                    <option value="odd">Odd</option>
+                    <option value="mark">Mark</option>
+                    <option value="space">Space</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="stop-bits">Stop Bits:</label>
+                <select id="stop-bits">
+                    <option value="1" selected>1</option>
+                    <option value="2">2</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <button id="connect-button" class="primary">Connect</button>
+                <button id="disconnect-button" disabled>Disconnect</button>
+            </div>
+            
+            <div id="connection-status">Not connected</div>
+        </div>
+        
+        <div class="log-container">
+            <div class="log-header">
+                <h2>Serial Log</h2>
+                <div class="log-controls">
+                    <button id="clear-log">Clear Log</button>
+                    <button id="save-log">Save Log</button>
+                    <div class="autoscroll-container">
+                        <input type="checkbox" id="autoscroll" checked>
+                        <label for="autoscroll">Auto-scroll</label>
+                    </div>
+                    <div class="timestamp-container">
+                        <input type="checkbox" id="timestamp" checked>
+                        <label for="timestamp">Timestamp</label>
+                    </div>
+                </div>
+            </div>
+            <div id="log-window"></div>
+        </div>
+        
+        <div id="notification" class="hidden"></div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
