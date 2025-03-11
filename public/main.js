@@ -9,6 +9,11 @@ const portSelect = document.getElementById('port-select');
 const connectButton = document.getElementById('connect-button');
 const disconnectButton = document.getElementById('disconnect-button');
 
+// Test Action Buttons
+const testStartButton = document.getElementById('test-start-button');
+const testPassButton = document.getElementById('test-pass-button');
+const testFailButton = document.getElementById('test-fail-button');
+
 const clearLogButton = document.getElementById('clear-log');
 const saveLogButton = document.getElementById('save-log');
 const clearErrorsButton = document.getElementById('clear-errors');
@@ -27,6 +32,7 @@ const testPlanTabs = document.getElementById('test-plan-tabs');
 const testPlanTableContainer = document.getElementById('test-plan-table-container');
 const selectedTestCaseDisplay = document.getElementById('selected-test-case-display');
 const clearSelectedTestCaseButton = document.getElementById('clear-selected-test-case');
+const exportSelectedTestCaseButton = document.getElementById('export-selected-test-case');
 
 // State variables
 let isConnected = false;
@@ -37,6 +43,7 @@ let testPlanData = null;
 let activeSheetName = null;
 let selectedTestCases = new Set(); // Store selected test case rows
 let currentlyDisplayedTestCase = null; // Store the currently displayed test case ID
+let testLogEntries = {}; // Store test log entries by test case ID
 
 // Initialize the application
 function init() {
@@ -61,6 +68,15 @@ function init() {
     clearErrorsButton.addEventListener('click', clearErrors);
     saveErrorsButton.addEventListener('click', saveErrors);
     clearSelectedTestCaseButton.addEventListener('click', clearSelectedTestCase);
+    
+    // Set up export button event listener
+    const exportSelectedTestCaseButton = document.getElementById('export-selected-test-case');
+    exportSelectedTestCaseButton.addEventListener('click', exportSelectedTestCase);
+    
+    // Set up test action button event listeners
+    testStartButton.addEventListener('click', addTestStartLog);
+    testPassButton.addEventListener('click', addTestPassLog);
+    testFailButton.addEventListener('click', addTestFailLog);
     
     // Test plan data is loaded automatically
     
@@ -235,6 +251,9 @@ function updateConnectionStatus(status) {
             showNotification('Disconnected from port', 'error');
         }
     }
+    
+    // Update test action buttons state
+    updateTestActionButtonsState();
 }
 
 // Add a log entry to the log window
@@ -641,6 +660,20 @@ function displayTestPlanSheet(sheetName) {
     // Get the sheet data
     const sheetData = testPlanData.sheets[sheetName];
     
+    // Filter out empty rows at the bottom
+    let lastNonEmptyRowIndex = sheetData.length - 1;
+    
+    // Find the last non-empty row
+    while (lastNonEmptyRowIndex > 0) {
+        const row = sheetData[lastNonEmptyRowIndex];
+        const isEmpty = !row || row.every(cell => cell === undefined || cell === null || cell === '');
+        if (!isEmpty) break;
+        lastNonEmptyRowIndex--;
+    }
+    
+    // Create a filtered version of the sheet data without empty bottom rows
+    const filteredSheetData = sheetData.slice(0, lastNonEmptyRowIndex + 1);
+    
     // Clear the container
     testPlanTableContainer.innerHTML = '';
     
@@ -649,12 +682,12 @@ function displayTestPlanSheet(sheetName) {
     table.className = 'test-plan-table';
     
     // Create header row if there's data
-    if (sheetData.length > 0) {
+    if (filteredSheetData.length > 0) {
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
         
         // Use the first row as headers
-        const headers = sheetData[0];
+        const headers = filteredSheetData[0];
         headers.forEach(header => {
             const th = document.createElement('th');
             th.textContent = header || '';
@@ -684,8 +717,8 @@ function displayTestPlanSheet(sheetName) {
         let currentGroupRows = [];
         
         // First pass: identify test case groups
-        for (let i = 1; i < sheetData.length; i++) {
-            const rowData = sheetData[i];
+        for (let i = 1; i < filteredSheetData.length; i++) {
+            const rowData = filteredSheetData[i];
             const testCaseValue = rowData[testCaseColumnIndex];
             
             // Check if this row starts a new test case
@@ -715,9 +748,9 @@ function displayTestPlanSheet(sheetName) {
         }
         
         // Add data rows (skip the header row)
-        for (let i = 1; i < sheetData.length; i++) {
+        for (let i = 1; i < filteredSheetData.length; i++) {
             const row = document.createElement('tr');
-            const rowData = sheetData[i];
+            const rowData = filteredSheetData[i];
             
             // Create a unique row identifier
             const rowId = `${sheetName}-row-${i}`;
@@ -853,6 +886,12 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
     // Clear the display area
     selectedTestCaseDisplay.innerHTML = '';
     
+    // Update test action buttons state
+    updateTestActionButtonsState();
+    
+    // Enable the export button if there are test logs for this test case
+    exportSelectedTestCaseButton.disabled = !(testLogEntries[testCaseId] && testLogEntries[testCaseId].start);
+    
     if (!testPlanData || !testPlanData.sheets || !testPlanData.sheets[sheetName]) {
         return;
     }
@@ -860,8 +899,22 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
     // Get the sheet data
     const sheetData = testPlanData.sheets[sheetName];
     
+    // Filter out empty rows at the bottom
+    let lastNonEmptyRowIndex = sheetData.length - 1;
+    
+    // Find the last non-empty row
+    while (lastNonEmptyRowIndex > 0) {
+        const row = sheetData[lastNonEmptyRowIndex];
+        const isEmpty = !row || row.every(cell => cell === undefined || cell === null || cell === '');
+        if (!isEmpty) break;
+        lastNonEmptyRowIndex--;
+    }
+    
+    // Create a filtered version of the sheet data without empty bottom rows
+    const filteredSheetData = sheetData.slice(0, lastNonEmptyRowIndex + 1);
+    
     // Get the headers (first row)
-    const headers = sheetData[0];
+    const headers = filteredSheetData[0];
     
     // Create a title for the test case
     const testCaseNumber = testCaseId.split('-test-')[1];
@@ -891,8 +944,8 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
     
     // Add the test case rows
     rowIndices.forEach(rowIndex => {
-        if (rowIndex < sheetData.length) {
-            const rowData = sheetData[rowIndex];
+        if (rowIndex < filteredSheetData.length) {
+            const rowData = filteredSheetData[rowIndex];
             const row = document.createElement('tr');
             
             // Add cells for each column
@@ -917,12 +970,317 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
         duration: 300,
         easing: 'ease-out'
     });
+    
+    // Display any existing test logs for this test case
+    if (testLogEntries[testCaseId]) {
+        updateTestLogDisplay();
+    }
 }
 
 // Clear the selected test case panel
 function clearSelectedTestCase() {
     currentlyDisplayedTestCase = null;
     selectedTestCaseDisplay.innerHTML = '<div class="test-case-placeholder">No test case selected. Select a test case from the Test Plan below.</div>';
+    updateTestActionButtonsState();
+    exportSelectedTestCaseButton.disabled = true;
+}
+
+// Export the selected test case with all logs between start and pass/fail timestamps
+function exportSelectedTestCase() {
+    if (!currentlyDisplayedTestCase) {
+        showNotification('No test case selected', 'error');
+        return;
+    }
+    
+    // Get the test logs for the current test case
+    const testLogs = testLogEntries[currentlyDisplayedTestCase];
+    if (!testLogs || !testLogs.start) {
+        showNotification('No test logs available for export', 'error');
+        return;
+    }
+    
+    // Get the test case data
+    const testCaseNumber = currentlyDisplayedTestCase.split('-test-')[1];
+    const sheetName = currentlyDisplayedTestCase.split('-test-')[0];
+    
+    // Create a text content for the export
+    let textContent = '';
+    
+    // Add test case header information
+    textContent += `TEST CASE REPORT\n`;
+    textContent += `=================\n\n`;
+    textContent += `Test Case: ${testCaseNumber}\n`;
+    textContent += `Sheet: ${sheetName}\n`;
+    textContent += `Date: ${new Date().toLocaleString()}\n\n`;
+    
+    // Add test result information
+    const result = testLogs.pass ? 'PASS' : (testLogs.fail ? 'FAIL' : 'INCOMPLETE');
+    textContent += `TEST RESULT: ${result}\n\n`;
+    
+    // Add test case details from the table
+    textContent += `TEST CASE DETAILS:\n`;
+    textContent += `------------------\n\n`;
+    
+    const table = selectedTestCaseDisplay.querySelector('table');
+    if (table) {
+        // Get headers
+        const headers = [];
+        const headerRow = table.querySelector('thead tr');
+        if (headerRow) {
+            headerRow.querySelectorAll('th').forEach(th => {
+                headers.push(th.textContent || '');
+            });
+        }
+        
+        // Get all rows data
+        const rows = [];
+        table.querySelectorAll('tbody tr').forEach(row => {
+            const cells = [];
+            row.querySelectorAll('td').forEach(cell => {
+                cells.push(cell.textContent || '');
+            });
+            rows.push(cells);
+        });
+        
+        // Calculate column widths for proper alignment
+        const columnWidths = [];
+        for (let i = 0; i < headers.length; i++) {
+            let maxWidth = headers[i].length;
+            rows.forEach(row => {
+                if (row[i] && row[i].length > maxWidth) {
+                    maxWidth = row[i].length;
+                }
+            });
+            columnWidths.push(maxWidth + 2); // Add padding
+        }
+        
+        // Format headers with proper spacing
+        let headerLine = '';
+        let separatorLine = '';
+        headers.forEach((header, index) => {
+            const paddedHeader = header.padEnd(columnWidths[index]);
+            headerLine += paddedHeader;
+            separatorLine += '-'.repeat(columnWidths[index]);
+        });
+        textContent += headerLine + '\n';
+        textContent += separatorLine + '\n';
+        
+        // Format rows with proper spacing
+        rows.forEach(row => {
+            let formattedRow = '';
+            row.forEach((cell, index) => {
+                formattedRow += (cell || '').padEnd(columnWidths[index]);
+            });
+            textContent += formattedRow + '\n';
+        });
+    }
+    
+    // Add test log information
+    textContent += `\nTEST LOGS:\n`;
+    textContent += `-----------\n\n`;
+    
+    // Add start log
+    textContent += `START: ${testLogs.start.timestamp} - ${testLogs.start.message}\n\n`;
+    
+    // Add result log if available
+    if (testLogs.pass) {
+        textContent += `PASS: ${testLogs.pass.timestamp} - ${testLogs.pass.message}\n\n`;
+    } else if (testLogs.fail) {
+        textContent += `FAIL: ${testLogs.fail.timestamp} - ${testLogs.fail.message}\n\n`;
+    }
+    
+    // Get all logs between start and pass/fail timestamps
+    const startTimestamp = new Date(testLogs.start.timestamp).getTime();
+    const endTimestamp = testLogs.pass ? 
+        new Date(testLogs.pass.timestamp).getTime() : 
+        (testLogs.fail ? new Date(testLogs.fail.timestamp).getTime() : Date.now());
+    
+    // Add all logs section
+    textContent += `COMPLETE LOG ENTRIES:\n`;
+    textContent += `--------------------\n\n`;
+    
+    // Filter logs that fall between the start and end timestamps
+    const relevantLogs = [];
+    logEntries.forEach(entry => {
+        const logTime = new Date(entry.timestamp).getTime();
+        if (logTime >= startTimestamp && logTime <= endTimestamp) {
+            relevantLogs.push(entry);
+        }
+    });
+    
+    // Add each log entry
+    relevantLogs.forEach(entry => {
+        textContent += `${entry.timestamp} - ${entry.message}\n`;
+    });
+    
+    // Create a filename for the export
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `test-case-${testCaseNumber}-${timestamp}.txt`;
+    
+    // Create a text file and download it
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create a download link and trigger the download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+    
+    showNotification(`Test case exported as ${filename}`, 'success');
+}
+
+// Update the state of test action buttons based on connection and test case selection
+function updateTestActionButtonsState() {
+    const hasSelectedTestCase = currentlyDisplayedTestCase !== null;
+    const hasRecentLogEntry = logEntries.length > 0;
+    
+    // Enable/disable test action buttons based on connection status and test case selection
+    testStartButton.disabled = !isConnected || !hasSelectedTestCase || !hasRecentLogEntry;
+    
+    // For Pass/Fail buttons, also check if Start log exists for the current test case
+    const hasStartLog = hasSelectedTestCase && 
+                        testLogEntries[currentlyDisplayedTestCase] && 
+                        testLogEntries[currentlyDisplayedTestCase].start;
+    
+    testPassButton.disabled = !isConnected || !hasSelectedTestCase || !hasRecentLogEntry || !hasStartLog;
+    testFailButton.disabled = !isConnected || !hasSelectedTestCase || !hasRecentLogEntry || !hasStartLog;
+    
+    // Enable/disable export button based on test case selection and having start log
+    exportSelectedTestCaseButton.disabled = !hasSelectedTestCase || !hasStartLog;
+}
+
+// Add a test start log entry
+function addTestStartLog() {
+    if (!currentlyDisplayedTestCase || logEntries.length === 0) return;
+    
+    // Get the most recent log entry
+    const latestLog = logEntries[logEntries.length - 1];
+    const logText = latestLog.message;
+    const timestamp = latestLog.timestamp;
+    
+    // Initialize test log entries for this test case if needed
+    if (!testLogEntries[currentlyDisplayedTestCase]) {
+        testLogEntries[currentlyDisplayedTestCase] = {};
+    }
+    
+    // Store the start log entry
+    testLogEntries[currentlyDisplayedTestCase].start = {
+        text: logText,
+        timestamp: timestamp
+    };
+    
+    // Update the display
+    updateTestLogDisplay();
+    showNotification('Test start log added', 'success');
+    
+    // Update button states
+    updateTestActionButtonsState();
+}
+
+// Add a test pass log entry
+function addTestPassLog() {
+    if (!currentlyDisplayedTestCase || logEntries.length === 0) return;
+    
+    // Get the most recent log entry
+    const latestLog = logEntries[logEntries.length - 1];
+    const logText = latestLog.message;
+    const timestamp = latestLog.timestamp;
+    
+    // Store the pass log entry
+    testLogEntries[currentlyDisplayedTestCase].pass = {
+        text: logText,
+        timestamp: timestamp
+    };
+    
+    // Remove any existing fail log for this test case
+    delete testLogEntries[currentlyDisplayedTestCase].fail;
+    
+    // Update the display
+    updateTestLogDisplay();
+    showNotification('Test pass log added', 'success');
+}
+
+// Add a test fail log entry
+function addTestFailLog() {
+    if (!currentlyDisplayedTestCase || logEntries.length === 0) return;
+    
+    // Get the most recent log entry
+    const latestLog = logEntries[logEntries.length - 1];
+    const logText = latestLog.message;
+    const timestamp = latestLog.timestamp;
+    
+    // Store the fail log entry
+    testLogEntries[currentlyDisplayedTestCase].fail = {
+        text: logText,
+        timestamp: timestamp
+    };
+    
+    // Remove any existing pass log for this test case
+    delete testLogEntries[currentlyDisplayedTestCase].pass;
+    
+    // Update the display
+    updateTestLogDisplay();
+    showNotification('Test fail log added', 'error');
+}
+
+// Update the test log display in the selected test case panel
+function updateTestLogDisplay() {
+    if (!currentlyDisplayedTestCase) return;
+    
+    // Get the test logs for the current test case
+    const testLogs = testLogEntries[currentlyDisplayedTestCase];
+    if (!testLogs) return;
+    
+    // Get the selected test case display element
+    const logContainer = document.createElement('div');
+    logContainer.className = 'test-log-container';
+    
+    // Add a heading for the test logs
+    const logHeading = document.createElement('h4');
+    logHeading.textContent = 'Test Logs';
+    logContainer.appendChild(logHeading);
+    
+    // Add the start log if it exists
+    if (testLogs.start) {
+        const startLog = document.createElement('div');
+        startLog.className = 'test-log-entry test-log-start';
+        startLog.innerHTML = `<strong>Start:</strong> ${formatTimestamp(testLogs.start.timestamp)} - ${testLogs.start.text}`;
+        logContainer.appendChild(startLog);
+    }
+    
+    // Add the pass log if it exists
+    if (testLogs.pass) {
+        const passLog = document.createElement('div');
+        passLog.className = 'test-log-entry test-log-pass';
+        passLog.innerHTML = `<strong>Pass:</strong> ${formatTimestamp(testLogs.pass.timestamp)} - ${testLogs.pass.text}`;
+        logContainer.appendChild(passLog);
+    }
+    
+    // Add the fail log if it exists
+    if (testLogs.fail) {
+        const failLog = document.createElement('div');
+        failLog.className = 'test-log-entry test-log-fail';
+        failLog.innerHTML = `<strong>Fail:</strong> ${formatTimestamp(testLogs.fail.timestamp)} - ${testLogs.fail.text}`;
+        logContainer.appendChild(failLog);
+    }
+    
+    // Find the existing log container if it exists
+    const existingLogContainer = selectedTestCaseDisplay.querySelector('.test-log-container');
+    if (existingLogContainer) {
+        // Replace the existing log container
+        existingLogContainer.replaceWith(logContainer);
+    } else {
+        // Add the log container to the selected test case display
+        selectedTestCaseDisplay.appendChild(logContainer);
+    }
 }
 
 // Initialize the application when the DOM is loaded

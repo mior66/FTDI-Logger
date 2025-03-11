@@ -142,13 +142,23 @@ button:disabled {
 }
 
 button.primary {
-    background-color: #0f6d2a;
+    background-color: #0072ff; /* Blue */
     color: white;
-    border: 1px solid #0d5c23;
+    border: 1px solid #0058cc;
 }
 
 button.primary:hover {
-    background-color: #128c36;
+    background-color: #0058cc;
+}
+
+#disconnect-button {
+    background-color: #003366; /* Dark Blue */
+    color: white;
+    border: 1px solid #002244;
+}
+
+#disconnect-button:hover:not(:disabled) {
+    background-color: #002244;
 }
 
 #connection-status {
@@ -427,6 +437,75 @@ button.primary:hover {
     background-color: #0072ff;
 }
 
+/* Test Action Buttons */
+/* Remove the test-action-buttons class since we're not using it anymore */
+
+.test-button {
+    padding: 8px 16px;
+    border: none !important;
+    border-radius: 4px;
+    font-weight: 500;
+    color: white !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 70px;
+}
+
+.test-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.test-start {
+    background-color: #FF8C00; /* Orange */
+}
+
+.test-start:hover:not(:disabled) {
+    background-color: #E67300;
+}
+
+.test-pass {
+    background-color: #2e7d32; /* Green */
+}
+
+.test-pass:hover:not(:disabled) {
+    background-color: #1b5e20;
+}
+
+.test-fail {
+    background-color: #c62828; /* Red */
+}
+
+.test-fail:hover:not(:disabled) {
+    background-color: #b71c1c;
+}
+
+/* Test Log Entries */
+.test-log-entry {
+    padding: 8px 10px;
+    margin: 5px 0;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.test-log-start {
+    background-color: #fff3e0;
+    border-left: 3px solid #FF8C00;
+}
+
+.test-log-pass {
+    background-color: rgba(46, 125, 50, 0.1);
+    border-left: 3px solid #2e7d32;
+    color: #2e7d32;
+}
+
+.test-log-fail {
+    background-color: rgba(198, 40, 40, 0.1);
+    border-left: 3px solid #c62828;
+    color: #c62828;
+}
+
 /* Selected Test Case Display Panel */
 .selected-test-case-panel {
     margin-bottom: 20px;
@@ -471,10 +550,17 @@ button.primary:hover {
     background-color: rgba(255, 255, 255, 0.3);
 }
 
+.selected-test-case-panel .export-button {
+    background-color: rgba(0, 114, 255, 0.3);
+}
+
+.selected-test-case-panel .export-button:hover {
+    background-color: rgba(0, 114, 255, 0.5);
+}
+
 #selected-test-case-display {
     padding: 15px;
-    max-height: 300px;
-    overflow-y: auto;
+    /* Removed max-height and overflow-y to allow full expansion */
 }
 
 #selected-test-case-display table {
@@ -519,6 +605,24 @@ button.primary:hover {
     height: 100%;
     color: #999;
     font-style: italic;
+}
+
+/* Test log container styling */
+.test-log-container {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    border: 1px solid #eee;
+}
+
+.test-log-container h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 16px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
 }
 
 .loading {
