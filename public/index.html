@@ -11,6 +11,7 @@
         <header>
             <h1>Adam's FTDI Logger</h1>
             <p class="subtitle">A sleek, real-time serial monitor for FTDI devices</p>
+            <a href="#test-plan" class="test-plan-link">View Adam's LV Test Plan</a>
         </header>
         
         <div class="connection-panel">
@@ -23,19 +24,7 @@
                 <button id="refresh-ports">Refresh</button>
             </div>
             
-            <div class="form-group">
-                <label for="baud-rate">Baud Rate:</label>
-                <select id="baud-rate">
-                    <option value="9600">9600</option>
-                    <option value="19200">19200</option>
-                    <option value="38400">38400</option>
-                    <option value="57600">57600</option>
-                    <option value="115200" selected>115200</option>
-                </select>
-            </div>
-            
 
-            
             <div class="form-group">
                 <button id="connect-button" class="primary">Connect</button>
                 <button id="disconnect-button" disabled>Disconnect</button>
@@ -97,6 +86,26 @@
                             <span>Exception</span>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Plan Section -->
+        <div id="test-plan" class="test-plan-container">
+            <div class="test-plan-header">
+                <h2>Adam's LV Test Plan</h2>
+                <div class="test-plan-controls">
+                    <div class="test-plan-info">Automatically loaded from server</div>
+                </div>
+            </div>
+            
+            <div class="test-plan-content">
+                <div class="test-plan-tabs" id="test-plan-tabs">
+                    <!-- Sheet tabs will be added here dynamically -->
+                </div>
+                <div class="test-plan-table-container" id="test-plan-table-container">
+                    <!-- Table will be added here dynamically -->
+                    <div class="test-plan-placeholder">Upload a test plan Excel file to view its contents</div>
                 </div>
             </div>
         </div>

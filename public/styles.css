@@ -40,6 +40,25 @@ h1 {
     font-weight: 300;
 }
 
+.test-plan-link {
+    display: inline-block;
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+    color: white;
+    text-decoration: none;
+    border-radius: 30px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.test-plan-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #ff5252, #ff7043);
+}
+
 .connection-panel {
     display: flex;
     flex-wrap: wrap;
@@ -185,6 +204,183 @@ button.primary:hover {
 
 .exception-text {
     color: #3399ff; /* Blue for Exception */
+}
+
+/* Test Plan Styles */
+.test-plan-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    width: 100%;
+    min-width: 1700px;
+}
+
+.test-plan-header {
+    padding: 15px 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.test-plan-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.test-plan-info {
+    background-color: #e6f7ff;
+    color: #0072ff;
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    border-left: 3px solid #0072ff;
+}
+
+.file-upload-wrapper {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+}
+
+.file-upload-wrapper input[type=file] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    width: 0;
+}
+
+.upload-btn {
+    display: inline-block;
+    padding: 8px 12px;
+    background-color: #0072ff;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.upload-btn:hover {
+    background-color: #005dd1;
+}
+
+#test-plan-filename {
+    font-size: 14px;
+    color: #666;
+    min-width: 200px;
+}
+
+.test-plan-content {
+    display: flex;
+    flex-direction: column;
+    height: 500px;
+}
+
+.test-plan-tabs {
+    display: flex;
+    background-color: #f0f0f0;
+    border-bottom: 1px solid #ddd;
+    overflow-x: auto;
+}
+
+.test-plan-tab {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-right: 1px solid #ddd;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+}
+
+.test-plan-tab:hover {
+    background-color: #e0e0e0;
+}
+
+.test-plan-tab.active {
+    background-color: #fff;
+    border-bottom: 2px solid #0072ff;
+    font-weight: 600;
+}
+
+.test-plan-table-container {
+    flex: 1;
+    overflow: auto;
+    padding: 10px;
+}
+
+.test-plan-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.test-plan-table th {
+    background-color: #f8f9fa;
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.test-plan-table td {
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+}
+
+.test-plan-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.test-plan-table tr:hover {
+    background-color: #f0f8ff;
+}
+
+.test-plan-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #999;
+    font-style: italic;
+}
+
+.loading {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    padding: 30px;
+    color: #666;
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.error-message {
+    padding: 15px;
+    text-align: center;
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.error-details {
+    padding: 5px 15px 15px;
+    text-align: center;
+    color: #666;
+    font-size: 0.9em;
 }
 
 /* Full line coloring for error window */

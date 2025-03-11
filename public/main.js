@@ -6,7 +6,6 @@ let errorToLogMap = new Map();
 
 // DOM Elements
 const portSelect = document.getElementById('port-select');
-const baudRateSelect = document.getElementById('baud-rate');
 const connectButton = document.getElementById('connect-button');
 const disconnectButton = document.getElementById('disconnect-button');
 const refreshPortsButton = document.getElementById('refresh-ports');
@@ -22,10 +21,17 @@ const errorWindow = document.getElementById('error-window');
 const connectionStatus = document.getElementById('connection-status');
 const notification = document.getElementById('notification');
 
+// Test Plan Elements
+const testPlanTabs = document.getElementById('test-plan-tabs');
+const testPlanTableContainer = document.getElementById('test-plan-table-container');
+
 // State variables
 let isConnected = false;
 let logEntries = [];
 let errorEntries = [];
+let currentTestPlanFile = null;
+let testPlanData = null;
+let activeSheetName = null;
 
 // Initialize the application
 function init() {
@@ -35,6 +41,9 @@ function init() {
     // Load default settings
     loadDefaultSettings();
     
+    // Load the test plan data automatically
+    loadTestPlanData();
+    
     // Set up event listeners
     connectButton.addEventListener('click', connectToPort);
     disconnectButton.addEventListener('click', disconnectFromPort);
@@ -43,6 +52,8 @@ function init() {
     saveLogButton.addEventListener('click', saveLog);
     clearErrorsButton.addEventListener('click', clearErrors);
     saveErrorsButton.addEventListener('click', saveErrors);
+    
+    // Test plan data is loaded automatically
     
     // Add test button for error detection
     const testButton = document.createElement('button');
@@ -207,7 +218,7 @@ function loadDefaultSettings() {
 // Connect to the selected port
 function connectToPort() {
     const selectedPort = portSelect.value;
-    const baudRate = baudRateSelect.value;
+    const fixedBaudRate = 115200; // Fixed baud rate of 115200
     
     if (!selectedPort) {
         showNotification('Please select a port', 'error');
@@ -217,7 +228,7 @@ function connectToPort() {
     // Send connection request to the server
     socket.emit('connect-port', {
         path: selectedPort,
-        baudRate: baudRate,
+        baudRate: fixedBaudRate,
         dataBits: 8,       // Fixed to 8 data bits
         parity: 'none',    // Fixed to no parity
         stopBits: 1        // Fixed to 1 stop bit
@@ -617,6 +628,127 @@ function showNotification(message, type = 'success') {
     setTimeout(() => {
         notification.classList.add('hidden');
     }, 3000);
+}
+
+// Load test plan data automatically from the server
+function loadTestPlanData() {
+    // Show loading state
+    testPlanTableContainer.innerHTML = '<div class="loading">Loading test plan...</div>';
+    
+    fetch('/test-plan-data')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load test plan data');
+            }
+            return response.json();
+        })
+        .then(data => {
+            testPlanData = data;
+            renderTestPlanTabs(data.sheetNames);
+            // Display the first sheet by default
+            if (data.sheetNames.length > 0) {
+                displayTestPlanSheet(data.sheetNames[0]);
+            }
+            console.log('Test plan loaded successfully');
+        })
+        .catch(error => {
+            console.error('Error loading test plan:', error);
+            testPlanTableContainer.innerHTML = `
+                <div class="error-message">${error.message}</div>
+                <div class="error-details">Check the console for more details</div>
+            `;
+            showNotification('Failed to load test plan', 'error');
+        });
+}
+
+// Render the tabs for each sheet in the Excel file
+function renderTestPlanTabs(sheetNames) {
+    testPlanTabs.innerHTML = '';
+    
+    sheetNames.forEach(sheetName => {
+        const tab = document.createElement('div');
+        tab.className = 'test-plan-tab';
+        tab.textContent = sheetName;
+        tab.addEventListener('click', () => displayTestPlanSheet(sheetName));
+        testPlanTabs.appendChild(tab);
+    });
+    
+    // Set the first tab as active by default
+    if (testPlanTabs.firstChild) {
+        testPlanTabs.firstChild.classList.add('active');
+    }
+}
+
+// Display the selected sheet as a table
+function displayTestPlanSheet(sheetName) {
+    if (!testPlanData || !testPlanData.sheets || !testPlanData.sheets[sheetName]) {
+        return;
+    }
+    
+    // Update active tab
+    activeSheetName = sheetName;
+    document.querySelectorAll('.test-plan-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.textContent === sheetName) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Get the sheet data
+    const sheetData = testPlanData.sheets[sheetName];
+    
+    // Clear the container
+    testPlanTableContainer.innerHTML = '';
+    
+    // Create the table
+    const table = document.createElement('table');
+    table.className = 'test-plan-table';
+    
+    // Create header row if there's data
+    if (sheetData.length > 0) {
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        
+        // Use the first row as headers
+        const headers = sheetData[0];
+        headers.forEach(header => {
+            const th = document.createElement('th');
+            th.textContent = header || '';
+            headerRow.appendChild(th);
+        });
+        
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        // Create table body
+        const tbody = document.createElement('tbody');
+        
+        // Add data rows (skip the header row)
+        for (let i = 1; i < sheetData.length; i++) {
+            const row = document.createElement('tr');
+            const rowData = sheetData[i];
+            
+            // Handle rows with fewer cells than the header
+            for (let j = 0; j < headers.length; j++) {
+                const cell = document.createElement('td');
+                cell.textContent = rowData[j] !== undefined ? rowData[j] : '';
+                row.appendChild(cell);
+            }
+            
+            tbody.appendChild(row);
+        }
+        
+        table.appendChild(tbody);
+    } else {
+        // Show a message if the sheet is empty
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'test-plan-placeholder';
+        emptyMessage.textContent = 'This sheet is empty';
+        testPlanTableContainer.appendChild(emptyMessage);
+        return;
+    }
+    
+    testPlanTableContainer.appendChild(table);
 }
 
 // Initialize the application when the DOM is loaded

@@ -5,10 +5,19 @@ const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
 const path = require('path');
 const fs = require('fs');
+const fileUpload = require('express-fileupload');
+const XLSX = require('xlsx');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+
+// Middleware for file uploads
+app.use(fileUpload({
+  createParentPath: true,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size
+  abortOnLimit: true
+}));
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -16,6 +25,122 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Route for the main page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Route for the test plan viewer
+app.get('/test-plan', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'test-plan-viewer.html'));
+});
+
+// Route to serve the test plan data directly
+app.get('/test-plan-data', (req, res) => {
+  try {
+    console.log('Received request for test plan data');
+    
+    // Path to the pre-uploaded Excel file
+    const testPlanPath = path.join(__dirname, 'uploads', 'Adam\'s LV Test Plan.xlsx');
+    console.log('Looking for test plan at:', testPlanPath);
+    
+    // Check if the file exists
+    if (!fs.existsSync(testPlanPath)) {
+      console.error('Test plan file not found at:', testPlanPath);
+      return res.status(404).json({ error: 'Test plan file not found' });
+    }
+    
+    console.log('Test plan file found, reading content...');
+    
+    // Read the Excel file
+    const workbook = XLSX.readFile(testPlanPath, { type: 'binary', cellDates: true, cellNF: false, cellText: false });
+    
+    // Get all sheet names for the tabs
+    const sheetNames = workbook.SheetNames;
+    console.log('Found sheets:', sheetNames);
+    
+    // Create a map of all sheets
+    const allSheets = {};
+    sheetNames.forEach(sheetName => {
+      console.log('Processing sheet:', sheetName);
+      const sheet = workbook.Sheets[sheetName];
+      allSheets[sheetName] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    });
+    
+    console.log('Successfully processed all sheets');
+    
+    // Send the data back to the client
+    res.json({
+      success: true,
+      fileName: 'Adam\'s LV Test Plan.xlsx',
+      sheetNames: sheetNames,
+      sheets: allSheets
+    });
+  } catch (error) {
+    console.error('Error processing test plan file:', error);
+    res.status(500).json({ 
+      error: 'Failed to process test plan file', 
+      message: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// Route to handle Excel file uploads
+app.post('/upload-test-plan', (req, res) => {
+  try {
+    if (!req.files || Object.keys(req.files).length === 0) {
+      return res.status(400).json({ error: 'No files were uploaded' });
+    }
+
+    const testPlanFile = req.files.testPlan;
+    const uploadPath = path.join(__dirname, 'uploads', testPlanFile.name);
+    
+    // Create uploads directory if it doesn't exist
+    if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
+      fs.mkdirSync(path.join(__dirname, 'uploads'), { recursive: true });
+    }
+
+    // Move the uploaded file to the uploads directory
+    testPlanFile.mv(uploadPath, async (err) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      try {
+        // Read the Excel file
+        const workbook = XLSX.readFile(uploadPath);
+        
+        // Get the first sheet
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convert to JSON
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        
+        // Get all sheet names for the tabs
+        const sheetNames = workbook.SheetNames;
+        
+        // Create a map of all sheets
+        const allSheets = {};
+        sheetNames.forEach(sheetName => {
+          const sheet = workbook.Sheets[sheetName];
+          allSheets[sheetName] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        });
+        
+        // Send the data back to the client
+        res.json({
+          success: true,
+          fileName: testPlanFile.name,
+          sheetNames: sheetNames,
+          sheets: allSheets
+        });
+      } catch (parseErr) {
+        console.error('Error parsing Excel file:', parseErr);
+        res.status(500).json({ error: 'Failed to parse Excel file' });
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({ error: 'Failed to upload file' });
+  }
 });
 
 // Route to get default settings

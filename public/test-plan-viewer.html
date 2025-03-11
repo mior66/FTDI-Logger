@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adam's LV Test Plan Viewer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #0072ff, #00c6ff);
+            color: white;
+            padding: 25px;
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            letter-spacing: 1px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .subtitle {
+            margin-top: 8px;
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .test-plan-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .test-plan-tabs {
+            display: flex;
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            overflow-x: auto;
+        }
+        
+        .test-plan-tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-right: 1px solid #ddd;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        
+        .test-plan-tab:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .test-plan-tab.active {
+            background-color: #fff;
+            border-bottom: 3px solid #0072ff;
+            font-weight: 600;
+        }
+        
+        .test-plan-table-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+        
+        .test-plan-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        .test-plan-table th {
+            background-color: #f8f9fa;
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid #ddd;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .test-plan-table td {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        
+        .test-plan-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .test-plan-table tr:hover {
+            background-color: #f0f8ff;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #666;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #0072ff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to FTDI Logger</a>
+        
+        <header>
+            <h1>Adam's LV Test Plan</h1>
+            <p class="subtitle">Interactive Test Plan Viewer</p>
+        </header>
+        
+        <div class="test-plan-container">
+            <div class="test-plan-tabs" id="test-plan-tabs">
+                <!-- Sheet tabs will be added here dynamically -->
+                <div class="loading">Loading test plan sheets...</div>
+            </div>
+            
+            <div class="test-plan-table-container" id="test-plan-table-container">
+                <!-- Table will be added here dynamically -->
+                <div class="loading">Loading test plan data...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // State variables
+        let testPlanData = null;
+        let activeSheetName = null;
+        
+        // DOM Elements
+        const testPlanTabs = document.getElementById('test-plan-tabs');
+        const testPlanTableContainer = document.getElementById('test-plan-table-container');
+        
+        // Initialize the application
+        function init() {
+            // Load the test plan data directly from the server
+            loadTestPlanData();
+        }
+        
+        // Load test plan data
+        function loadTestPlanData() {
+            // Show loading state
+            testPlanTableContainer.innerHTML = `
+                <div class="loading">
+                    <p>Loading test plan data...</p>
+                    <p style="font-size: 14px; margin-top: 10px;">If this takes too long, try refreshing the page</p>
+                </div>
+            `;
+            
+            console.log('Fetching test plan data from server...');
+            
+            fetch('/test-plan-data')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            throw new Error(`Failed to load test plan data: ${response.status} ${response.statusText}\n${text}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Data received:', data ? 'Yes' : 'No');
+                    if (!data) {
+                        throw new Error('No data received from server');
+                    }
+                    
+                    testPlanData = data;
+                    console.log('Sheet names:', data.sheetNames);
+                    
+                    renderTestPlanTabs(data.sheetNames);
+                    // Display the first sheet by default
+                    if (data.sheetNames && data.sheetNames.length > 0) {
+                        displayTestPlanSheet(data.sheetNames[0]);
+                    } else {
+                        throw new Error('No sheets found in the test plan');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading test plan data:', error);
+                    testPlanTableContainer.innerHTML = `
+                        <div style="padding: 20px; color: #dc3545; text-align: center;">
+                            <h3>Error Loading Test Plan</h3>
+                            <p>${error.message}</p>
+                            <div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 4px; text-align: left;">
+                                <p><strong>Troubleshooting:</strong></p>
+                                <ul style="text-align: left; margin-top: 10px;">
+                                    <li>Check that the server is running</li>
+                                    <li>Verify that 'Adam\'s LV Test Plan.xlsx' exists in the uploads folder</li>
+                                    <li>Try refreshing the page</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                });
+        }
+        
+        // Render the tabs for each sheet in the Excel file
+        function renderTestPlanTabs(sheetNames) {
+            testPlanTabs.innerHTML = '';
+            
+            sheetNames.forEach(sheetName => {
+                const tab = document.createElement('div');
+                tab.className = 'test-plan-tab';
+                tab.textContent = sheetName;
+                tab.addEventListener('click', () => displayTestPlanSheet(sheetName));
+                testPlanTabs.appendChild(tab);
+            });
+            
+            // Set the first tab as active by default
+            if (testPlanTabs.firstChild) {
+                testPlanTabs.firstChild.classList.add('active');
+            }
+        }
+        
+        // Display the selected sheet as a table
+        function displayTestPlanSheet(sheetName) {
+            if (!testPlanData || !testPlanData.sheets || !testPlanData.sheets[sheetName]) {
+                return;
+            }
+            
+            // Update active tab
+            activeSheetName = sheetName;
+            document.querySelectorAll('.test-plan-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.textContent === sheetName) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // Get the sheet data
+            const sheetData = testPlanData.sheets[sheetName];
+            
+            // Clear the container
+            testPlanTableContainer.innerHTML = '';
+            
+            // Create the table
+            const table = document.createElement('table');
+            table.className = 'test-plan-table';
+            
+            // Create header row if there's data
+            if (sheetData.length > 0) {
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                
+                // Use the first row as headers
+                const headers = sheetData[0];
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header || '';
+                    headerRow.appendChild(th);
+                });
+                
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+                
+                // Create table body
+                const tbody = document.createElement('tbody');
+                
+                // Add data rows (skip the header row)
+                for (let i = 1; i < sheetData.length; i++) {
+                    const row = document.createElement('tr');
+                    const rowData = sheetData[i];
+                    
+                    // Handle rows with fewer cells than the header
+                    for (let j = 0; j < headers.length; j++) {
+                        const cell = document.createElement('td');
+                        cell.textContent = rowData[j] !== undefined ? rowData[j] : '';
+                        row.appendChild(cell);
+                    }
+                    
+                    tbody.appendChild(row);
+                }
+                
+                table.appendChild(tbody);
+            } else {
+                // Show a message if the sheet is empty
+                testPlanTableContainer.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #666;">
+                        This sheet is empty
+                    </div>
+                `;
+                return;
+            }
+            
+            testPlanTableContainer.appendChild(table);
+        }
+        
+        // Initialize the application when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
