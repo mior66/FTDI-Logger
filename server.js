@@ -23,9 +23,6 @@ app.get('/default-settings', (req, res) => {
   res.json({
     defaultPort: 'usbserial-141101',
     defaultBaudRate: 115200,
-    defaultDataBits: 8,
-    defaultParity: 'none',
-    defaultStopBits: 1,
     timeStampFormat: 'Time+Millis'
   });
 });

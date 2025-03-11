@@ -1,16 +1,14 @@
-# FTDI Serial Logger
+# Adam's FTDI Logger
 
-A web application that listens to FTDI chips on USB ports and displays the logging in a real-time web interface. This tool is designed to capture and display serial data from FTDI devices in a user-friendly web interface, similar to CoolTerm but with web-based accessibility.
+A sleek, web-based application that listens to FTDI chips on USB ports and displays the logging in a real-time interface. This tool is designed to capture and display serial data from FTDI devices in a modern, user-friendly web interface, similar to CoolTerm but with web-based accessibility.
 
 ## Features
 
 - Automatically detects and lists available serial ports
 - Intelligently identifies and highlights FTDI devices in the port selection dropdown
-- Fully configurable serial connection settings:
-  - Baud rate (default: 115200)
-  - Data bits (default: 8)
-  - Parity (default: None)
-  - Stop bits (default: 1)
+- Simplified serial connection settings:
+  - Selectable baud rate (default: 115200)
+  - Fixed to 8 data bits, no parity, 1 stop bit
 - Real-time log display with customizable timestamps
 - Auto-scroll option for continuous monitoring
 - Save logs to a text file

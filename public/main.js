@@ -4,9 +4,6 @@ const socket = io();
 // DOM Elements
 const portSelect = document.getElementById('port-select');
 const baudRateSelect = document.getElementById('baud-rate');
-const dataBitsSelect = document.getElementById('data-bits');
-const paritySelect = document.getElementById('parity');
-const stopBitsSelect = document.getElementById('stop-bits');
 const connectButton = document.getElementById('connect-button');
 const disconnectButton = document.getElementById('disconnect-button');
 const refreshPortsButton = document.getElementById('refresh-ports');
@@ -185,9 +182,6 @@ function loadDefaultSettings() {
 function connectToPort() {
     const selectedPort = portSelect.value;
     const baudRate = baudRateSelect.value;
-    const dataBits = dataBitsSelect.value;
-    const parity = paritySelect.value;
-    const stopBits = stopBitsSelect.value;
     
     if (!selectedPort) {
         showNotification('Please select a port', 'error');
@@ -198,9 +192,9 @@ function connectToPort() {
     socket.emit('connect-port', {
         path: selectedPort,
         baudRate: baudRate,
-        dataBits: dataBits,
-        parity: parity,
-        stopBits: stopBits
+        dataBits: 8,       // Fixed to 8 data bits
+        parity: 'none',    // Fixed to no parity
+        stopBits: 1        // Fixed to 1 stop bit
     });
     
     // Update UI to show connecting state
@@ -224,9 +218,6 @@ function updateConnectionStatus(status) {
         disconnectButton.disabled = false;
         portSelect.disabled = true;
         baudRateSelect.disabled = true;
-        dataBitsSelect.disabled = true;
-        paritySelect.disabled = true;
-        stopBitsSelect.disabled = true;
         refreshPortsButton.disabled = true;
         
         showNotification('Connected successfully', 'success');
@@ -237,9 +228,6 @@ function updateConnectionStatus(status) {
         disconnectButton.disabled = true;
         portSelect.disabled = false;
         baudRateSelect.disabled = false;
-        dataBitsSelect.disabled = false;
-        paritySelect.disabled = false;
-        stopBitsSelect.disabled = false;
         refreshPortsButton.disabled = false;
         
         if (logEntries.length > 0) {
