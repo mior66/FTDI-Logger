@@ -124,13 +124,31 @@ io.on('connection', (socket) => {
           
           // For raw data mode, use a simpler approach without the ReadlineParser
           // This will capture all data exactly as it comes in
+          
+          // Create a buffer to store incomplete data
+          let dataBuffer = '';
+          
           currentPort.on('data', (buffer) => {
             // Convert buffer to string - use 'binary' encoding to preserve all bytes
             const data = buffer.toString('binary');
             console.log('Received data:', data);
             
-            // Send the data to all connected clients
-            io.emit('serial-data', { timestamp: new Date().toISOString(), data });
+            // Append to our buffer
+            dataBuffer += data;
+            
+            // Check if we have complete lines (ending with \r, \n, or both)
+            const lines = dataBuffer.split(/\r\n|\r|\n/);
+            
+            // If the last line doesn't end with a newline, it's incomplete
+            // Keep it in the buffer for the next data chunk
+            dataBuffer = lines.pop() || '';
+            
+            // Send complete lines to all connected clients
+            for (const line of lines) {
+              if (line.trim().length > 0) {
+                io.emit('serial-data', { timestamp: new Date().toISOString(), data: line });
+              }
+            }
           });
           
           // Send a test message to verify the client-side display is working

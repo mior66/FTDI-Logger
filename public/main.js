@@ -1,6 +1,9 @@
 // Connect to Socket.io server
 const socket = io();
 
+// Map to store the relationship between error entries and log entries
+let errorToLogMap = new Map();
+
 // DOM Elements
 const portSelect = document.getElementById('port-select');
 const baudRateSelect = document.getElementById('baud-rate');
@@ -266,11 +269,13 @@ function addLogEntry(timestamp, message) {
     
     // Create log entry object
     const entry = { timestamp, message };
+    const entryIndex = logEntries.length;
     logEntries.push(entry);
     
     // Create DOM elements for the log entry
     const logEntry = document.createElement('div');
     logEntry.className = 'log-entry';
+    logEntry.dataset.logIndex = entryIndex;
     
     // Only add timestamp if the timestamp checkbox is checked
     if (timestampCheckbox.checked) {
@@ -328,11 +333,24 @@ function addLogEntry(timestamp, message) {
 function addErrorEntry(timestamp, message) {
     // Create error entry object
     const entry = { timestamp, message };
+    const errorIndex = errorEntries.length;
     errorEntries.push(entry);
+    
+    // Find the corresponding log entry index
+    const logIndex = findLogEntryIndex(timestamp, message);
+    if (logIndex !== -1) {
+        errorToLogMap.set(errorIndex, logIndex);
+    }
     
     // Create DOM elements for the error entry
     const errorEntry = document.createElement('div');
-    errorEntry.className = 'log-entry';
+    errorEntry.className = 'log-entry clickable';
+    errorEntry.dataset.errorIndex = errorIndex;
+    
+    // Add click event to navigate to the corresponding log entry
+    errorEntry.addEventListener('click', function() {
+        navigateToLogEntry(errorIndex);
+    });
     
     // Determine the line color based on message content
     const lowerCaseMessage = message.toLowerCase();
@@ -527,6 +545,62 @@ function applyColorCoding(message) {
         .replace(exceptionRegex, match => `<span class="exception-text">${match}</span>`);
     
     return coloredMessage;
+}
+
+// Find the corresponding log entry index for an error entry
+function findLogEntryIndex(timestamp, message) {
+    // Look for an exact match first
+    for (let i = 0; i < logEntries.length; i++) {
+        if (logEntries[i].timestamp === timestamp && logEntries[i].message === message) {
+            return i;
+        }
+    }
+    
+    // If no exact match, look for a message match (timestamps might differ slightly)
+    for (let i = 0; i < logEntries.length; i++) {
+        if (logEntries[i].message === message) {
+            return i;
+        }
+    }
+    
+    return -1; // No match found
+}
+
+// Navigate to the corresponding log entry when an error entry is clicked
+function navigateToLogEntry(errorIndex) {
+    const logIndex = errorToLogMap.get(parseInt(errorIndex));
+    
+    if (logIndex !== undefined) {
+        // Find the log entry element
+        const logEntryElement = document.querySelector(`.log-entry[data-log-index="${logIndex}"]`);
+        
+        if (logEntryElement) {
+            // Remove highlight from any previously highlighted entry
+            const previousHighlight = document.querySelector('.log-entry.highlighted');
+            if (previousHighlight) {
+                previousHighlight.classList.remove('highlighted');
+            }
+            
+            // Highlight the log entry
+            logEntryElement.classList.add('highlighted');
+            
+            // Scroll to the log entry
+            logEntryElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Flash the log entry to make it more noticeable
+            logEntryElement.classList.add('flash');
+            setTimeout(() => {
+                logEntryElement.classList.remove('flash');
+            }, 1000);
+            
+            // Show a notification
+            showNotification('Navigated to log entry', 'info');
+        } else {
+            showNotification('Could not find the corresponding log entry', 'error');
+        }
+    } else {
+        showNotification('No matching log entry found', 'error');
+    }
 }
 
 // Show a notification
