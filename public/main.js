@@ -982,6 +982,11 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
     // Store the currently displayed test case ID
     currentlyDisplayedTestCase = testCaseId;
     
+    // Initialize test case notes if they don't exist
+    if (!window.testCaseNotes) {
+        window.testCaseNotes = {};
+    }
+    
     // Clear the display area
     selectedTestCaseDisplay.innerHTML = '';
     
@@ -1098,6 +1103,41 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
     if (testLogEntries[testCaseId]) {
         updateTestLogDisplay();
     }
+    
+    // Add expandable notes section
+    const notesContainer = document.createElement('div');
+    notesContainer.className = 'test-case-notes-container';
+    
+    const notesToggle = document.createElement('div');
+    notesToggle.className = 'test-case-notes-toggle';
+    notesToggle.innerHTML = '<span class="toggle-icon">▶</span> General Notes';
+    notesToggle.addEventListener('click', function() {
+        notesContent.classList.toggle('expanded');
+        const icon = this.querySelector('.toggle-icon');
+        icon.textContent = notesContent.classList.contains('expanded') ? '▼' : '▶';
+    });
+    
+    const notesContent = document.createElement('div');
+    notesContent.className = 'test-case-notes-content';
+    
+    const notesTextarea = document.createElement('textarea');
+    notesTextarea.className = 'test-case-notes-textarea';
+    notesTextarea.placeholder = 'Enter general notes for this test case here...';
+    
+    // Load any existing notes for this test case
+    if (window.testCaseNotes[testCaseId]) {
+        notesTextarea.value = window.testCaseNotes[testCaseId];
+    }
+    
+    // Save notes when changed
+    notesTextarea.addEventListener('input', function() {
+        window.testCaseNotes[testCaseId] = this.value;
+    });
+    
+    notesContent.appendChild(notesTextarea);
+    notesContainer.appendChild(notesToggle);
+    notesContainer.appendChild(notesContent);
+    selectedTestCaseDisplay.appendChild(notesContainer);
 }
 
 // Clear the selected test case panel
@@ -1106,6 +1146,8 @@ function clearSelectedTestCase() {
     selectedTestCaseDisplay.innerHTML = '<div class="test-case-placeholder">No test case selected. Select a test case from the Test Plan below.</div>';
     updateTestActionButtonsState();
     exportSelectedTestCaseButton.disabled = true;
+    
+    // Don't clear the notes - they'll persist for when the user selects the test case again
 }
 
 // Export the selected test case with all logs between start and pass/fail timestamps

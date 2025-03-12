@@ -589,6 +589,51 @@ button.primary:hover {
     background-color: #fff;
 }
 
+/* Test case notes styles */
+.test-case-notes-container {
+    margin-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.test-case-notes-toggle {
+    padding: 10px 15px;
+    background-color: #f8f8f8;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+}
+
+.test-case-notes-toggle:hover {
+    background-color: #f0f0f0;
+}
+
+.toggle-icon {
+    margin-right: 8px;
+    font-size: 12px;
+}
+
+.test-case-notes-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.test-case-notes-content.expanded {
+    max-height: 300px;
+}
+
+.test-case-notes-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px;
+    border: none;
+    border-top: 1px solid #eee;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
 .selected-test-case-panel .test-case-header {
     display: flex;
     justify-content: space-between;
