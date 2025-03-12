@@ -293,7 +293,7 @@ button.primary:hover {
 }
 
 .connection-text {
-    color: #003366; /* Dark blue for Connection attempts */
+    color: #FFD700; /* Yellow for Connection attempts - changed from dark blue for better visibility */
 }
 
 /* Test Plan Styles */
@@ -751,7 +751,7 @@ button.primary:hover {
 }
 
 .connection-line {
-    color: #003366 !important; /* Dark blue for Connection attempts */
+    color: #FFD700 !important; /* Yellow for Connection attempts - changed from dark blue for better visibility */
 }
 
 /* Color legend styles */
@@ -814,7 +814,7 @@ button.primary:hover {
 }
 
 .connection-sample {
-    background-color: #003366;
+    background-color: #FFD700;
 }
 
 #error-window .log-entry {
