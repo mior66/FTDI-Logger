@@ -37,8 +37,8 @@ app.get('/test-plan-data', (req, res) => {
   try {
     console.log('Received request for test plan data');
     
-    // Path to the pre-uploaded Excel file
-    const testPlanPath = path.join(__dirname, 'uploads', 'Adam\'s LV Test Plan.xlsx');
+    // Path to the updated Excel file in Downloads folder
+    const testPlanPath = path.join(process.env.HOME, 'Downloads', 'Adam\'s LV Test Plan.xlsx');
     console.log('Looking for test plan at:', testPlanPath);
     
     // Check if the file exists

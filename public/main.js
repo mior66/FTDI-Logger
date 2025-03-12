@@ -798,12 +798,22 @@ function displayTestPlanSheet(sheetName) {
         
         // Find the index of the column that likely contains test case numbers
         // Usually it's the first column, but we'll look for columns with "Test" or "#" in the header
+        // We'll prioritize exact matches for "test #" column
         let testCaseColumnIndex = 0;
         for (let j = 0; j < headers.length; j++) {
             const headerText = headers[j]?.toString().toLowerCase() || '';
+            
+            // Prioritize exact match for "test #" column
+            if (headerText === 'test #') {
+                testCaseColumnIndex = j;
+                console.log('Found exact "test #" column at index:', j);
+                break;
+            }
+            // Otherwise look for columns containing test and # or number or case
             if (headerText.includes('test') && (headerText.includes('#') || headerText.includes('number') || headerText.includes('case'))) {
                 testCaseColumnIndex = j;
-                break;
+                console.log('Found test case column at index:', j, 'with header:', headerText);
+                // Don't break here, continue looking for exact match
             }
         }
         
@@ -822,13 +832,20 @@ function displayTestPlanSheet(sheetName) {
             // 1. Is not empty/undefined
             // 2. Contains numeric characters (likely a test case number)
             // 3. Starts with "Test" or contains "#"
+            // 4. Is a pure number (which is likely from the "test #" column)
             const isTestCaseRow = testCaseValue && (
                 (typeof testCaseValue === 'string' && 
                  (testCaseValue.match(/\d/) || 
                   testCaseValue.toLowerCase().startsWith('test') || 
                   testCaseValue.includes('#'))) ||
-                (typeof testCaseValue === 'number')
+                (typeof testCaseValue === 'number') ||
+                (!isNaN(parseInt(testCaseValue, 10)))
             );
+            
+            // Log the test case value for debugging
+            if (isTestCaseRow) {
+                console.log('Found test case row with value:', testCaseValue, 'at row:', i);
+            }
             
             if (isTestCaseRow) {
                 // Start a new test case group
@@ -864,7 +881,8 @@ function displayTestPlanSheet(sheetName) {
                  (testCaseValue.match(/\d/) || 
                   testCaseValue.toLowerCase().startsWith('test') || 
                   testCaseValue.includes('#'))) ||
-                (typeof testCaseValue === 'number')
+                (typeof testCaseValue === 'number') ||
+                (!isNaN(parseInt(testCaseValue, 10)))
             );
             
             if (isTestCaseRow) {
