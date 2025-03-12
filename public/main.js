@@ -628,10 +628,37 @@ function loadTestPlanData() {
 function renderTestPlanTabs(sheetNames) {
     testPlanTabs.innerHTML = '';
     
+    // Define tabs to exclude
+    const excludedTabs = ['summary of issues', 'release notes'];
+    
+    // Define tab name mappings
+    const tabNameMappings = {
+        "Adam's LV Test Plan": "LV Test Plan",
+        "PairingConfig": "Pairing-Config",
+        "GeneralMisc": "General Items"
+    };
+    
+    // Filter and create tabs
+    const filteredSheetNames = [];
+    
     sheetNames.forEach(sheetName => {
+        // Skip excluded tabs
+        if (excludedTabs.includes(sheetName.toLowerCase())) {
+            return;
+        }
+        
+        filteredSheetNames.push(sheetName);
+        
         const tab = document.createElement('div');
         tab.className = 'test-plan-tab';
-        tab.textContent = sheetName;
+        
+        // Apply name mapping if available
+        const displayName = tabNameMappings[sheetName] || sheetName;
+        tab.textContent = displayName;
+        
+        // Store the original sheet name as a data attribute
+        tab.dataset.sheetName = sheetName;
+        
         tab.addEventListener('click', () => displayTestPlanSheet(sheetName));
         testPlanTabs.appendChild(tab);
     });
@@ -639,6 +666,11 @@ function renderTestPlanTabs(sheetNames) {
     // Set the first tab as active by default
     if (testPlanTabs.firstChild) {
         testPlanTabs.firstChild.classList.add('active');
+    }
+    
+    // If we filtered out the first tab, make sure to display the first available tab
+    if (filteredSheetNames.length > 0 && sheetNames[0] !== filteredSheetNames[0]) {
+        displayTestPlanSheet(filteredSheetNames[0]);
     }
 }
 
@@ -652,7 +684,7 @@ function displayTestPlanSheet(sheetName) {
     activeSheetName = sheetName;
     document.querySelectorAll('.test-plan-tab').forEach(tab => {
         tab.classList.remove('active');
-        if (tab.textContent === sheetName) {
+        if (tab.dataset.sheetName === sheetName) {
             tab.classList.add('active');
         }
     });
@@ -688,7 +720,21 @@ function displayTestPlanSheet(sheetName) {
         
         // Use the first row as headers
         const headers = filteredSheetData[0];
-        headers.forEach(header => {
+        
+        // Find the indices of the 'Build' and 'Pass/Fail' columns to exclude them
+        const excludeColumns = [];
+        headers.forEach((header, index) => {
+            const headerText = (header || '').toString().toLowerCase();
+            if (headerText === 'build' || headerText === 'pass/fail' || headerText === 'pass' || headerText === 'fail') {
+                excludeColumns.push(index);
+            }
+        });
+        
+        // Create header cells, excluding the 'Build' and 'Pass/Fail' columns
+        headers.forEach((header, index) => {
+            // Skip excluded columns
+            if (excludeColumns.includes(index)) return;
+            
             const th = document.createElement('th');
             th.textContent = header || '';
             headerRow.appendChild(th);
@@ -776,8 +822,11 @@ function displayTestPlanSheet(sheetName) {
                 row.dataset.testCaseId = `${sheetName}-test-${testCaseValue}`;
             }
             
-            // Handle rows with fewer cells than the header
+            // Handle rows with fewer cells than the header, excluding 'Build' and 'Pass/Fail' columns
             for (let j = 0; j < headers.length; j++) {
+                // Skip excluded columns
+                if (excludeColumns.includes(j)) continue;
+                
                 const cell = document.createElement('td');
                 cell.textContent = rowData[j] !== undefined ? rowData[j] : '';
                 row.appendChild(cell);
@@ -916,11 +965,29 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
     // Get the headers (first row)
     const headers = filteredSheetData[0];
     
+    // Find the indices of the 'Build' and 'Pass/Fail' columns to exclude them
+    const excludeColumns = [];
+    headers.forEach((header, index) => {
+        const headerText = (header || '').toString().toLowerCase();
+        if (headerText === 'build' || headerText === 'pass/fail' || headerText === 'pass' || headerText === 'fail') {
+            excludeColumns.push(index);
+        }
+    });
+    
     // Create a title for the test case
     const testCaseNumber = testCaseId.split('-test-')[1];
     const titleDiv = document.createElement('div');
     titleDiv.className = 'test-case-title';
-    titleDiv.textContent = `Test Case ${testCaseNumber} from ${sheetName}`;
+    
+    // Use the mapped sheet name if available
+    const tabNameMappings = {
+        "Adam's LV Test Plan": "LV Test Plan",
+        "PairingConfig": "Pairing-Config",
+        "GeneralMisc": "General Items"
+    };
+    const displaySheetName = tabNameMappings[sheetName] || sheetName;
+    
+    titleDiv.textContent = `Test Case ${testCaseNumber} from ${displaySheetName}`;
     selectedTestCaseDisplay.appendChild(titleDiv);
     
     // Create a table for the test case data
@@ -930,7 +997,10 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     
-    headers.forEach(header => {
+    headers.forEach((header, index) => {
+        // Skip excluded columns
+        if (excludeColumns.includes(index)) return;
+        
         const th = document.createElement('th');
         th.textContent = header || '';
         headerRow.appendChild(th);
@@ -948,8 +1018,11 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
             const rowData = filteredSheetData[rowIndex];
             const row = document.createElement('tr');
             
-            // Add cells for each column
+            // Add cells for each column, excluding Build and Pass/Fail columns
             for (let j = 0; j < headers.length; j++) {
+                // Skip excluded columns
+                if (excludeColumns.includes(j)) continue;
+                
                 const cell = document.createElement('td');
                 cell.textContent = rowData[j] !== undefined ? rowData[j] : '';
                 row.appendChild(cell);
@@ -1095,10 +1168,6 @@ function exportSelectedTestCase() {
         new Date(testLogs.pass.timestamp).getTime() : 
         (testLogs.fail ? new Date(testLogs.fail.timestamp).getTime() : Date.now());
     
-    // Add all logs section
-    textContent += `COMPLETE LOG ENTRIES:\n`;
-    textContent += `--------------------\n\n`;
-    
     // Filter logs that fall between the start and end timestamps
     const relevantLogs = [];
     logEntries.forEach(entry => {
@@ -1107,6 +1176,77 @@ function exportSelectedTestCase() {
             relevantLogs.push(entry);
         }
     });
+    
+    // Add categorized log entries section
+    textContent += `CATEGORIZED LOG ENTRIES:\n`;
+    textContent += `----------------------\n\n`;
+    
+    // Categorize logs by type
+    const errorLogs = [];
+    const failureLogs = [];
+    const unexpectedLogs = [];
+    const exceptionLogs = [];
+    
+    // Filter logs by category
+    relevantLogs.forEach(entry => {
+        const lowerCaseMessage = entry.message.toLowerCase();
+        if (lowerCaseMessage.includes('error')) {
+            errorLogs.push(entry);
+        }
+        if (lowerCaseMessage.includes('fail') || lowerCaseMessage.includes('failure') || lowerCaseMessage.includes('fails') || lowerCaseMessage.includes('failed')) {
+            failureLogs.push(entry);
+        }
+        if (lowerCaseMessage.includes('unexpected')) {
+            unexpectedLogs.push(entry);
+        }
+        if (lowerCaseMessage.includes('exception')) {
+            exceptionLogs.push(entry);
+        }
+    });
+    
+    // Add errors section if there are any
+    if (errorLogs.length > 0) {
+        textContent += `ERRORS:\n`;
+        textContent += `-------\n`;
+        errorLogs.forEach(entry => {
+            textContent += `${entry.timestamp} - ${entry.message}\n`;
+        });
+        textContent += `\n`;
+    }
+    
+    // Add failures section if there are any
+    if (failureLogs.length > 0) {
+        textContent += `FAILURES:\n`;
+        textContent += `---------\n`;
+        failureLogs.forEach(entry => {
+            textContent += `${entry.timestamp} - ${entry.message}\n`;
+        });
+        textContent += `\n`;
+    }
+    
+    // Add unexpected section if there are any
+    if (unexpectedLogs.length > 0) {
+        textContent += `UNEXPECTED:\n`;
+        textContent += `-----------\n`;
+        unexpectedLogs.forEach(entry => {
+            textContent += `${entry.timestamp} - ${entry.message}\n`;
+        });
+        textContent += `\n`;
+    }
+    
+    // Add exceptions section if there are any
+    if (exceptionLogs.length > 0) {
+        textContent += `EXCEPTIONS:\n`;
+        textContent += `-----------\n`;
+        exceptionLogs.forEach(entry => {
+            textContent += `${entry.timestamp} - ${entry.message}\n`;
+        });
+        textContent += `\n`;
+    }
+    
+    // Add all logs section
+    textContent += `COMPLETE LOG ENTRIES:\n`;
+    textContent += `--------------------\n\n`;
     
     // Add each log entry
     relevantLogs.forEach(entry => {
