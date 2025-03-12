@@ -57,12 +57,12 @@ header {
 }
 
 .header-left {
-    flex: 0 0 30%;
+    flex: 0 0 40%;
     text-align: left;
 }
 
 .header-right {
-    flex: 0 0 70%;
+    flex: 0 0 60%;
     display: flex;
     justify-content: flex-end;
 }
@@ -104,9 +104,22 @@ h1 {
     font-weight: 300;
 }
 
+.button-container {
+    display: flex;
+    gap: 15px;
+    margin-top: 35px;
+    width: 90%;
+    max-width: 400px;
+}
+
+.button-container a {
+    flex: 1;
+    text-align: center;
+    min-width: 150px;
+}
+
 .test-plan-link {
-    display: inline-block;
-    margin-top: 15px;
+    display: block;
     padding: 10px 20px;
     background: linear-gradient(135deg, #0d5c23, #0a2a12);
     color: white;
@@ -121,6 +134,30 @@ h1 {
     transform: translateY(-2px);
     box-shadow: 0 6px 8px rgba(0, 0, 0, 0.25);
     background: linear-gradient(135deg, #0f6d2a, #0c3517);
+}
+
+.second-row {
+    margin-top: 10px;
+}
+
+.config-codes-link {
+    background: linear-gradient(135deg, #0c3517, #0f6d2a);
+}
+
+.config-codes-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(135deg, #0f6d2a, #0c3517);
+}
+
+.mysa-hq-link {
+    background: linear-gradient(135deg, #1565c0, #0d47a1);
+}
+
+.mysa-hq-link:hover {
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.25);
 }
 
 .connection-panel {
