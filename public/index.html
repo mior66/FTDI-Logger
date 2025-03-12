@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adam's FTDI Logger</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -12,9 +13,19 @@
             <p id="quote-text" class="quote-text"></p>
         </div>
         <header>
-            <h1>Adam's FTDI Logger</h1>
-            <p class="subtitle">A sleek, real-time serial monitor for FTDI devices</p>
-            <a href="#test-plan" class="test-plan-link">View Adam's LV Test Plan</a>
+            <div class="header-left">
+                <h1>Adam's FTDI Logger</h1>
+                <p class="subtitle">A sleek, real-time serial monitor for FTDI devices</p>
+                <a href="#test-plan" class="test-plan-link">View Adam's LV Test Plan</a>
+            </div>
+            <div class="header-right">
+                <div class="env-data-container">
+                    <h3>Temp/Humidity</h3>
+                    <div class="chart-container">
+                        <canvas id="env-chart"></canvas>
+                    </div>
+                </div>
+            </div>
         </header>
         
         <div class="connection-panel">
@@ -101,12 +112,20 @@
                     <span>Fail</span>
                 </div>
                 <div class="legend-item">
+                    <div class="color-sample warning-sample"></div>
+                    <span>Warning</span>
+                </div>
+                <div class="legend-item">
                     <div class="color-sample unexpected-sample"></div>
                     <span>Unexpected</span>
                 </div>
                 <div class="legend-item">
                     <div class="color-sample exception-sample"></div>
                     <span>Exception</span>
+                </div>
+                <div class="legend-item">
+                    <div class="color-sample connection-sample"></div>
+                    <span>Connection #</span>
                 </div>
             </div>
         </div>
@@ -116,6 +135,7 @@
             <div class="test-plan-header">
                 <h2>Adam's LV Test Plan</h2>
                 <div class="test-plan-controls">
+                    <button id="refresh-test-plan" class="small-button">Refresh Test Plan</button>
                     <div class="test-plan-info">Automatically loaded from server</div>
                 </div>
             </div>

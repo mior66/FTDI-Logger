@@ -4,6 +4,13 @@ const socket = io();
 // Map to store the relationship between error entries and log entries
 let errorToLogMap = new Map();
 
+// Environment data tracking
+let envChart = null;
+let temperatureData = [];
+let humidityData = [];
+let timeLabels = [];
+const MAX_DATA_POINTS = 20; // Maximum number of data points to display on the chart
+
 // DOM Elements
 const portSelect = document.getElementById('port-select');
 const connectButton = document.getElementById('connect-button');
@@ -59,6 +66,9 @@ function init() {
     // Display a random inspirational quote
     displayRandomQuote();
     
+    // Initialize environment data chart
+    initializeEnvChart();
+    
     // Set up event listeners
     connectButton.addEventListener('click', connectToPort);
     disconnectButton.addEventListener('click', disconnectFromPort);
@@ -68,6 +78,10 @@ function init() {
     clearErrorsButton.addEventListener('click', clearErrors);
     saveErrorsButton.addEventListener('click', saveErrors);
     clearSelectedTestCaseButton.addEventListener('click', clearSelectedTestCase);
+    
+    // Set up refresh test plan button event listener
+    const refreshTestPlanButton = document.getElementById('refresh-test-plan');
+    refreshTestPlanButton.addEventListener('click', loadTestPlanData);
     
     // Set up export button event listener
     const exportSelectedTestCaseButton = document.getElementById('export-selected-test-case');
@@ -95,6 +109,9 @@ function setupSocketListeners() {
     socket.on('serial-data', (data) => {
         console.log('Received serial data:', data);
         addLogEntry(data.timestamp, data.data);
+        
+        // Check for temperature and humidity data
+        checkForEnvironmentData(data.data);
     });
     
     // Listen for connection status updates
@@ -307,16 +324,27 @@ function addLogEntry(timestamp, message) {
     
     // Check if the message contains error-related keywords
     const lowerCaseMessage = message.toLowerCase();
+    
+    // Check for "Connection attempt" with number > 7
+    let isHighConnectionAttempt = false;
+    const connectionAttemptMatch = message.match(/Connection attempt (\d+)/i);
+    if (connectionAttemptMatch && parseInt(connectionAttemptMatch[1]) >= 7) {
+        isHighConnectionAttempt = true;
+    }
+    
     if (lowerCaseMessage.includes('error') || 
         lowerCaseMessage.includes('failure') || 
         lowerCaseMessage.includes('fail') || 
         lowerCaseMessage.includes('fails') || 
         lowerCaseMessage.includes('failed') || 
+        lowerCaseMessage.includes('warning') || 
+        lowerCaseMessage.includes('warn') || 
         lowerCaseMessage.includes('unexpected') || 
         lowerCaseMessage.includes('exception') || 
         lowerCaseMessage.includes('comparison failed') ||
-        lowerCaseMessage.includes('sha-256')) {
-        addErrorEntry(timestamp, message);
+        lowerCaseMessage.includes('sha-256') ||
+        isHighConnectionAttempt) {
+        addErrorEntry(timestamp, message, isHighConnectionAttempt);
     }
     
     // Log to console for debugging
@@ -324,7 +352,7 @@ function addLogEntry(timestamp, message) {
 }
 
 // Add an entry to the error window
-function addErrorEntry(timestamp, message) {
+function addErrorEntry(timestamp, message, isHighConnectionAttempt = false) {
     // Create error entry object
     const entry = { timestamp, message };
     const errorIndex = errorEntries.length;
@@ -348,10 +376,15 @@ function addErrorEntry(timestamp, message) {
     
     // Determine the line color based on message content
     const lowerCaseMessage = message.toLowerCase();
-    if (lowerCaseMessage.includes('error')) {
+    if (isHighConnectionAttempt) {
+        // For Connection attempt >= 7, use dark blue color
+        errorEntry.classList.add('connection-line');
+    } else if (lowerCaseMessage.includes('error')) {
         errorEntry.classList.add('error-line');
     } else if (lowerCaseMessage.includes('fail') || lowerCaseMessage.includes('failure')) {
         errorEntry.classList.add('failure-line');
+    } else if (lowerCaseMessage.includes('warning') || lowerCaseMessage.includes('warn')) {
+        errorEntry.classList.add('warning-line');
     } else if (lowerCaseMessage.includes('unexpected')) {
         errorEntry.classList.add('unexpected-line');
     } else if (lowerCaseMessage.includes('exception')) {
@@ -496,15 +529,26 @@ function applyColorCoding(message) {
     // Create a case-insensitive regex for each category
     const errorRegex = /\b(error|errors)\b/gi;
     const failureRegex = /\b(fail|fails|failure|failed)\b/gi;
+    const warningRegex = /\b(warning|warnings|warn)\b/gi;
     const unexpectedRegex = /\b(unexpected)\b/gi;
     const exceptionRegex = /\b(exception|exceptions)\b/gi;
+    const connectionAttemptRegex = /(Connection attempt \d+)/gi;
     
     // Apply color coding with spans
     let coloredMessage = message
         .replace(errorRegex, match => `<span class="error-text">${match}</span>`)
         .replace(failureRegex, match => `<span class="failure-text">${match}</span>`)
+        .replace(warningRegex, match => `<span class="warning-text">${match}</span>`)
         .replace(unexpectedRegex, match => `<span class="unexpected-text">${match}</span>`)
-        .replace(exceptionRegex, match => `<span class="exception-text">${match}</span>`);
+        .replace(exceptionRegex, match => `<span class="exception-text">${match}</span>`)
+        .replace(connectionAttemptRegex, match => {
+            // Extract the number from the connection attempt message
+            const attemptMatch = match.match(/Connection attempt (\d+)/i);
+            if (attemptMatch && parseInt(attemptMatch[1]) >= 7) {
+                return `<span class="connection-text">${match}</span>`;
+            }
+            return match;
+        });
     
     return coloredMessage;
 }
@@ -593,12 +637,17 @@ function displayRandomQuote() {
     }
 }
 
+
+
 // Load test plan data automatically from the server
 function loadTestPlanData() {
     // Show loading state
     testPlanTableContainer.innerHTML = '<div class="loading">Loading test plan...</div>';
     
-    fetch('/test-plan-data')
+    // Add a timestamp to prevent caching
+    const cacheBuster = `?timestamp=${Date.now()}`;
+    
+    fetch(`/test-plan-data${cacheBuster}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Failed to load test plan data');
@@ -613,6 +662,7 @@ function loadTestPlanData() {
                 displayTestPlanSheet(data.sheetNames[0]);
             }
             console.log('Test plan loaded successfully');
+            showNotification('Test plan reloaded successfully', 'success');
         })
         .catch(error => {
             console.error('Error loading test plan:', error);
@@ -1149,7 +1199,7 @@ function exportSelectedTestCase() {
     }
     
     // Add test log information
-    textContent += `\nTEST LOGS:\n`;
+    textContent += `\nCURRENT TEST LOGS:\n`;
     textContent += `-----------\n\n`;
     
     // Add start log
@@ -1160,6 +1210,13 @@ function exportSelectedTestCase() {
         textContent += `PASS: ${testLogs.pass.timestamp} - ${testLogs.pass.message}\n\n`;
     } else if (testLogs.fail) {
         textContent += `FAIL: ${testLogs.fail.timestamp} - ${testLogs.fail.message}\n\n`;
+    }
+    
+    // Add notes if they exist
+    if (testLogs.notes && testLogs.notes.trim()) {
+        textContent += `GENERAL NOTES/BUGS:\n`;
+        textContent += `-----------------\n`;
+        textContent += `${testLogs.notes}\n\n`;
     }
     
     // Get all logs between start and pass/fail timestamps
@@ -1385,7 +1442,7 @@ function updateTestLogDisplay() {
     
     // Add a heading for the test logs
     const logHeading = document.createElement('h4');
-    logHeading.textContent = 'Test Logs';
+    logHeading.textContent = 'Current Test Logs';
     logContainer.appendChild(logHeading);
     
     // Add the start log if it exists
@@ -1412,6 +1469,39 @@ function updateTestLogDisplay() {
         logContainer.appendChild(failLog);
     }
     
+    // Add notes/bugs section
+    const notesSection = document.createElement('div');
+    notesSection.className = 'test-notes-section';
+    
+    const notesHeading = document.createElement('h4');
+    notesHeading.textContent = 'General Notes/Bugs';
+    notesSection.appendChild(notesHeading);
+    
+    // Create editable textarea for notes
+    const notesTextarea = document.createElement('textarea');
+    notesTextarea.className = 'test-notes-textarea';
+    notesTextarea.placeholder = 'Add notes or bugs here...';
+    notesTextarea.rows = 4;
+    
+    // Set existing notes if available
+    if (testLogs.notes) {
+        notesTextarea.value = testLogs.notes;
+    }
+    
+    // Add event listener to save notes when changed
+    notesTextarea.addEventListener('input', function() {
+        // Initialize test log entry object if it doesn't exist
+        if (!testLogEntries[currentlyDisplayedTestCase]) {
+            testLogEntries[currentlyDisplayedTestCase] = {};
+        }
+        
+        // Save the notes
+        testLogEntries[currentlyDisplayedTestCase].notes = this.value;
+    });
+    
+    notesSection.appendChild(notesTextarea);
+    logContainer.appendChild(notesSection);
+    
     // Find the existing log container if it exists
     const existingLogContainer = selectedTestCaseDisplay.querySelector('.test-log-container');
     if (existingLogContainer) {
@@ -1421,6 +1511,164 @@ function updateTestLogDisplay() {
         // Add the log container to the selected test case display
         selectedTestCaseDisplay.appendChild(logContainer);
     }
+}
+
+// Check for temperature and humidity data in log messages
+function checkForEnvironmentData(message) {
+    // Check for temperature data
+    const temperatureMatch = message.match(/"roomTemperature":\s*\[(\d+(?:,\d+)*)\]/i);
+    if (temperatureMatch && temperatureMatch[1]) {
+        const temperatureValues = temperatureMatch[1].split(',').map(Number);
+        if (temperatureValues.length > 0) {
+            const avgTemperature = calculateAverage(temperatureValues) / 100; // Convert to degrees (divide by 100)
+            updateTemperatureData(avgTemperature);
+        }
+    }
+    
+    // Check for humidity data
+    const humidityMatch = message.match(/"humidity":\s*\[(\d+(?:,\d+)*)\]/i);
+    if (humidityMatch && humidityMatch[1]) {
+        const humidityValues = humidityMatch[1].split(',').map(Number);
+        if (humidityValues.length > 0) {
+            const avgHumidity = calculateAverage(humidityValues);
+            updateHumidityData(avgHumidity);
+        }
+    }
+}
+
+// Calculate the average of an array of numbers
+function calculateAverage(values) {
+    if (values.length === 0) return 0;
+    const sum = values.reduce((acc, val) => acc + val, 0);
+    return parseFloat((sum / values.length).toFixed(2)); // Round to 2 decimal places
+}
+
+// Update temperature data and display
+function updateTemperatureData(temperature) {
+    // Update the current temperature display
+    const currentTemperatureElement = document.getElementById('current-temperature');
+    if (currentTemperatureElement) {
+        currentTemperatureElement.textContent = `${temperature}°C`;
+    }
+    
+    // Add data to the chart
+    addDataPoint('temperature', temperature);
+}
+
+// Update humidity data and display
+function updateHumidityData(humidity) {
+    // Update the current humidity display
+    const currentHumidityElement = document.getElementById('current-humidity');
+    if (currentHumidityElement) {
+        currentHumidityElement.textContent = `${humidity}%`;
+    }
+    
+    // Add data to the chart
+    addDataPoint('humidity', humidity);
+}
+
+// Add a data point to the chart
+function addDataPoint(type, value) {
+    const now = new Date();
+    const timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    // If this is a new time point, add it to the labels
+    if (timeLabels.length === 0 || timeLabels[timeLabels.length - 1] !== timeLabel) {
+        timeLabels.push(timeLabel);
+        temperatureData.push(type === 'temperature' ? value : null);
+        humidityData.push(type === 'humidity' ? value : null);
+        
+        // Limit the number of data points
+        if (timeLabels.length > MAX_DATA_POINTS) {
+            timeLabels.shift();
+            temperatureData.shift();
+            humidityData.shift();
+        }
+    } else {
+        // Update the latest data point
+        if (type === 'temperature') {
+            temperatureData[temperatureData.length - 1] = value;
+        } else if (type === 'humidity') {
+            humidityData[humidityData.length - 1] = value;
+        }
+    }
+    
+    // Update the chart
+    if (envChart) {
+        envChart.update();
+    }
+}
+
+// Initialize the environment data chart
+function initializeEnvChart() {
+    const ctx = document.getElementById('env-chart').getContext('2d');
+    
+    envChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timeLabels,
+            datasets: [
+                {
+                    label: 'Temperature',
+                    data: temperatureData,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 2
+                },
+                {
+                    label: 'Humidity',
+                    data: humidityData,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        maxRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 5
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'left',
+                    align: 'start',
+                    labels: {
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        boxWidth: 12,
+                        padding: 10
+                    }
+                }
+            },
+            animation: {
+                duration: 500
+            }
+        }
+    });
 }
 
 // Initialize the application when the DOM is loaded
