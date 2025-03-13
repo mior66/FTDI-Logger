@@ -1716,8 +1716,33 @@ function addDataPoint(type, value) {
         }
     }
     
-    // Update the chart
+    // Adjust the chart's Y-axis based on the current data
     if (envChart) {
+        // Filter out null values
+        const validTempData = temperatureData.filter(val => val !== null);
+        const validHumidityData = humidityData.filter(val => val !== null);
+        
+        // Only adjust if we have data
+        if (validTempData.length > 0 || validHumidityData.length > 0) {
+            // Find min and max values for both datasets
+            const allValues = [...validTempData, ...validHumidityData];
+            if (allValues.length > 0) {
+                const minValue = Math.floor(Math.min(...allValues) / 5) * 5;
+                const maxValue = Math.ceil(Math.max(...allValues) / 5) * 5;
+                
+                // Update the chart scale if values are outside current range
+                const currentMin = envChart.options.scales.y.min;
+                const currentMax = envChart.options.scales.y.max;
+                
+                if (minValue < currentMin || maxValue > currentMax) {
+                    // Set new min/max with some padding
+                    envChart.options.scales.y.min = Math.max(0, minValue - 5);
+                    envChart.options.scales.y.max = maxValue + 5;
+                }
+            }
+        }
+        
+        // Update the chart
         envChart.update();
     }
 }
@@ -1732,7 +1757,7 @@ function initializeEnvChart() {
             labels: timeLabels,
             datasets: [
                 {
-                    label: 'Temperature',
+                    label: 'Temp °',
                     data: temperatureData,
                     borderColor: 'rgba(255, 99, 132, 1)',
                     backgroundColor: 'rgba(255, 99, 132, 0.2)',
@@ -1741,7 +1766,7 @@ function initializeEnvChart() {
                     pointRadius: 2
                 },
                 {
-                    label: 'Humidity',
+                    label: 'Humidity %',
                     data: humidityData,
                     borderColor: 'rgba(54, 162, 235, 1)',
                     backgroundColor: 'rgba(54, 162, 235, 0.2)',
@@ -1757,11 +1782,14 @@ function initializeEnvChart() {
             scales: {
                 y: {
                     beginAtZero: false,
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        stepSize: 5,
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    },
                     grid: {
                         color: 'rgba(255, 255, 255, 0.1)'
-                    },
-                    ticks: {
-                        color: 'rgba(255, 255, 255, 0.7)'
                     }
                 },
                 x: {
