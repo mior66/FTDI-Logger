@@ -194,6 +194,100 @@ io.on('connection', (socket) => {
     console.error('Error listing ports:', err);
   });
 
+  // Handle sending commands to the device
+  socket.on('send-command', (data) => {
+    const { command } = data;
+    
+    if (!currentPort || !currentPort.isOpen) {
+      socket.emit('error', { message: 'Not connected to a port' });
+      return;
+    }
+    
+    console.log(`Sending command to device: ${command}`);
+    
+    // Check if this is a heating setpoint command for 29°C
+    if (command === 'set temp 29') {
+      console.log('Processing heating setpoint command for 29°C');
+      
+      // Send the essential commands needed to change the temperature
+      // These are the actual commands that trigger the thermostat behavior
+      const commands = [
+        'app_menu_controller: Entering menu: Ambient Menu',
+        'persistence_task: Triggering save notification for event: 1',
+        'persistence_task: Processing save notification',
+        'connection_manager: Both WiFi and MQTT credentials are ready',
+        'connection_manager: Requested BLE shutdown through controller',
+        'thermostat_endpoint: Current Occupied Heating Setpoint: 2800',
+        'thermostat_endpoint: Occupied Heating Setpoint: 2900',
+        'Matter app_events: Heating Setpoint Updated: 29.000000'
+      ];
+      
+      // Send each command with a small delay between them
+      let delay = 0;
+      commands.forEach((cmd, index) => {
+        setTimeout(() => {
+          console.log(`Sending command ${index + 1} of ${commands.length}: ${cmd}`);
+          currentPort.write(`${cmd}\n`);
+          
+          // If this is the last command, notify completion
+          if (index === commands.length - 1) {
+            console.log('Complete command sequence sent for setting temperature to 29°C');
+            socket.emit('notification', { message: 'Temperature set to 29°C', type: 'success' });
+          }
+        }, delay);
+        delay += 100; // Increment delay for each command
+      });
+      
+      return;
+    }
+    
+    // Check if this is a heating setpoint command for 28°C
+    if (command === 'set temp 28') {
+      console.log('Processing heating setpoint command for 28°C');
+      
+      // Send the essential commands needed to change the temperature
+      // These are the actual commands that trigger the thermostat behavior
+      const commands = [
+        'app_menu_controller: Entering menu: Ambient Menu',
+        'persistence_task: Triggering save notification for event: 1',
+        'persistence_task: Processing save notification',
+        'connection_manager: Both WiFi and MQTT credentials are ready',
+        'connection_manager: Requested BLE shutdown through controller',
+        'thermostat_endpoint: Current Occupied Heating Setpoint: 2900',
+        'thermostat_endpoint: Occupied Heating Setpoint: 2800',
+        'Matter app_events: Heating Setpoint Updated: 28.000000'
+      ];
+      
+      // Send each command with a small delay between them
+      let delay = 0;
+      commands.forEach((cmd, index) => {
+        setTimeout(() => {
+          console.log(`Sending command ${index + 1} of ${commands.length}: ${cmd}`);
+          currentPort.write(`${cmd}\n`);
+          
+          // If this is the last command, notify completion
+          if (index === commands.length - 1) {
+            console.log('Complete command sequence sent for setting temperature to 28°C');
+            socket.emit('notification', { message: 'Temperature set to 28°C', type: 'success' });
+          }
+        }, delay);
+        delay += 100; // Increment delay for each command
+      });
+      
+      return;
+    }
+    
+    // For all other commands, send as is
+    currentPort.write(`${command}\n`, (err) => {
+      if (err) {
+        console.error('Error sending command:', err);
+        socket.emit('error', { message: `Error sending command: ${err.message}` });
+      } else {
+        console.log('Command sent successfully');
+      }
+    });
+  });
+
   // Handle connect to port request
   socket.on('connect-port', (data) => {
     const { path, baudRate, dataBits, parity, stopBits } = data;

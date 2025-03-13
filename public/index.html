@@ -51,9 +51,23 @@
                 <button id="test-start-button" style="background-color: #FF8C00; color: white;" disabled>Start</button>
                 <button id="test-pass-button" style="background-color: #2e7d32; color: white;" disabled>Pass</button>
                 <button id="test-fail-button" style="background-color: #c62828; color: white;" disabled>Fail</button>
+                <div class="thermostat-status-inline">
+                    <span class="status-label">Mode:</span>
+                    <span id="thermostat-mode" class="status-value">Unknown</span>
+                    <span class="status-label">Setpoint:</span>
+                    <span id="thermostat-setpoint" class="status-value">--°C</span>
+                </div>
             </div>
             
             <div id="connection-status">Not connected</div>
+            
+            <!-- Command Input Section -->
+            <div class="command-input-container">
+                <input type="text" id="command-input" placeholder="Enter command..." disabled>
+                <button id="send-command-button" disabled>Send</button>
+                <button id="set-temp-29" disabled>Set Temp to 29°C</button>
+                <button id="set-temp-28" disabled>Set Temp to 28°C</button>
+            </div>
         </div>
         
         <!-- Current Test Case Display Box -->

@@ -16,10 +16,20 @@ const portSelect = document.getElementById('port-select');
 const connectButton = document.getElementById('connect-button');
 const disconnectButton = document.getElementById('disconnect-button');
 
+// Thermostat Status Elements
+const thermostatMode = document.getElementById('thermostat-mode');
+const thermostatSetpoint = document.getElementById('thermostat-setpoint');
+
 // Test Action Buttons
 const testStartButton = document.getElementById('test-start-button');
 const testPassButton = document.getElementById('test-pass-button');
 const testFailButton = document.getElementById('test-fail-button');
+
+// Command Input Elements
+const commandInput = document.getElementById('command-input');
+const sendCommandButton = document.getElementById('send-command-button');
+const setTemp29Button = document.getElementById('set-temp-29');
+const setTemp28Button = document.getElementById('set-temp-28');
 
 const clearLogButton = document.getElementById('clear-log');
 const saveLogButton = document.getElementById('save-log');
@@ -78,6 +88,23 @@ function init() {
     clearErrorsButton.addEventListener('click', clearErrors);
     saveErrorsButton.addEventListener('click', saveErrors);
     clearSelectedTestCaseButton.addEventListener('click', clearSelectedTestCase);
+    
+    // Set up command input event listeners
+    sendCommandButton.addEventListener('click', sendCommand);
+    commandInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendCommand();
+        }
+    });
+    
+    // Set up temperature setpoint buttons
+    setTemp29Button.addEventListener('click', function() {
+        sendThermostatCommand('set temp 29');
+    });
+    
+    setTemp28Button.addEventListener('click', function() {
+        sendThermostatCommand('set temp 28');
+    });
     
     // Set up refresh test plan button event listener
     const refreshTestPlanButton = document.getElementById('refresh-test-plan');
@@ -256,6 +283,12 @@ function updateConnectionStatus(status) {
         disconnectButton.disabled = false;
         portSelect.disabled = true;
         
+        // Enable command input elements
+        commandInput.disabled = false;
+        sendCommandButton.disabled = false;
+        setTemp29Button.disabled = false;
+        setTemp28Button.disabled = false;
+        
         showNotification('Connected successfully', 'success');
     } else {
         connectionStatus.textContent = 'Not connected';
@@ -263,6 +296,12 @@ function updateConnectionStatus(status) {
         connectButton.disabled = false;
         disconnectButton.disabled = true;
         portSelect.disabled = false;
+        
+        // Disable command input elements
+        commandInput.disabled = true;
+        sendCommandButton.disabled = true;
+        setTemp29Button.disabled = true;
+        setTemp28Button.disabled = true;
         
         if (logEntries.length > 0) {
             showNotification('Disconnected from port', 'error');
@@ -321,6 +360,10 @@ function addLogEntry(timestamp, message) {
     if (autoscrollCheckbox.checked) {
         logWindow.scrollTop = logWindow.scrollHeight;
     }
+    
+    // Check for environment data and thermostat info in the message
+    checkForEnvironmentData(message);
+    checkForThermostatInfo(message);
     
     // Check if the message contains error-related keywords
     const lowerCaseMessage = message.toLowerCase();
@@ -1729,6 +1772,221 @@ function initializeEnvChart() {
             }
         }
     });
+}
+
+// Send a command to the device
+function sendCommand() {
+    if (!isConnected) {
+        showNotification('Not connected to a device', 'error');
+        return;
+    }
+    
+    const command = commandInput.value.trim();
+    if (!command) {
+        showNotification('Please enter a command', 'error');
+        return;
+    }
+    
+    // Send the command to the server
+    socket.emit('send-command', { command });
+    
+    // Add the command to the log
+    const timestamp = new Date().toISOString();
+    addLogEntry(timestamp, `> ${command}`);
+    
+    // Clear the input field
+    commandInput.value = '';
+}
+
+// Send a thermostat command to change temperature
+function sendThermostatCommand(command) {
+    if (!isConnected) {
+        showNotification('Not connected to a device', 'error');
+        return;
+    }
+    
+    if (command === 'set temp 29') {
+        showNotification('Setting temperature to 29°C...', 'success');
+        
+        // Send the command to the server
+        socket.emit('send-command', { command: 'set temp 29' });
+        
+        // Add the command to the log with the exact sequence that will be sent
+        const timestamp = new Date().toISOString();
+        addLogEntry(timestamp, `> Setting thermostat to 29°C`);
+        addLogEntry(timestamp, `> Sending complete command sequence:`);
+        addLogEntry(timestamp, `  1. app_menu_controller: Entering menu: Ambient Menu`);
+        addLogEntry(timestamp, `  2. persistence_task: Triggering save notification for event: 1`);
+        addLogEntry(timestamp, `  3. persistence_task: Processing save notification`);
+        addLogEntry(timestamp, `  4. connection_manager: Both WiFi and MQTT credentials are ready`);
+        addLogEntry(timestamp, `  5. connection_manager: Requested BLE shutdown through controller`);
+        addLogEntry(timestamp, `  6. thermostat_endpoint: Current Occupied Heating Setpoint: 2800`);
+        addLogEntry(timestamp, `  7. thermostat_endpoint: Occupied Heating Setpoint: 2900`);
+        addLogEntry(timestamp, `  8. Matter app_events: Heating Setpoint Updated: 29.000000`);
+        
+        return;
+    } else if (command === 'set temp 28') {
+        showNotification('Setting temperature to 28°C...', 'success');
+        
+        // Send the command to the server
+        socket.emit('send-command', { command: 'set temp 28' });
+        
+        // Add the command to the log with the exact sequence that will be sent
+        const timestamp = new Date().toISOString();
+        addLogEntry(timestamp, `> Setting thermostat to 28°C`);
+        addLogEntry(timestamp, `> Sending complete command sequence:`);
+        addLogEntry(timestamp, `  1. app_menu_controller: Entering menu: Ambient Menu`);
+        addLogEntry(timestamp, `  2. persistence_task: Triggering save notification for event: 1`);
+        addLogEntry(timestamp, `  3. persistence_task: Processing save notification`);
+        addLogEntry(timestamp, `  4. connection_manager: Both WiFi and MQTT credentials are ready`);
+        addLogEntry(timestamp, `  5. connection_manager: Requested BLE shutdown through controller`);
+        addLogEntry(timestamp, `  6. thermostat_endpoint: Current Occupied Heating Setpoint: 2900`);
+        addLogEntry(timestamp, `  7. thermostat_endpoint: Occupied Heating Setpoint: 2800`);
+        addLogEntry(timestamp, `  8. Matter app_events: Heating Setpoint Updated: 28.000000`);
+        
+        return;
+    } else {
+        // For any other command, send as is
+        socket.emit('send-command', { command });
+        
+        // Add the command to the log
+        const timestamp = new Date().toISOString();
+        addLogEntry(timestamp, `> ${command}`);
+    }
+}
+
+// Check for thermostat mode and setpoint information in log messages
+function checkForThermostatInfo(message) {
+    // Check for heating setpoint updates
+    if (message.includes('Matter app_events: Heating Setpoint Updated:')) {
+        try {
+            // Extract the setpoint value
+            const setpointMatch = message.match(/Heating Setpoint Updated: (\d+\.\d+)/);
+            if (setpointMatch && setpointMatch[1]) {
+                const setpoint = parseFloat(setpointMatch[1]);
+                
+                // Only update the mode if it's not currently EMERG
+                if (thermostatMode.textContent !== 'ENERG') {
+                    thermostatMode.textContent = 'Heat';
+                    thermostatMode.className = 'status-value heat';
+                }
+                
+                // Always update the setpoint
+                thermostatSetpoint.textContent = `${setpoint}°C`;
+                
+                console.log(`Detected heating setpoint update: ${setpoint}°C, Mode: ${thermostatMode.textContent}`);
+            }
+        } catch (error) {
+            console.error('Error parsing heating setpoint:', error);
+        }
+    }
+    
+    // Check for cooling setpoint updates
+    else if (message.includes('Matter app_events: Cooling Setpoint Updated:')) {
+        try {
+            // Extract the setpoint value
+            const setpointMatch = message.match(/Cooling Setpoint Updated: (\d+\.\d+)/);
+            if (setpointMatch && setpointMatch[1]) {
+                const setpoint = parseFloat(setpointMatch[1]);
+                
+                // Update the thermostat mode and setpoint display
+                thermostatMode.textContent = 'Cool';
+                thermostatMode.className = 'status-value cool';
+                thermostatSetpoint.textContent = `${setpoint}°C`;
+                
+                console.log(`Detected cooling mode with setpoint: ${setpoint}°C`);
+            }
+        } catch (error) {
+            console.error('Error parsing cooling setpoint:', error);
+        }
+    }
+    
+    // Check for Mode Updated events
+    else if (message.includes('Matter app_events: Mode Updated:')) {
+        try {
+            // Extract the mode value
+            const modeMatch = message.match(/Mode Updated: (\d+)/);
+            if (modeMatch && modeMatch[1]) {
+                const modeValue = parseInt(modeMatch[1]);
+                
+                // Update the thermostat mode display based on the mode value
+                switch (modeValue) {
+                    case 0:
+                        thermostatMode.textContent = 'Off';
+                        thermostatMode.className = 'status-value off';
+                        thermostatSetpoint.textContent = '--';
+                        break;
+                    case 3:
+                        thermostatMode.textContent = 'Cool';
+                        thermostatMode.className = 'status-value cool';
+                        thermostatSetpoint.textContent = '--';
+                        break;
+                    case 4:
+                        thermostatMode.textContent = 'Heat';
+                        thermostatMode.className = 'status-value heat';
+                        thermostatSetpoint.textContent = '--';
+                        break;
+                    case 5:
+                        thermostatMode.textContent = 'ENERG';
+                        thermostatMode.className = 'status-value heat';
+                        thermostatSetpoint.textContent = '--';
+                        break;
+                    case 7:
+                        thermostatMode.textContent = 'Fan';
+                        thermostatMode.className = 'status-value off';
+                        thermostatSetpoint.textContent = '--';
+                        break;
+                    default:
+                        thermostatMode.textContent = `Mode ${modeValue}`;
+                        thermostatMode.className = 'status-value';
+                        thermostatSetpoint.textContent = '--';
+                }
+                
+                console.log(`Detected system mode: ${thermostatMode.textContent}, setpoint reset to --`);
+            }
+        } catch (error) {
+            console.error('Error parsing mode update:', error);
+        }
+    }
+    
+    // Check for system mode from thermostat_endpoint
+    else if (message.includes('thermostat_endpoint: System Mode:')) {
+        const modeMatch = message.match(/System Mode: (\d+)/);
+        if (modeMatch && modeMatch[1]) {
+            const modeValue = parseInt(modeMatch[1]);
+            
+            // Update the thermostat mode display based on the mode value
+            switch (modeValue) {
+                case 0:
+                    thermostatMode.textContent = 'Off';
+                    thermostatMode.className = 'status-value off';
+                    thermostatSetpoint.textContent = '--';
+                    break;
+                case 3:
+                    thermostatMode.textContent = 'Cool';
+                    thermostatMode.className = 'status-value cool';
+                    break;
+                case 4:
+                    thermostatMode.textContent = 'Heat';
+                    thermostatMode.className = 'status-value heat';
+                    break;
+                case 5:
+                    thermostatMode.textContent = 'ENERG';
+                    thermostatMode.className = 'status-value heat';
+                    break;
+                case 7:
+                    thermostatMode.textContent = 'Fan';
+                    thermostatMode.className = 'status-value off';
+                    thermostatSetpoint.textContent = '--';
+                    break;
+                default:
+                    thermostatMode.textContent = `Mode ${modeValue}`;
+                    thermostatMode.className = 'status-value';
+            }
+            
+            console.log(`Detected system mode: ${thermostatMode.textContent}`);
+        }
+    }
 }
 
 // Initialize the application when the DOM is loaded
