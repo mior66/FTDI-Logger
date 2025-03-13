@@ -19,6 +19,9 @@ const disconnectButton = document.getElementById('disconnect-button');
 // Thermostat Status Elements
 const thermostatMode = document.getElementById('thermostat-mode');
 const thermostatSetpoint = document.getElementById('thermostat-setpoint');
+const appVersion = document.getElementById('app-version');
+const tempUnit = document.getElementById('temp-unit');
+const language = document.getElementById('language');
 
 // Test Action Buttons
 const testStartButton = document.getElementById('test-start-button');
@@ -139,6 +142,18 @@ function setupSocketListeners() {
         
         // Check for temperature and humidity data
         checkForEnvironmentData(data.data);
+        
+        // Check for thermostat information
+        checkForThermostatInfo(data.data);
+        
+        // Check for App version information
+        checkForAppVersion(data.data);
+        
+        // Check for temperature unit information
+        checkForTemperatureUnit(data.data);
+        
+        // Check for language information
+        checkForLanguage(data.data);
     });
     
     // Listen for connection status updates
@@ -183,8 +198,13 @@ function updatePortList(ports) {
         portSelect.remove(1);
     }
     
+    // Filter out USBmodem ports (case insensitive)
+    const filteredPorts = ports.filter(port => {
+        return !port.path.toLowerCase().includes('usbmodem');
+    });
+    
     // Add ports to the dropdown
-    ports.forEach(port => {
+    filteredPorts.forEach(port => {
         const option = document.createElement('option');
         option.value = port.path;
         
@@ -210,7 +230,7 @@ function updatePortList(ports) {
     });
     
     // Always enable the connect button when ports are available
-    connectButton.disabled = false;
+    connectButton.disabled = filteredPorts.length === 0;
     
     // Show notification if no ports found
     if (ports.length === 0) {
@@ -1985,6 +2005,77 @@ function checkForThermostatInfo(message) {
             }
             
             console.log(`Detected system mode: ${thermostatMode.textContent}`);
+        }
+    }
+}
+
+// Check for App version information in log messages
+function checkForAppVersion(message) {
+    // Check for App version information
+    if (message.includes('cpu_start: App version:')) {
+        try {
+            // Extract the version value
+            const versionMatch = message.match(/cpu_start: App version:\s+(\d+\.\d+)/);
+            if (versionMatch && versionMatch[1]) {
+                const version = versionMatch[1];
+                
+                // Update the App version display
+                appVersion.textContent = version;
+                
+                console.log(`Detected App version: ${version}`);
+            }
+        } catch (error) {
+            console.error('Error parsing App version:', error);
+        }
+    }
+}
+
+// Check for temperature unit information in log messages
+function checkForTemperatureUnit(message) {
+    // Check for temperature unit information
+    if (message.includes('preferences_helpers: set_preferences_temperature_unit:')) {
+        try {
+            // Extract the temperature unit value
+            const unitMatch = message.match(/preferences_helpers: set_preferences_temperature_unit:\s+(\d+)/);
+            if (unitMatch && unitMatch[1]) {
+                const unitValue = parseInt(unitMatch[1]);
+                
+                // Update the temperature unit display (1 = Fahrenheit, 0 = Celsius)
+                if (unitValue === 1) {
+                    tempUnit.textContent = 'F';
+                    console.log('Temperature unit set to Fahrenheit');
+                } else if (unitValue === 0) {
+                    tempUnit.textContent = 'C';
+                    console.log('Temperature unit set to Celsius');
+                }
+            }
+        } catch (error) {
+            console.error('Error parsing temperature unit:', error);
+        }
+    }
+}
+
+// Check for language information in log messages
+function checkForLanguage(message) {
+    // Check for language information
+    if (message.includes('preferences_helpers: set_preferences_language:')) {
+        try {
+            // Extract the language value
+            const langMatch = message.match(/preferences_helpers: set_preferences_language:\s+(\d+)/);
+            if (langMatch && langMatch[1]) {
+                const langValue = parseInt(langMatch[1]);
+                
+                // Update the language display (1 = French, 0 = English)
+                if (langValue === 1) {
+                    language.textContent = 'F';
+                    console.log('Language set to French');
+                } else if (langValue === 0) {
+                    language.textContent = 'E';
+                    console.log('Language set to English');
+                }
+            }
+        } catch (error) {
+            console.error('Error parsing language setting:', error);
         }
     }
 }

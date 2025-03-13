@@ -40,7 +40,6 @@
                 <label for="port-select">Serial Port:</label>
                 <select id="port-select">
                     <option value="">-- Select Port --</option>
-                    <option value="usbserial-141101" selected>usbserial-141101</option>
                 </select>
             </div>
             
@@ -56,6 +55,12 @@
                     <span id="thermostat-mode" class="status-value">Unknown</span>
                     <span class="status-label">Setpoint:</span>
                     <span id="thermostat-setpoint" class="status-value">--°C</span>
+                    <span class="status-label">App:</span>
+                    <span id="app-version" class="status-value">--</span>
+                    <span class="status-label">Temp:</span>
+                    <span id="temp-unit" class="status-value">--</span>
+                    <span class="status-label">Lang:</span>
+                    <span id="language" class="status-value">--</span>
                 </div>
             </div>
             
@@ -87,7 +92,7 @@
         <div class="logs-wrapper">
             <div class="log-container">
                 <div class="log-header">
-                    <h2>Serial Log</h2>
+                    <h2>LV Device Logging</h2>
                     <div class="log-controls">
                         <button id="clear-log">Clear Log</button>
                         <button id="save-log">Save Log</button>
@@ -106,7 +111,7 @@
             
             <div class="error-container">
                 <div class="log-header">
-                    <h2>Errors and Exceptions</h2>
+                    <h2>Errors, Exceptions and Warnings</h2>
                     <div class="log-controls">
                         <button id="clear-errors">Clear Errors</button>
                         <button id="save-errors">Save Errors</button>
@@ -157,7 +162,6 @@
                 <h2>LV Test Plan</h2>
                 <div class="test-plan-controls">
                     <button id="refresh-test-plan" class="small-button">Refresh Test Plan</button>
-                    <div class="test-plan-info">Automatically loaded from server</div>
                 </div>
             </div>
             

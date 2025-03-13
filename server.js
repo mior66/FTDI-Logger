@@ -157,21 +157,26 @@ app.get('/ports', async (req, res) => {
   try {
     const ports = await SerialPort.list();
     
-    // Filter for FTDI devices and add more info
-    const enhancedPorts = ports.map(port => {
-      // Check if this is likely an FTDI device
-      const isFTDI = port.manufacturer?.includes('FTDI') || 
-                     port.path?.includes('usbserial') || 
-                     port.vendorId === '0403'; // FTDI vendor ID
-      
-      return {
-        ...port,
-        isFTDI,
-        recommended: isFTDI
-      };
-    });
+    // Filter out USBmodem ports and enhance the remaining ports
+    const enhancedPorts = ports
+      .filter(port => {
+        // Check for both uppercase and lowercase versions
+        return !port.path.toLowerCase().includes('usbmodem');
+      })
+      .map(port => {
+        // Check if this is likely an FTDI device
+        const isFTDI = port.manufacturer?.includes('FTDI') || 
+                      port.path?.includes('usbserial') || 
+                      port.vendorId === '0403'; // FTDI vendor ID
+        
+        return {
+          ...port,
+          isFTDI,
+          recommended: isFTDI
+        };
+      });
     
-    console.log('Available ports:', enhancedPorts);
+    console.log('Available ports (USBmodem filtered out):', enhancedPorts);
     res.json(enhancedPorts);
   } catch (err) {
     console.error('Error listing ports:', err);
@@ -189,7 +194,10 @@ io.on('connection', (socket) => {
   
   // Send available ports to the client
   SerialPort.list().then(ports => {
-    socket.emit('ports', ports);
+    // Filter out USBmodem ports (case insensitive)
+    const filteredPorts = ports.filter(port => !port.path.toLowerCase().includes('usbmodem'));
+    socket.emit('ports', filteredPorts);
+    console.log('Sent filtered ports to client (USBmodem filtered out)');
   }).catch(err => {
     console.error('Error listing ports:', err);
   });

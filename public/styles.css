@@ -84,21 +84,22 @@ header {
     align-items: center;
     margin-left: 15px;
     padding: 0 10px;
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(13, 92, 35, 0.2);
     border-radius: 4px;
     height: 38px;
+    border: 1px solid rgba(13, 92, 35, 0.3);
 }
 
 .status-label {
     font-size: 14px;
-    color: #333;
+    color: #0a2a12;
     margin-right: 5px;
 }
 
 .status-value {
     font-size: 14px;
     font-weight: bold;
-    color: #333;
+    color: #0d5c23;
     margin-right: 15px;
 }
 
@@ -275,10 +276,11 @@ button.primary:hover {
 }
 
 #connection-status {
-    padding: 8px 12px;
+    padding: 6px 10px;
     border-radius: 4px;
     font-weight: 600;
     margin-left: auto;
+    font-size: 12px;
 }
 
 .command-input-container {
