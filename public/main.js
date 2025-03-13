@@ -772,23 +772,48 @@ function renderTestPlanTabs(sheetNames) {
         
         filteredSheetNames.push(sheetName);
         
+        // Create the main tab element
         const tab = document.createElement('div');
         tab.className = 'test-plan-tab';
         
         // Apply name mapping if available
         const displayName = tabNameMappings[sheetName] || sheetName;
-        tab.textContent = displayName;
+        
+        // Create a flex container for the tab content
+        const tabContentContainer = document.createElement('div');
+        tabContentContainer.className = 'tab-content-container';
+        
+        // Create the tab text element
+        const tabText = document.createElement('span');
+        tabText.textContent = displayName;
+        tabContentContainer.appendChild(tabText);
+        
+        // Create the add all button
+        const addAllButton = document.createElement('button');
+        addAllButton.className = 'add-all-button';
+        addAllButton.innerHTML = '+ Add All';
+        addAllButton.title = `Add all ${displayName} test cases`;
+        addAllButton.dataset.sheetName = sheetName;
+        addAllButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent triggering the tab click
+            selectAllTestCasesInTab(sheetName, displayName);
+        });
+        tabContentContainer.appendChild(addAllButton);
+        
+        // Add the content container to the tab
+        tab.appendChild(tabContentContainer);
         
         // Store the original sheet name as a data attribute
         tab.dataset.sheetName = sheetName;
         
         tab.addEventListener('click', () => displayTestPlanSheet(sheetName));
+        
         testPlanTabs.appendChild(tab);
     });
     
     // Set the first tab as active by default
-    if (testPlanTabs.firstChild) {
-        testPlanTabs.firstChild.classList.add('active');
+    if (testPlanTabs.querySelector('.test-plan-tab')) {
+        testPlanTabs.querySelector('.test-plan-tab').classList.add('active');
     }
     
     // If we filtered out the first tab, make sure to display the first available tab
@@ -1239,6 +1264,197 @@ function clearSelectedTestCase() {
     exportSelectedTestCaseButton.disabled = true;
     
     // Don't clear the notes - they'll persist for when the user selects the test case again
+}
+
+// Select all test cases in a tab
+function selectAllTestCasesInTab(sheetName, displayName) {
+    if (!testPlanData || !testPlanData.sheets || !testPlanData.sheets[sheetName]) {
+        showNotification(`No data available for ${displayName} tab`, 'error');
+        return;
+    }
+    
+    // Create a unique ID for this tab selection
+    const tabSelectionId = `${sheetName}-all-cases`;
+    
+    // Clear the display area
+    selectedTestCaseDisplay.innerHTML = '';
+    
+    // Store as currently displayed test case
+    currentlyDisplayedTestCase = tabSelectionId;
+    
+    // Create a header container with title and collapse button
+    const headerContainer = document.createElement('div');
+    headerContainer.className = 'test-case-header-container';
+    
+    // Create a title for the tab selection
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'test-case-title';
+    titleDiv.textContent = `All ${displayName} Test Cases`;
+    
+    // Create collapse/expand button
+    const collapseButton = document.createElement('button');
+    collapseButton.className = 'collapse-expand-button';
+    collapseButton.innerHTML = '▼';
+    collapseButton.title = 'Collapse/Expand test cases';
+    
+    // Add elements to header container
+    headerContainer.appendChild(titleDiv);
+    headerContainer.appendChild(collapseButton);
+    selectedTestCaseDisplay.appendChild(headerContainer);
+    
+    // Get the sheet data
+    const sheetData = testPlanData.sheets[sheetName];
+    
+    // Find the last non-empty row
+    let lastNonEmptyRowIndex = sheetData.length - 1;
+    while (lastNonEmptyRowIndex > 0) {
+        const row = sheetData[lastNonEmptyRowIndex];
+        const isEmpty = !row || row.every(cell => cell === undefined || cell === null || cell === '');
+        if (!isEmpty) break;
+        lastNonEmptyRowIndex--;
+    }
+    
+    // Create a filtered version of the sheet data without empty bottom rows
+    const filteredSheetData = sheetData.slice(0, lastNonEmptyRowIndex + 1);
+    
+    // Get the headers (first row)
+    const headers = filteredSheetData[0];
+    
+    // Find the indices of the 'Build' and 'Pass/Fail' columns to exclude them
+    const excludeColumns = [];
+    headers.forEach((header, index) => {
+        const headerText = (header || '').toString().toLowerCase();
+        if (headerText === 'build' || headerText === 'pass/fail' || headerText === 'pass' || headerText === 'fail') {
+            excludeColumns.push(index);
+        }
+    });
+    
+    // Find the index of the column that likely contains test case numbers
+    let testCaseColumnIndex = 0;
+    for (let j = 0; j < headers.length; j++) {
+        const headerText = headers[j]?.toString().toLowerCase() || '';
+        
+        if (headerText === 'test #') {
+            testCaseColumnIndex = j;
+            break;
+        }
+        if (headerText.includes('test') && (headerText.includes('#') || headerText.includes('number') || headerText.includes('case'))) {
+            testCaseColumnIndex = j;
+        }
+    }
+    
+    // Create a table for the test cases summary
+    const table = document.createElement('table');
+    table.className = 'test-cases-summary-table';
+    
+    // Create the header row
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    
+    // Add Test # and Description columns
+    const testNumHeader = document.createElement('th');
+    testNumHeader.textContent = 'Test #';
+    headerRow.appendChild(testNumHeader);
+    
+    const descHeader = document.createElement('th');
+    descHeader.textContent = 'Description';
+    headerRow.appendChild(descHeader);
+    
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    
+    // Create the table body
+    const tbody = document.createElement('tbody');
+    
+    // Find and add all test case rows
+    let testCaseCount = 0;
+    for (let i = 1; i < filteredSheetData.length; i++) {
+        const rowData = filteredSheetData[i];
+        const testCaseValue = rowData[testCaseColumnIndex];
+        
+        // Check if this is a test case row
+        const isTestCaseRow = testCaseValue && (
+            (typeof testCaseValue === 'string' && 
+             (testCaseValue.match(/\d/) || 
+              testCaseValue.toLowerCase().startsWith('test') || 
+              testCaseValue.includes('#'))) ||
+            (typeof testCaseValue === 'number') ||
+            (!isNaN(parseInt(testCaseValue, 10)))
+        );
+        
+        if (isTestCaseRow) {
+            testCaseCount++;
+            const row = document.createElement('tr');
+            
+            // Add Test # cell
+            const testNumCell = document.createElement('td');
+            testNumCell.textContent = testCaseValue;
+            row.appendChild(testNumCell);
+            
+            // Find description column (usually the second column or column after test #)
+            let descColumnIndex = 1;
+            if (testCaseColumnIndex === 1) {
+                descColumnIndex = 2;
+            }
+            
+            // Add Description cell
+            const descCell = document.createElement('td');
+            descCell.textContent = rowData[descColumnIndex] || '';
+            row.appendChild(descCell);
+            
+            tbody.appendChild(row);
+        }
+    }
+    
+    table.appendChild(tbody);
+    
+    // Create a summary section
+    const summaryDiv = document.createElement('div');
+    summaryDiv.className = 'test-cases-summary';
+    summaryDiv.innerHTML = `<strong>Total Test Cases:</strong> ${testCaseCount}`;
+    
+    // Create a content container that can be collapsed
+    const contentContainer = document.createElement('div');
+    contentContainer.className = 'collapsible-content';
+    contentContainer.style.maxHeight = 'none'; // Start expanded
+    
+    // Add the summary and table to the content container
+    contentContainer.appendChild(summaryDiv);
+    contentContainer.appendChild(table);
+    
+    // Add the content container to the display
+    selectedTestCaseDisplay.appendChild(contentContainer);
+    
+    // Add event listener to the collapse button
+    const collapseToggleButton = selectedTestCaseDisplay.querySelector('.collapse-expand-button');
+    collapseToggleButton.addEventListener('click', () => {
+        if (contentContainer.style.maxHeight === 'none' || contentContainer.style.maxHeight === '') {
+            // Collapse
+            contentContainer.style.maxHeight = '0px';
+            collapseToggleButton.innerHTML = '▶';
+            collapseToggleButton.title = 'Expand test cases';
+        } else {
+            // Expand
+            contentContainer.style.maxHeight = 'none';
+            collapseToggleButton.innerHTML = '▼';
+            collapseToggleButton.title = 'Collapse test cases';
+        }
+    });
+    
+    // Add a subtle entrance animation
+    selectedTestCaseDisplay.animate([
+        { opacity: 0, transform: 'translateY(-10px)' },
+        { opacity: 1, transform: 'translateY(0)' }
+    ], {
+        duration: 300,
+        easing: 'ease-out'
+    });
+    
+    // Update test action buttons state
+    updateTestActionButtonsState();
+    
+    // Show notification
+    showNotification(`Added all ${testCaseCount} test cases from ${displayName} tab`, 'success');
 }
 
 // Export the selected test case with all logs between start and pass/fail timestamps

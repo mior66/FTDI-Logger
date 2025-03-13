@@ -519,12 +519,35 @@ button.primary:hover {
     overflow-x: auto;
 }
 
+/* Removed test-plan-tab-container styles as we're using a different approach */
+
 .test-plan-tab {
     padding: 10px 15px;
     cursor: pointer;
     border-right: 1px solid #ddd;
     transition: background-color 0.2s;
     white-space: nowrap;
+    margin-right: 3px;
+}
+
+.tab-content-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.add-all-button {
+    margin-left: 10px;
+    padding: 4px 8px;
+    background-color: rgba(13, 92, 35, 0.2);
+    border: 1px solid rgba(13, 92, 35, 0.3);
+    border-radius: 4px;
+    color: #333;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-block;
 }
 
 .test-plan-tab:hover {
@@ -822,13 +845,87 @@ button.primary:hover {
     font-style: italic;
 }
 
+.test-case-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+}
+
 #selected-test-case-display .test-case-title {
     font-weight: bold;
     font-size: 16px;
     color: #0072ff;
-    margin-bottom: 10px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #eee;
+    margin-bottom: 0;
+}
+
+.collapse-expand-button {
+    background-color: rgba(13, 92, 35, 0.1);
+    color: #333;
+    border: 1px solid rgba(13, 92, 35, 0.2);
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.collapse-expand-button:hover {
+    background-color: rgba(13, 92, 35, 0.3);
+    color: #fff;
+}
+
+.collapsible-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.test-cases-summary {
+    margin: 15px 0;
+    padding: 10px;
+    background-color: rgba(13, 92, 35, 0.1);
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.test-cases-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.test-cases-summary-table th {
+    background-color: rgba(13, 92, 35, 0.2);
+    color: #333;
+    font-weight: 600;
+    text-align: left;
+    padding: 10px;
+    border-bottom: 2px solid #0d5c23;
+}
+
+.test-cases-summary-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(13, 92, 35, 0.1);
+}
+
+.test-cases-summary-table tr:nth-child(even) {
+    background-color: rgba(13, 92, 35, 0.05);
+}
+
+.test-cases-summary-table tr:hover {
+    background-color: rgba(13, 92, 35, 0.1);
+}
+
+.add-all-button:hover {
+    background-color: rgba(13, 92, 35, 0.5);
+    color: white;
 }
 
 .test-plan-placeholder {
