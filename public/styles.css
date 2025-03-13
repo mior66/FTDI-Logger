@@ -413,11 +413,19 @@ button.primary:hover {
 
 .test-plan-header {
     padding: 15px 20px;
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
+    background: linear-gradient(135deg, #0a2a12, #0d5c23);
+    color: white;
+    border-bottom: 1px solid #0a2a12;
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.test-plan-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .test-plan-controls {
@@ -429,7 +437,7 @@ button.primary:hover {
 .test-plan-controls .small-button {
     padding: 6px 12px;
     font-size: 13px;
-    background-color: #0a2a12;
+    background-color: rgba(255, 255, 255, 0.2);
     color: white;
     border: none;
     border-radius: 4px;
@@ -439,7 +447,7 @@ button.primary:hover {
 }
 
 .test-plan-controls .small-button:hover {
-    background-color: #0d5c23;
+    background-color: rgba(255, 255, 255, 0.3);
 }
 
 .file-upload-wrapper {
@@ -455,13 +463,13 @@ button.primary:hover {
 }
 
 .test-plan-info {
-    background-color: #e6f7ff;
-    color: #0072ff;
+    background-color: rgba(13, 92, 35, 0.1);
+    color: #0d5c23;
     padding: 8px 15px;
     border-radius: 4px;
     font-size: 14px;
     font-weight: 500;
-    border-left: 3px solid #0072ff;
+    border-left: 3px solid #0d5c23;
 }
 
 .file-upload-wrapper {
@@ -506,8 +514,8 @@ button.primary:hover {
 
 .test-plan-tabs {
     display: flex;
-    background-color: #f0f0f0;
-    border-bottom: 1px solid #ddd;
+    background-color: rgba(13, 92, 35, 0.1);
+    border-bottom: 1px solid rgba(13, 92, 35, 0.3);
     overflow-x: auto;
 }
 
@@ -525,8 +533,9 @@ button.primary:hover {
 
 .test-plan-tab.active {
     background-color: #fff;
-    border-bottom: 2px solid #0072ff;
+    border-bottom: 2px solid #0d5c23;
     font-weight: 600;
+    color: #0a2a12;
 }
 
 .test-plan-table-container {
@@ -566,20 +575,20 @@ button.primary:hover {
 
 /* Selected test case styles */
 .test-plan-table tr.selected-test-case {
-    background-color: rgba(0, 114, 255, 0.1);
-    border-left: 3px solid #0072ff;
+    background-color: rgba(13, 92, 35, 0.1);
+    border-left: 3px solid #0d5c23;
     font-weight: 500;
     position: relative;
 }
 
 .test-plan-table tr.selected-test-case:hover {
-    background-color: rgba(0, 114, 255, 0.15);
+    background-color: rgba(13, 92, 35, 0.15);
     cursor: pointer;
 }
 
 .test-plan-table tr.selected-test-case td:first-child {
     font-weight: bold;
-    color: #0072ff;
+    color: #0d5c23;
 }
 
 /* Test case header row styles */
@@ -595,22 +604,22 @@ button.primary:hover {
 }
 
 .test-plan-table tr.test-case-header:hover {
-    background-color: rgba(0, 114, 255, 0.08);
+    background-color: rgba(13, 92, 35, 0.08);
 }
 
 .test-plan-table tr.test-case-header.selected-test-case {
-    background-color: rgba(0, 114, 255, 0.15);
-    border-left: 4px solid #0072ff;
-    border-top: 2px solid #0072ff;
+    background-color: rgba(13, 92, 35, 0.15);
+    border-left: 4px solid #0d5c23;
+    border-top: 2px solid #0d5c23;
 }
 
 .test-plan-table tr.test-case-header.selected-test-case td:first-child {
-    color: #0072ff;
+    color: #0d5c23;
 }
 
 /* Add notification style for info messages */
 #notification.info {
-    background-color: #0072ff;
+    background-color: #0d5c23;
 }
 
 /* Test Action Buttons */
@@ -741,14 +750,16 @@ button.primary:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 15px;
+    padding: 15px 20px;
     background: linear-gradient(135deg, #0a2a12, #0d5c23);
     color: white;
 }
 
 .selected-test-case-panel .test-case-header h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: 1.5rem;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .selected-test-case-panel .test-case-controls {
@@ -757,14 +768,15 @@ button.primary:hover {
 }
 
 .selected-test-case-panel .small-button {
-    padding: 5px 10px;
-    font-size: 12px;
+    padding: 8px 15px;
+    font-size: 14px;
     background-color: rgba(255, 255, 255, 0.2);
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
+    font-weight: 500;
 }
 
 .selected-test-case-panel .small-button:hover {
@@ -772,11 +784,11 @@ button.primary:hover {
 }
 
 .selected-test-case-panel .export-button {
-    background-color: rgba(0, 114, 255, 0.3);
+    background-color: rgba(13, 92, 35, 0.3);
 }
 
 .selected-test-case-panel .export-button:hover {
-    background-color: rgba(0, 114, 255, 0.5);
+    background-color: rgba(13, 92, 35, 0.5);
 }
 
 #selected-test-case-display {
@@ -902,15 +914,20 @@ button.primary:hover {
     color: #FFD700 !important; /* Yellow for Connection attempts - changed from dark blue for better visibility */
 }
 
+/* Hide error lines when their legend item is inactive */
+.error-type-hidden {
+    display: none !important;
+}
+
 /* Color legend styles */
 .color-legend {
     background-color: #f8f9fa;
     border: 1px solid #e9ecef;
     border-radius: 8px;
-    padding: 15px;
+    padding: 10px 5px;
     margin: 15px auto 20px;
-    width: 80%;
-    max-width: 600px;
+    width: 95%;
+    max-width: 900px;
     text-align: center;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
@@ -923,8 +940,8 @@ button.primary:hover {
 
 .legend-items {
     display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
+    flex-wrap: nowrap;
+    gap: 5px;
     justify-content: center;
 }
 
@@ -933,6 +950,27 @@ button.primary:hover {
     align-items: center;
     gap: 8px;
     font-size: 13px;
+}
+
+.legend-item.clickable {
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.legend-item.clickable:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.legend-item.clickable.active {
+    opacity: 1;
+}
+
+.legend-item.clickable:not(.active) {
+    opacity: 0.5;
 }
 
 .color-sample {

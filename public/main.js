@@ -29,10 +29,11 @@ const testPassButton = document.getElementById('test-pass-button');
 const testFailButton = document.getElementById('test-fail-button');
 
 // Command Input Elements
-const commandInput = document.getElementById('command-input');
-const sendCommandButton = document.getElementById('send-command-button');
-const setTemp29Button = document.getElementById('set-temp-29');
-const setTemp28Button = document.getElementById('set-temp-28');
+// Command input and buttons have been removed
+const commandInput = null;
+const sendCommandButton = null;
+const setTemp29Button = null;
+const setTemp28Button = null;
 
 const clearLogButton = document.getElementById('clear-log');
 const saveLogButton = document.getElementById('save-log');
@@ -92,26 +93,14 @@ function init() {
     saveErrorsButton.addEventListener('click', saveErrors);
     clearSelectedTestCaseButton.addEventListener('click', clearSelectedTestCase);
     
-    // Set up command input event listeners
-    sendCommandButton.addEventListener('click', sendCommand);
-    commandInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            sendCommand();
-        }
-    });
-    
-    // Set up temperature setpoint buttons
-    setTemp29Button.addEventListener('click', function() {
-        sendThermostatCommand('set temp 29');
-    });
-    
-    setTemp28Button.addEventListener('click', function() {
-        sendThermostatCommand('set temp 28');
-    });
+    // Command input and temperature setpoint buttons have been removed
     
     // Set up refresh test plan button event listener
     const refreshTestPlanButton = document.getElementById('refresh-test-plan');
     refreshTestPlanButton.addEventListener('click', loadTestPlanData);
+    
+    // Set up error legend filtering
+    setupErrorLegendFiltering();
     
     // Set up export button event listener
     const exportSelectedTestCaseButton = document.getElementById('export-selected-test-case');
@@ -303,11 +292,7 @@ function updateConnectionStatus(status) {
         disconnectButton.disabled = false;
         portSelect.disabled = true;
         
-        // Enable command input elements
-        commandInput.disabled = false;
-        sendCommandButton.disabled = false;
-        setTemp29Button.disabled = false;
-        setTemp28Button.disabled = false;
+        // Command input elements have been removed
         
         showNotification('Connected successfully', 'success');
     } else {
@@ -317,11 +302,7 @@ function updateConnectionStatus(status) {
         disconnectButton.disabled = true;
         portSelect.disabled = false;
         
-        // Disable command input elements
-        commandInput.disabled = true;
-        sendCommandButton.disabled = true;
-        setTemp29Button.disabled = true;
-        setTemp28Button.disabled = true;
+        // Command input elements have been removed
         
         if (logEntries.length > 0) {
             showNotification('Disconnected from port', 'error');
@@ -509,6 +490,35 @@ function clearErrors() {
     errorWindow.innerHTML = '';
     errorEntries = [];
     showNotification('Errors cleared', 'success');
+}
+
+// Setup error legend filtering
+function setupErrorLegendFiltering() {
+    // Get all legend items
+    const legendItems = document.querySelectorAll('.legend-item.clickable');
+    
+    // Add click event to each legend item
+    legendItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // Toggle active class
+            this.classList.toggle('active');
+            
+            // Get error type
+            const errorType = this.getAttribute('data-error-type');
+            
+            // Toggle visibility of corresponding error lines
+            const errorLines = document.querySelectorAll(`.${errorType}-line`);
+            errorLines.forEach(line => {
+                if (this.classList.contains('active')) {
+                    // Show the error line
+                    line.classList.remove('error-type-hidden');
+                } else {
+                    // Hide the error line
+                    line.classList.add('error-type-hidden');
+                }
+            });
+        });
+    });
 }
 
 // Save the log to a file
@@ -1822,36 +1832,30 @@ function initializeEnvChart() {
     });
 }
 
-// Send a command to the device
-function sendCommand() {
+// Send a command to the device (function kept for compatibility)
+function sendCommand(commandText) {
     if (!isConnected) {
         showNotification('Not connected to a device', 'error');
         return;
     }
     
-    const command = commandInput.value.trim();
-    if (!command) {
-        showNotification('Please enter a command', 'error');
-        return;
+    if (typeof commandText === 'string' && commandText.trim()) {
+        // Send the command to the server
+        socket.emit('send-command', { command: commandText.trim() });
+        
+        // Add the command to the log
+        const timestamp = new Date().toISOString();
+        addLogEntry(timestamp, `> ${commandText.trim()}`);
     }
-    
-    // Send the command to the server
-    socket.emit('send-command', { command });
-    
-    // Add the command to the log
-    const timestamp = new Date().toISOString();
-    addLogEntry(timestamp, `> ${command}`);
-    
-    // Clear the input field
-    commandInput.value = '';
 }
 
-// Send a thermostat command to change temperature
+// Send a thermostat command to change temperature (function kept for compatibility)
 function sendThermostatCommand(command) {
     if (!isConnected) {
         showNotification('Not connected to a device', 'error');
         return;
     }
+    // This function is kept for compatibility but the UI buttons have been removed
     
     if (command === 'set temp 29') {
         showNotification('Setting temperature to 29°C...', 'success');

@@ -66,7 +66,13 @@
             
             <div id="connection-status">Not connected</div>
             
-            <!-- Command Input Section Removed -->
+            <!-- Command Input Section -->
+            <div class="command-input-container">
+                <input type="text" id="command-input" placeholder="Enter command..." disabled>
+                <button id="send-command-button" disabled>Send</button>
+                <button id="set-temp-29" disabled>Set Temp to 29°C</button>
+                <button id="set-temp-28" disabled>Set Temp to 28°C</button>
+            </div>
         </div>
         
         <!-- Current Test Case Display Box -->
@@ -123,27 +129,27 @@
         <div class="color-legend">
             <h3>Color Legend</h3>
             <div class="legend-items">
-                <div class="legend-item clickable active" data-error-type="error">
+                <div class="legend-item">
                     <div class="color-sample error-sample"></div>
                     <span>Error</span>
                 </div>
-                <div class="legend-item clickable active" data-error-type="failure">
+                <div class="legend-item">
                     <div class="color-sample failure-sample"></div>
                     <span>Fail</span>
                 </div>
-                <div class="legend-item clickable active" data-error-type="warning">
+                <div class="legend-item">
                     <div class="color-sample warning-sample"></div>
                     <span>Warning</span>
                 </div>
-                <div class="legend-item clickable active" data-error-type="unexpected">
+                <div class="legend-item">
                     <div class="color-sample unexpected-sample"></div>
                     <span>Unexpected</span>
                 </div>
-                <div class="legend-item clickable active" data-error-type="exception">
+                <div class="legend-item">
                     <div class="color-sample exception-sample"></div>
                     <span>Exception</span>
                 </div>
-                <div class="legend-item clickable active" data-error-type="connection">
+                <div class="legend-item">
                     <div class="color-sample connection-sample"></div>
                     <span>Connection # > 7</span>
                 </div>
@@ -176,5 +182,6 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="quotes.js"></script>
     <script src="main.js"></script>
+    <script src="performance.js"></script>
 </body>
 </html>
