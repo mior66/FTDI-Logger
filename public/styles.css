@@ -103,6 +103,32 @@ header {
     margin-right: 15px;
 }
 
+/* Lunch Idea Button */
+.lunch-button {
+    margin-left: 15px;
+    font-size: 0.9em;
+    padding: 6px 12px;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    vertical-align: middle;
+}
+
+.lunch-button:hover {
+    background-color: #45a049;
+}
+
+.lightbulb {
+    margin-left: 5px;
+    font-size: 1.1em;
+}
+
 #thermostat-mode.heat {
     color: #ff5722;
 }
@@ -583,6 +609,19 @@ button.primary:hover {
     z-index: 10;
 }
 
+/* Column width adjustments */
+.test-plan-table th:first-child,
+.test-plan-table td:first-child {
+    width: 90px; /* Adjusted Test # column width */
+}
+
+.test-plan-table th:nth-child(2),
+.test-plan-table td:nth-child(2) {
+    width: auto; /* Test column takes remaining space */
+}
+
+/* We'll handle specific column widths in JavaScript instead of CSS to avoid affecting all tabs */
+
 .test-plan-table td {
     padding: 8px 10px;
     border: 1px solid #ddd;
@@ -619,6 +658,28 @@ button.primary:hover {
     border-top: 2px solid #ddd;
     font-weight: 600;
     cursor: pointer;
+}
+
+/* Sub-header row styles */
+.test-plan-table tr.sub-header-row {
+    background-color: #f0f7ff;
+    font-weight: 600;
+    font-style: italic;
+    color: #0d5c23;
+    border-top: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    pointer-events: auto; /* Allow hover but prevent selection */
+    user-select: none; /* Prevent text selection */
+}
+
+.test-plan-table tr.sub-header-row:hover {
+    background-color: #e0f0ff;
+    cursor: default; /* Show default cursor instead of pointer */
+}
+
+.test-plan-table tr.sub-header-row td {
+    padding-top: 12px;
+    padding-bottom: 12px;
 }
 
 .test-plan-table tr.test-case-header td:first-child {
@@ -1100,6 +1161,19 @@ button.primary:hover {
     background-color: #FFD700;
 }
 
+/* Error count styling */
+.error-count {
+    margin-left: 5px;
+    font-size: 0.9em;
+    font-weight: bold;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    padding: 2px 6px;
+    min-width: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
 #error-window .log-entry {
     border-left: 3px solid #ff4040;
     padding-left: 10px;
@@ -1169,6 +1243,38 @@ button.primary:hover {
 
 #notification.error {
     background-color: #dc3545;
+}
+
+#notification.lunch-suggestion {
+    background-color: #fff;
+    min-width: 350px;
+    max-width: 450px;
+    line-height: 1.5;
+    padding: 15px 20px;
+    color: #333;
+    border-left: 5px solid #4CAF50;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+#notification.lunch-suggestion a {
+    color: #4CAF50;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+#notification.lunch-suggestion a:hover {
+    color: #3d8b40;
+    text-decoration: underline;
+}
+
+#notification.lunch-suggestion strong {
+    color: #333;
+    font-size: 16px;
+    display: block;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
 }
 
 #notification.hidden {

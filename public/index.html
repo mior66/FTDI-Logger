@@ -61,6 +61,7 @@
                     <span id="temp-unit" class="status-value">--</span>
                     <span class="status-label">Lang:</span>
                     <span id="language" class="status-value">--</span>
+                    <button id="lunch-idea-button" class="primary lunch-button">Lunch Idea <span class="lightbulb">💡</span></button>
                 </div>
             </div>
             
@@ -121,31 +122,37 @@
         
         <!-- Centered Color Legend -->
         <div class="color-legend">
-            <h3>Color Legend</h3>
+            <h3>Color Legend (# of Occurrences)</h3>
             <div class="legend-items">
                 <div class="legend-item clickable active" data-error-type="error">
                     <div class="color-sample error-sample"></div>
                     <span>Error</span>
+                    <span class="error-count" id="error-count">0</span>
                 </div>
                 <div class="legend-item clickable active" data-error-type="failure">
                     <div class="color-sample failure-sample"></div>
                     <span>Fail</span>
+                    <span class="error-count" id="failure-count">0</span>
                 </div>
                 <div class="legend-item clickable active" data-error-type="warning">
                     <div class="color-sample warning-sample"></div>
                     <span>Warning</span>
+                    <span class="error-count" id="warning-count">0</span>
                 </div>
                 <div class="legend-item clickable active" data-error-type="unexpected">
                     <div class="color-sample unexpected-sample"></div>
                     <span>Unexpected</span>
+                    <span class="error-count" id="unexpected-count">0</span>
                 </div>
                 <div class="legend-item clickable active" data-error-type="exception">
                     <div class="color-sample exception-sample"></div>
                     <span>Exception</span>
+                    <span class="error-count" id="exception-count">0</span>
                 </div>
                 <div class="legend-item clickable active" data-error-type="connection">
                     <div class="color-sample connection-sample"></div>
                     <span>Connection # > 7</span>
+                    <span class="error-count" id="connection-count">0</span>
                 </div>
             </div>
         </div>
