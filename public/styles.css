@@ -395,6 +395,33 @@ button.primary:hover {
     margin-left: 15px; /* Add spacing from header */
 }
 
+#log-filter {
+    background-color: #0a2a12;
+    color: white;
+    border: 1px solid #0d5c23;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+#log-filter:hover {
+    background-color: #0d3b18;
+    border-color: #0f6e2a;
+}
+
+#log-filter:focus {
+    box-shadow: 0 0 0 2px rgba(13, 92, 35, 0.5);
+    border-color: #0f6e2a;
+}
+
+#log-filter option {
+    background-color: #1a1a1a;
+    color: white;
+}
+
 .controls-group {
     display: flex;
     align-items: center;
