@@ -809,44 +809,32 @@ function renderVisibleLogEntries(filter) {
         console.log('First few setpoint entries:', filteredEntries.slice(0, 5).map(e => e.message));
         console.log('Last few setpoint entries:', filteredEntries.slice(-5).map(e => e.message));
     } else if (currentFilter === 'mode') {
-        // Filter for mode-related entries in the actual logs
-        const modeEntryPattern = 'Entering menu: Mode Menu';
-        const modeUpdatePattern = 'Mode Updated:';
+        // Filter for entries between specific markers
+        const startMarker = 'app_menu_controller: Entering menu: Mode Menu';
+        const endMarker = 'persistence: Successfully wrote 180 bytes to flash';
         
-        // Find all entries related to mode changes
+        // Find all entries between the start and end markers
         let modeEntries = [];
         let inModeSection = false;
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
             
-            // Check if this is the start of a mode menu section
-            if (entry.message && entry.message.includes(modeEntryPattern)) {
+            // Check if this is the start marker
+            if (entry.message && entry.message.includes(startMarker)) {
                 inModeSection = true;
                 modeEntries.push(entry);
+                console.log('Found mode start marker at index:', i, 'with message:', entry.message);
                 continue;
             }
             
-            // Check if this is a mode update
-            if (entry.message && entry.message.includes(modeUpdatePattern)) {
-                // If we find a mode update, include it and the next few entries
-                modeEntries.push(entry);
-                
-                // Include the next 3 entries (or fewer if we're near the end) for persistence messages
-                for (let j = 1; j <= 3 && i + j < logEntries.length; j++) {
-                    modeEntries.push(logEntries[i + j]);
-                }
-                continue;
-            }
-            
-            // If we're in a mode section, include entries until we find another menu entry
+            // If we're in the section, add the entry
             if (inModeSection) {
                 modeEntries.push(entry);
                 
-                // Check if this entry indicates entering a different menu
-                if (entry.message && 
-                    entry.message.includes('Entering menu:') && 
-                    !entry.message.includes(modeEntryPattern)) {
+                // Check if this is the end marker
+                if (entry.message && entry.message.includes(endMarker)) {
+                    console.log('Found mode end marker at index:', i, 'with message:', entry.message);
                     inModeSection = false;
                 }
             }
@@ -854,6 +842,8 @@ function renderVisibleLogEntries(filter) {
         
         filteredEntries = modeEntries;
         console.log('Mode filtered entries:', filteredEntries.length);
+        console.log('First few mode entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few mode entries:', filteredEntries.slice(-5).map(e => e.message));
     } else {
         // Default to showing all logs for other filters
         filteredEntries = [...logEntries];
