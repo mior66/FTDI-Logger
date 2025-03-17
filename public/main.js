@@ -844,6 +844,70 @@ function renderVisibleLogEntries(filter) {
         console.log('Mode filtered entries:', filteredEntries.length);
         console.log('First few mode entries:', filteredEntries.slice(0, 5).map(e => e.message));
         console.log('Last few mode entries:', filteredEntries.slice(-5).map(e => e.message));
+    } else if (currentFilter === 'temp') {
+        // Filter for entries between specific markers for temperature-related logs
+        const startMarker = 'app_menu_controller: Entering menu: Ambient Menu';
+        const endMarker = 'persistence: Successfully wrote 180 bytes to flash';
+        
+        // Find all entries between the start and end markers
+        let tempEntries = [];
+        let inTempSection = false;
+        
+        for (let i = 0; i < logEntries.length; i++) {
+            const entry = logEntries[i];
+            
+            // Check if this is the start marker
+            if (entry.message && entry.message.includes(startMarker)) {
+                inTempSection = true;
+                tempEntries.push(entry);
+                console.log('Found temp start marker at index:', i, 'with message:', entry.message);
+                continue;
+            }
+            
+            // If we're in the section, add the entry
+            if (inTempSection) {
+                tempEntries.push(entry);
+                
+                // Check if this is the end marker
+                if (entry.message && entry.message.includes(endMarker)) {
+                    console.log('Found temp end marker at index:', i, 'with message:', entry.message);
+                    inTempSection = false;
+                }
+            }
+        }
+        
+        filteredEntries = tempEntries;
+        console.log('Temp filtered entries:', filteredEntries.length);
+        console.log('First few temp entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few temp entries:', filteredEntries.slice(-5).map(e => e.message));
+    } else if (currentFilter === 'boot') {
+        // Filter for boot-related entries
+        const bootMarkers = [
+            'Starting ESP-IDF',
+            'ESP-IDF:',
+            'Boot:',
+            'Starting app',
+            'CPU frequency',
+            'Restarting',
+            'Reset reason:'
+        ];
+        
+        // Find all entries related to boot
+        let bootEntries = [];
+        
+        for (let i = 0; i < logEntries.length; i++) {
+            const entry = logEntries[i];
+            
+            // Check if this entry contains any boot-related markers
+            if (entry.message && bootMarkers.some(marker => entry.message.includes(marker))) {
+                bootEntries.push(entry);
+            }
+        }
+        
+        filteredEntries = bootEntries;
+        console.log('Boot filtered entries:', filteredEntries.length);
+        console.log('First few boot entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few boot entries:', filteredEntries.slice(-5).map(e => e.message));
     } else {
         // Default to showing all logs for other filters
         filteredEntries = [...logEntries];
