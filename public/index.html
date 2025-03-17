@@ -88,31 +88,50 @@
             <div class="log-container">
                 <div class="log-header">
                     <h2>LV Device Logging</h2>
-                    <div class="log-controls">
-                        <button id="clear-log">Clear Log</button>
-                        <button id="save-log">Save Log</button>
+                    <div class="filter-container">
+                        <select id="log-filter">
+                            <option value="full">Full</option>
+                            <option value="setpoint">Setpoint</option>
+                            <option value="mode">Mode</option>
+                            <option value="options">Options</option>
+                        </select>
+                    </div>
+                    <div class="controls-group">
+                        <div class="log-controls">
+                            <button id="clear-log">Clear Log</button>
+                            <button id="save-log">Save Log</button>
+                        </div>
                         <div class="autoscroll-container">
                             <input type="checkbox" id="autoscroll" checked>
-                            <label for="autoscroll">Auto-scroll</label>
+                            <label for="autoscroll" style="font-size: 12px;">Auto-scroll</label>
                         </div>
                         <div class="timestamp-container">
                             <input type="checkbox" id="timestamp" checked>
-                            <label for="timestamp">Timestamp</label>
+                            <label for="timestamp" style="font-size: 12px;">Timestamp</label>
                         </div>
                     </div>
                 </div>
                 <div id="log-window"></div>
+                <div class="hidden-log-container">
+                    <div class="hidden-log-header">
+                        <h3>Hidden:</h3>
+                        <button id="clear-hidden-log">Clear Hidden</button>
+                    </div>
+                    <div id="hidden-log-window"></div>
+                </div>
             </div>
             
             <div class="error-container">
                 <div class="log-header">
                     <h2>Errors, Exceptions and Warnings</h2>
-                    <div class="log-controls">
-                        <button id="clear-errors">Clear Errors</button>
-                        <button id="save-errors">Save Errors</button>
+                    <div class="controls-group">
+                        <div class="log-controls">
+                            <button id="clear-errors">Clear Errors</button>
+                            <button id="save-errors">Save Errors</button>
+                        </div>
                         <div class="autoscroll-container">
                             <input type="checkbox" id="error-autoscroll" checked>
-                            <label for="error-autoscroll">Auto-scroll</label>
+                            <label for="error-autoscroll" style="font-size: 12px;">Auto-scroll</label>
                         </div>
                     </div>
                 </div>

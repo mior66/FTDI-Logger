@@ -26,6 +26,8 @@ function debounce(func, wait) {
 const portSelect = document.getElementById('port-select');
 const connectButton = document.getElementById('connect-button');
 const disconnectButton = document.getElementById('disconnect-button');
+const logFilter = document.getElementById('log-filter');
+const clearHiddenLogButton = document.getElementById('clear-hidden-log');
 
 // Thermostat Status Elements
 const thermostatMode = document.getElementById('thermostat-mode');
@@ -55,6 +57,7 @@ const errorAutoscrollCheckbox = document.getElementById('error-autoscroll');
 const timestampCheckbox = document.getElementById('timestamp');
 const logWindow = document.getElementById('log-window');
 const errorWindow = document.getElementById('error-window');
+const hiddenLogWindow = document.getElementById('hidden-log-window');
 const connectionStatus = document.getElementById('connection-status');
 const notification = document.getElementById('notification');
 const quoteText = document.getElementById('quote-text');
@@ -70,12 +73,16 @@ const exportSelectedTestCaseButton = document.getElementById('export-selected-te
 let isConnected = false;
 let logEntries = [];
 let errorEntries = [];
+let hiddenEntries = []; // Store filtered-out entries
 let currentTestPlanFile = null;
 let testPlanData = null;
 let activeSheetName = null;
 let selectedTestCases = new Set(); // Store selected test case rows
 let currentlyDisplayedTestCase = null; // Store the currently displayed test case ID
 let testLogEntries = {}; // Store test log entries by test case ID
+
+// Text to filter out from main log and show in hidden section
+const hiddenTextPattern = 'esp_matter_attribute:';
 
 // Error count tracking
 let errorCounts = {
@@ -116,6 +123,11 @@ function init() {
     
     // Command input and temperature setpoint buttons have been removed
     
+    // Set up log filter dropdown event listener
+    logFilter.addEventListener('change', function() {
+        renderVisibleLogEntries(logFilter.value);
+    });
+    
     // Set up refresh test plan button event listener
     const refreshTestPlanButton = document.getElementById('refresh-test-plan');
     refreshTestPlanButton.addEventListener('click', loadTestPlanData);
@@ -141,7 +153,18 @@ function init() {
     // Set up timestamp checkbox with debounced handler for better performance
     timestampCheckbox.addEventListener('change', function() {
         renderVisibleLogEntries();
+        updateHiddenLogWindow(); // Also update hidden log window when timestamp preference changes
     });
+    
+    // Set up clear hidden log button
+    clearHiddenLogButton.addEventListener('click', function() {
+        hiddenEntries = [];
+        hiddenLogWindow.innerHTML = '';
+        showNotification('Hidden log cleared', 'success');
+    });
+    
+    // Apply the filter to existing logs
+    reapplyFilterToExistingLogs();
     
     // Add scroll event listener with debouncing for better performance
     logWindow.addEventListener('scroll', debounce(function() {
@@ -189,7 +212,18 @@ function setupSocketListeners() {
     // Listen for serial data
     socket.on('serial-data', (data) => {
         console.log('Received serial data:', data);
-        addLogEntry(data.timestamp, data.data);
+        
+        // Check if this data contains the hidden text pattern
+        if (data.data.includes(hiddenTextPattern)) {
+            // Add to hidden entries
+            hiddenEntries.push({ timestamp: data.timestamp, message: data.data });
+            
+            // Update hidden log window
+            updateHiddenLogWindow();
+        } else {
+            // Add to regular log entries
+            addLogEntry(data.timestamp, data.data);
+        }
         
         // Check for temperature and humidity data
         checkForEnvironmentData(data.data);
@@ -570,9 +604,11 @@ function formatTimestamp(isoString) {
 // Clear the log window
 function clearLog() {
     logWindow.innerHTML = '';
+    hiddenLogWindow.innerHTML = '';
     logEntries = [];
+    hiddenEntries = [];
     errorToLogMap = new Map();
-    showNotification('Log cleared', 'success');
+    showNotification('All logs cleared', 'success');
 }
 
 // Create a log entry DOM element
@@ -610,30 +646,167 @@ function createLogEntryElement(entry, index) {
     return logEntry;
 }
 
-// Render visible log entries based on current scroll position
-function renderVisibleLogEntries() {
+// Reapply the filter to existing logs
+function reapplyFilterToExistingLogs() {
+    // Create temporary arrays to hold filtered and non-filtered entries
+    let filteredLogEntries = [];
+    let newHiddenEntries = [];
+    
+    // Go through all existing log entries
+    for (let i = 0; i < logEntries.length; i++) {
+        const entry = logEntries[i];
+        
+        // Check if this entry should be hidden
+        if (entry.message && entry.message.includes(hiddenTextPattern)) {
+            newHiddenEntries.push(entry);
+        } else {
+            filteredLogEntries.push(entry);
+        }
+    }
+    
+    // Update the arrays
+    logEntries = filteredLogEntries;
+    hiddenEntries = [...hiddenEntries, ...newHiddenEntries];
+    
+    // Re-render the logs
+    renderVisibleLogEntries();
+    updateHiddenLogWindow();
+}
+
+// Update the hidden log window with filtered entries
+function updateHiddenLogWindow() {
+    // Clear current hidden log window
+    hiddenLogWindow.innerHTML = '';
+    
+    // If no hidden entries, nothing to render
+    if (hiddenEntries.length === 0) return;
+    
+    // Create a document fragment for batch DOM operations
+    const fragment = document.createDocumentFragment();
+    
+    // Only show the last 50 hidden entries to avoid performance issues
+    const startIndex = Math.max(0, hiddenEntries.length - 50);
+    
+    // Render the hidden entries
+    for (let i = startIndex; i < hiddenEntries.length; i++) {
+        const entry = hiddenEntries[i];
+        const hiddenEntry = document.createElement('div');
+        hiddenEntry.className = 'log-entry';
+        
+        // Create timestamp element if needed
+        if (timestampCheckbox.checked && entry.timestamp) {
+            const timestampElement = document.createElement('span');
+            timestampElement.className = 'log-timestamp';
+            timestampElement.textContent = formatTimestamp(entry.timestamp);
+            hiddenEntry.appendChild(timestampElement);
+        }
+        
+        // Create message element
+        const messageElement = document.createElement('span');
+        messageElement.className = 'log-message';
+        
+        // Handle special characters and control codes
+        let formattedMessage = entry.message
+            .replace(/\r\n|\r|\n/g, '<br>')
+            .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+            .replace(/ /g, '&nbsp;');
+        
+        // Apply color coding
+        formattedMessage = applyColorCoding(formattedMessage);
+        messageElement.innerHTML = formattedMessage;
+        
+        // Add message element to the hidden entry
+        hiddenEntry.appendChild(messageElement);
+        
+        // Add to fragment
+        fragment.appendChild(hiddenEntry);
+    }
+    
+    // Add all entries to the DOM in a single operation
+    hiddenLogWindow.appendChild(fragment);
+    
+    // Auto-scroll the hidden log window
+    hiddenLogWindow.scrollTop = hiddenLogWindow.scrollHeight;
+}
+
+// Current filter selection
+let currentFilter = 'full';
+
+// Render visible log entries based on current scroll position and filter
+function renderVisibleLogEntries(filter) {
+    // Update current filter if provided
+    if (filter) {
+        currentFilter = filter;
+    }
+    
     // Clear current log window
     logWindow.innerHTML = '';
     
     // If no entries, nothing to render
     if (logEntries.length === 0) return;
     
-    // Determine which entries to show based on total entries
+    // Filter entries based on the selected filter
+    let filteredEntries = [];
+    
+    if (currentFilter === 'full') {
+        // Show all logs
+        filteredEntries = [...logEntries];
+    } else if (currentFilter === 'setpoint') {
+        // Filter for setpoint-related entries in the actual logs
+        const setpointPatterns = [
+            'Entering menu: Setpoint Menu',
+            'Cooling Setpoint Updated:',
+            'Heating Setpoint Updated:',
+            'Setpoint Updated:'
+        ];
+        
+        // Find all entries matching any of the setpoint patterns
+        let setpointEntries = [];
+        
+        for (let i = 0; i < logEntries.length; i++) {
+            const entry = logEntries[i];
+            
+            // Check if this entry contains any of the setpoint patterns
+            const matchesPattern = setpointPatterns.some(pattern => 
+                entry.message && entry.message.includes(pattern)
+            );
+            
+            if (matchesPattern) {
+                setpointEntries.push(entry);
+                
+                // Also include the next few entries after a setpoint change
+                // to show persistence and confirmation messages
+                if (entry.message && entry.message.includes('Setpoint Updated:')) {
+                    // Include the next 3 entries (or fewer if we're near the end)
+                    for (let j = 1; j <= 3 && i + j < logEntries.length; j++) {
+                        setpointEntries.push(logEntries[i + j]);
+                    }
+                }
+            }
+        }
+        
+        filteredEntries = setpointEntries;
+    } else {
+        // Default to showing all logs for other filters
+        filteredEntries = [...logEntries];
+    }
+    
+    // Determine which entries to show based on total filtered entries
     let startIndex = 0;
-    let endIndex = logEntries.length;
+    let endIndex = filteredEntries.length;
     
     // If we have more entries than our display limit, show the most recent ones
-    if (logEntries.length > MAX_VISIBLE_LOG_ENTRIES) {
-        startIndex = logEntries.length - MAX_VISIBLE_LOG_ENTRIES;
-        endIndex = logEntries.length;
+    if (filteredEntries.length > MAX_VISIBLE_LOG_ENTRIES) {
+        startIndex = filteredEntries.length - MAX_VISIBLE_LOG_ENTRIES;
+        endIndex = filteredEntries.length;
     }
     
     // Create a document fragment for batch DOM operations (much more efficient)
     const fragment = document.createDocumentFragment();
     
-    // Render only the visible entries
+    // Render only the visible filtered entries
     for (let i = startIndex; i < endIndex; i++) {
-        const logEntry = createLogEntryElement(logEntries[i], i);
+        const logEntry = createLogEntryElement(filteredEntries[i], logEntries.indexOf(filteredEntries[i]));
         // Remove from DOM and add to fragment
         if (logEntry.parentNode) {
             logEntry.parentNode.removeChild(logEntry);
