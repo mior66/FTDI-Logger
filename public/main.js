@@ -781,27 +781,32 @@ function renderVisibleLogEntries(filter) {
         // Find all entries between the start and end markers
         let setpointEntries = [];
         let inSetpointSection = false;
+        let foundSetpointMenu = false;
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
             
             // Check if this is the start marker
             if (entry.message && entry.message.includes(startMarker)) {
+                // Check if the next line contains Mode Menu text
+                if (i + 1 < logEntries.length && 
+                    logEntries[i + 1].message && 
+                    logEntries[i + 1].message.includes(modeMarker)) {
+                    // Skip this setpoint section as it's immediately followed by Mode Menu
+                    console.log('Skipping Setpoint section at index:', i, 'because next line is Mode Menu');
+                    i++; // Skip the next line (Mode Menu) as well
+                    continue;
+                }
+                
                 inSetpointSection = true;
+                foundSetpointMenu = true;
                 setpointEntries.push(entry);
-                console.log('Found start marker at index:', i, 'with message:', entry.message);
+                console.log('Found valid start marker at index:', i, 'with message:', entry.message);
                 continue;
             }
             
-            // If we're in the section, add the entry unless it contains Mode Menu text
+            // If we're in the section, add the entry
             if (inSetpointSection) {
-                // Check if this entry contains Mode Menu text
-                if (entry.message && entry.message.includes(modeMarker)) {
-                    console.log('Found Mode Menu in Setpoint section at index:', i, 'with message:', entry.message);
-                    inSetpointSection = false;
-                    continue; // Skip this entry
-                }
-                
                 setpointEntries.push(entry);
                 
                 // Check if this is the end marker
@@ -812,7 +817,14 @@ function renderVisibleLogEntries(filter) {
             }
         }
         
-        filteredEntries = setpointEntries;
+        // If we didn't find any valid setpoint menu, show all entries
+        if (!foundSetpointMenu) {
+            console.log('No valid Setpoint Menu found, showing all entries');
+            filteredEntries = [...logEntries];
+        } else {
+            filteredEntries = setpointEntries;
+        }
+        
         console.log('Setpoint filtered entries:', filteredEntries.length);
         console.log('First few setpoint entries:', filteredEntries.slice(0, 5).map(e => e.message));
         console.log('Last few setpoint entries:', filteredEntries.slice(-5).map(e => e.message));
