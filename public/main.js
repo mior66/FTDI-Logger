@@ -931,6 +931,40 @@ function renderVisibleLogEntries(filter) {
         console.log('Boot filtered entries:', filteredEntries.length);
         console.log('First few boot entries:', filteredEntries.slice(0, 5).map(e => e.message));
         console.log('Last few boot entries:', filteredEntries.slice(-5).map(e => e.message));
+    } else if (currentFilter === 'options') {
+        // Filter for entries containing 'preferences_helpers' and 2 lines before and after
+        const targetMarker = 'preferences_helpers';
+        console.log('Starting options filtering...');
+        
+        // Find all entries containing the target marker and include context
+        let optionsEntries = [];
+        
+        for (let i = 0; i < logEntries.length; i++) {
+            const entry = logEntries[i];
+            
+            // Check if this entry contains the target marker
+            if (entry.message && entry.message.includes(targetMarker)) {
+                console.log('Found options marker at index:', i, 'with message:', entry.message);
+                
+                // Add 2 lines before if available
+                for (let j = Math.max(0, i - 2); j < i; j++) {
+                    optionsEntries.push(logEntries[j]);
+                }
+                
+                // Add the current line
+                optionsEntries.push(entry);
+                
+                // Add 2 lines after if available
+                for (let j = i + 1; j <= Math.min(logEntries.length - 1, i + 2); j++) {
+                    optionsEntries.push(logEntries[j]);
+                }
+            }
+        }
+        
+        filteredEntries = optionsEntries;
+        console.log('Options filtered entries:', filteredEntries.length);
+        console.log('First few options entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few options entries:', filteredEntries.slice(-5).map(e => e.message));
     } else {
         // Default to showing all logs for other filters
         filteredEntries = [...logEntries];
