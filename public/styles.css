@@ -358,6 +358,8 @@ button.primary:hover {
     flex: 1;
     min-width: 800px;
     border: 1px solid #0a2a12;
+    display: flex;
+    flex-direction: column;
 }
 
 .log-header {
@@ -415,7 +417,7 @@ button.primary:hover {
 }
 
 #error-window {
-    height: 600px;
+    flex: 1;
     overflow-y: auto;
     padding: 15px;
     font-family: 'Consolas', 'Courier New', monospace;
@@ -426,6 +428,7 @@ button.primary:hover {
     white-space: pre-wrap;
     word-wrap: break-word;
     width: 100%;
+    min-height: 500px;
 }
 
 .hidden-log-container {
@@ -1163,26 +1166,27 @@ button.primary:hover {
 /* Color legend styles */
 .color-legend {
     background-color: #1e1e1e;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 10px 5px;
-    margin: 10px 0 0 0;
+    border-top: 1px solid #333;
+    padding: 10px;
+    margin: 0;
     width: 100%;
     text-align: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 0 0 8px 8px;
 }
 
 .color-legend h3 {
     font-size: 14px;
-    margin: 0 0 10px 0;
+    margin: 0 0 8px 0;
     color: #fff;
+    font-weight: 600;
 }
 
 .legend-items {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 15px;
     justify-content: center;
+    padding: 0 5px 5px 5px;
 }
 
 .legend-item {

@@ -125,6 +125,8 @@ function init() {
     
     // Set up log filter dropdown event listener
     logFilter.addEventListener('change', function() {
+        console.log('Filter changed to:', logFilter.value);
+        currentFilter = logFilter.value; // Set the current filter directly
         renderVisibleLogEntries(logFilter.value);
     });
     
@@ -165,6 +167,11 @@ function init() {
     
     // Apply the filter to existing logs
     reapplyFilterToExistingLogs();
+    
+    // Set initial filter value and apply it
+    currentFilter = logFilter.value;
+    console.log('Initial filter set to:', currentFilter);
+    renderVisibleLogEntries();
     
     // Add scroll event listener with debouncing for better performance
     logWindow.addEventListener('scroll', debounce(function() {
@@ -419,22 +426,33 @@ function addLogEntry(timestamp, message) {
     const entryIndex = logEntries.length;
     logEntries.push(entry);
     
-    // Check if we need to apply virtual scrolling (only render a subset of entries)
-    if (logEntries.length > MAX_VISIBLE_LOG_ENTRIES) {
-        // If we're at the bottom of the scroll, we want to show the new entry
-        const isAtBottom = logWindow.scrollTop + logWindow.clientHeight >= logWindow.scrollHeight - 10;
-        
-        // Clear and re-render only if we're at the bottom or if this is the first entry over the limit
-        if (isAtBottom || logEntries.length === MAX_VISIBLE_LOG_ENTRIES + 1) {
-            renderVisibleLogEntries();
-        }
-    } else {
-        // Just create and add this single entry if we're under the limit
-        createLogEntryElement(entry, entryIndex);
+    // Always re-render when using a filter other than 'full'
+    if (currentFilter !== 'full') {
+        // Re-render with the current filter
+        renderVisibleLogEntries();
         
         // Auto-scroll if enabled
         if (autoscrollCheckbox.checked) {
             logWindow.scrollTop = logWindow.scrollHeight;
+        }
+    } else {
+        // For 'full' filter, use the virtual scrolling logic
+        if (logEntries.length > MAX_VISIBLE_LOG_ENTRIES) {
+            // If we're at the bottom of the scroll, we want to show the new entry
+            const isAtBottom = logWindow.scrollTop + logWindow.clientHeight >= logWindow.scrollHeight - 10;
+            
+            // Clear and re-render only if we're at the bottom or if this is the first entry over the limit
+            if (isAtBottom || logEntries.length === MAX_VISIBLE_LOG_ENTRIES + 1) {
+                renderVisibleLogEntries();
+            }
+        } else {
+            // Just create and add this single entry if we're under the limit and using the full filter
+            createLogEntryElement(entry, entryIndex);
+            
+            // Auto-scroll if enabled
+            if (autoscrollCheckbox.checked) {
+                logWindow.scrollTop = logWindow.scrollHeight;
+            }
         }
     }
     
@@ -669,7 +687,7 @@ function reapplyFilterToExistingLogs() {
     hiddenEntries = [...hiddenEntries, ...newHiddenEntries];
     
     // Re-render the logs
-    renderVisibleLogEntries();
+    renderVisibleLogEntries(logFilter.value);
     updateHiddenLogWindow();
 }
 
@@ -739,6 +757,9 @@ function renderVisibleLogEntries(filter) {
         currentFilter = filter;
     }
     
+    console.log('Rendering with filter:', currentFilter);
+    console.log('Total log entries:', logEntries.length);
+    
     // Clear current log window
     logWindow.innerHTML = '';
     
@@ -753,39 +774,101 @@ function renderVisibleLogEntries(filter) {
         filteredEntries = [...logEntries];
     } else if (currentFilter === 'setpoint') {
         // Filter for setpoint-related entries in the actual logs
-        const setpointPatterns = [
-            'Entering menu: Setpoint Menu',
+        const setpointEntryPattern = 'Entering menu: Setpoint Menu';
+        const setpointUpdatePatterns = [
             'Cooling Setpoint Updated:',
             'Heating Setpoint Updated:',
-            'Setpoint Updated:'
+            'Setpoint Updated:',
+            'Current Occupied Heating Setpoint:',
+            'Occupied Heating Setpoint:'
         ];
         
-        // Find all entries matching any of the setpoint patterns
+        // Find all entries related to setpoint changes
         let setpointEntries = [];
+        let inSetpointSection = false;
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
             
-            // Check if this entry contains any of the setpoint patterns
-            const matchesPattern = setpointPatterns.some(pattern => 
+            // Check if this is the start of a setpoint menu section
+            if (entry.message && entry.message.includes(setpointEntryPattern)) {
+                inSetpointSection = true;
+                setpointEntries.push(entry);
+                continue;
+            }
+            
+            // Check if this is a setpoint update
+            const isSetpointUpdate = setpointUpdatePatterns.some(pattern => 
                 entry.message && entry.message.includes(pattern)
             );
             
-            if (matchesPattern) {
+            if (isSetpointUpdate) {
+                // If we find a setpoint update, include it
+                setpointEntries.push(entry);
+                continue;
+            }
+            
+            // If we're in a setpoint section, include entries until we find another menu entry
+            if (inSetpointSection) {
                 setpointEntries.push(entry);
                 
-                // Also include the next few entries after a setpoint change
-                // to show persistence and confirmation messages
-                if (entry.message && entry.message.includes('Setpoint Updated:')) {
-                    // Include the next 3 entries (or fewer if we're near the end)
-                    for (let j = 1; j <= 3 && i + j < logEntries.length; j++) {
-                        setpointEntries.push(logEntries[i + j]);
-                    }
+                // Check if this entry indicates entering a different menu
+                if (entry.message && 
+                    entry.message.includes('Entering menu:') && 
+                    !entry.message.includes(setpointEntryPattern)) {
+                    inSetpointSection = false;
                 }
             }
         }
         
         filteredEntries = setpointEntries;
+        console.log('Setpoint filtered entries:', filteredEntries.length);
+    } else if (currentFilter === 'mode') {
+        // Filter for mode-related entries in the actual logs
+        const modeEntryPattern = 'Entering menu: Mode Menu';
+        const modeUpdatePattern = 'Mode Updated:';
+        
+        // Find all entries related to mode changes
+        let modeEntries = [];
+        let inModeSection = false;
+        
+        for (let i = 0; i < logEntries.length; i++) {
+            const entry = logEntries[i];
+            
+            // Check if this is the start of a mode menu section
+            if (entry.message && entry.message.includes(modeEntryPattern)) {
+                inModeSection = true;
+                modeEntries.push(entry);
+                continue;
+            }
+            
+            // Check if this is a mode update
+            if (entry.message && entry.message.includes(modeUpdatePattern)) {
+                // If we find a mode update, include it and the next few entries
+                modeEntries.push(entry);
+                
+                // Include the next 3 entries (or fewer if we're near the end) for persistence messages
+                for (let j = 1; j <= 3 && i + j < logEntries.length; j++) {
+                    modeEntries.push(logEntries[i + j]);
+                }
+                continue;
+            }
+            
+            // If we're in a mode section, include entries until we find another menu entry
+            if (inModeSection) {
+                modeEntries.push(entry);
+                
+                // Check if this entry indicates entering a different menu
+                if (entry.message && 
+                    entry.message.includes('Entering menu:') && 
+                    !entry.message.includes(modeEntryPattern)) {
+                    inModeSection = false;
+                }
+            }
+        }
+        
+        filteredEntries = modeEntries;
+        console.log('Mode filtered entries:', filteredEntries.length);
     } else {
         // Default to showing all logs for other filters
         filteredEntries = [...logEntries];
