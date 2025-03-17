@@ -774,12 +774,11 @@ function renderVisibleLogEntries(filter) {
         filteredEntries = [...logEntries];
     } else if (currentFilter === 'setpoint') {
         // Filter for entries between specific markers
-        const startMarker = 'Entering menu: Setpoint Menu';
+        const startMarker = 'app_menu_controller: Entering menu: Setpoint Menu';
         const endMarker = 'persistence: Successfully wrote 180 bytes to flash';
-        const modeMarker = 'Entering menu: Mode Menu';
+        const modeMarker = 'app_menu_controller: Entering menu: Mode Menu';
         
         console.log('Starting setpoint filtering...');
-        console.log('Total log entries:', logEntries.length);
         
         // Find all entries between the start and end markers
         let setpointEntries = [];
@@ -787,53 +786,41 @@ function renderVisibleLogEntries(filter) {
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
-            const message = entry.message || '';
             
             // Check if this is the start marker
-            if (message.includes(startMarker)) {
-                console.log('Found potential setpoint marker at index:', i);
-                
+            if (entry.message && entry.message.includes(startMarker)) {
                 // Check if the next line contains Mode Menu text
-                const nextEntry = (i + 1 < logEntries.length) ? logEntries[i + 1] : null;
-                const nextMessage = nextEntry ? (nextEntry.message || '') : '';
-                
-                if (nextMessage.includes(modeMarker)) {
-                    console.log('SKIPPING this setpoint section - next line has Mode Menu');
+                if (i + 1 < logEntries.length && 
+                    logEntries[i + 1].message && 
+                    logEntries[i + 1].message.includes(modeMarker)) {
+                    // Skip this setpoint section as it's immediately followed by Mode Menu
+                    console.log('Skipping Setpoint section at index:', i, 'because next line is Mode Menu');
                     continue; // Skip this entry
                 }
                 
-                // This is a valid setpoint section start
-                console.log('Starting new setpoint section at index:', i);
+                // This is a valid setpoint section
                 inSetpointSection = true;
                 setpointEntries.push(entry);
+                console.log('Found valid setpoint start marker at index:', i, 'with message:', entry.message);
+                continue;
             }
-            // If we're in a setpoint section, add the entry
-            else if (inSetpointSection) {
+            
+            // If we're in the section, add the entry
+            if (inSetpointSection) {
                 setpointEntries.push(entry);
                 
                 // Check if this is the end marker
-                if (message.includes(endMarker)) {
-                    console.log('Found end marker at index:', i);
-                    inSetpointSection = false;
-                }
-                
-                // Also end the section if we find another menu entry
-                if (message.includes('Entering menu:') && !message.includes(startMarker)) {
-                    console.log('Found another menu entry at index:', i, ', ending setpoint section');
+                if (entry.message && entry.message.includes(endMarker)) {
+                    console.log('Found setpoint end marker at index:', i, 'with message:', entry.message);
                     inSetpointSection = false;
                 }
             }
         }
         
         filteredEntries = setpointEntries;
-        
         console.log('Setpoint filtered entries:', filteredEntries.length);
-        if (filteredEntries.length > 0) {
-            console.log('First setpoint entry:', filteredEntries[0].message);
-            console.log('Last setpoint entry:', filteredEntries[filteredEntries.length - 1].message);
-        } else {
-            console.log('No setpoint entries found!');
-        }
+        console.log('First few setpoint entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few setpoint entries:', filteredEntries.slice(-5).map(e => e.message));
     } else if (currentFilter === 'mode') {
         // Filter for entries between specific markers
         const startMarker = 'app_menu_controller: Entering menu: Mode Menu';
