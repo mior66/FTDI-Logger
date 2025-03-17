@@ -774,64 +774,72 @@ function renderVisibleLogEntries(filter) {
         filteredEntries = [...logEntries];
     } else if (currentFilter === 'setpoint') {
         // Filter for entries between specific markers
-        const startMarker = 'app_menu_controller: Entering menu: Setpoint Menu';
+        const startMarker = 'Entering menu: Setpoint Menu';
         const endMarker = 'persistence: Successfully wrote 180 bytes to flash';
-        const modeMarker = 'app_menu_controller: Entering menu: Mode Menu';
+        const modeMarker = 'Entering menu: Mode Menu';
+        
+        console.log('Starting setpoint filtering...');
+        console.log('Total log entries:', logEntries.length);
         
         // Find all entries between the start and end markers
         let setpointEntries = [];
         let inSetpointSection = false;
-        let foundSetpointMenu = false;
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
+            const message = entry.message || '';
             
             // Check if this is the start marker
-            if (entry.message && entry.message.includes(startMarker)) {
+            if (message.includes(startMarker)) {
+                console.log('Found potential setpoint marker at index:', i);
+                
                 // Check if the next line contains Mode Menu text
-                if (i + 1 < logEntries.length && 
-                    logEntries[i + 1].message && 
-                    logEntries[i + 1].message.includes(modeMarker)) {
-                    // Skip this setpoint section as it's immediately followed by Mode Menu
-                    console.log('Skipping Setpoint section at index:', i, 'because next line is Mode Menu');
-                    i++; // Skip the next line (Mode Menu) as well
-                    continue;
+                const nextEntry = (i + 1 < logEntries.length) ? logEntries[i + 1] : null;
+                const nextMessage = nextEntry ? (nextEntry.message || '') : '';
+                
+                if (nextMessage.includes(modeMarker)) {
+                    console.log('SKIPPING this setpoint section - next line has Mode Menu');
+                    continue; // Skip this entry
                 }
                 
+                // This is a valid setpoint section start
+                console.log('Starting new setpoint section at index:', i);
                 inSetpointSection = true;
-                foundSetpointMenu = true;
                 setpointEntries.push(entry);
-                console.log('Found valid start marker at index:', i, 'with message:', entry.message);
-                continue;
             }
-            
-            // If we're in the section, add the entry
-            if (inSetpointSection) {
+            // If we're in a setpoint section, add the entry
+            else if (inSetpointSection) {
                 setpointEntries.push(entry);
                 
                 // Check if this is the end marker
-                if (entry.message && entry.message.includes(endMarker)) {
-                    console.log('Found end marker at index:', i, 'with message:', entry.message);
+                if (message.includes(endMarker)) {
+                    console.log('Found end marker at index:', i);
+                    inSetpointSection = false;
+                }
+                
+                // Also end the section if we find another menu entry
+                if (message.includes('Entering menu:') && !message.includes(startMarker)) {
+                    console.log('Found another menu entry at index:', i, ', ending setpoint section');
                     inSetpointSection = false;
                 }
             }
         }
         
-        // If we didn't find any valid setpoint menu, show all entries
-        if (!foundSetpointMenu) {
-            console.log('No valid Setpoint Menu found, showing all entries');
-            filteredEntries = [...logEntries];
-        } else {
-            filteredEntries = setpointEntries;
-        }
+        filteredEntries = setpointEntries;
         
         console.log('Setpoint filtered entries:', filteredEntries.length);
-        console.log('First few setpoint entries:', filteredEntries.slice(0, 5).map(e => e.message));
-        console.log('Last few setpoint entries:', filteredEntries.slice(-5).map(e => e.message));
+        if (filteredEntries.length > 0) {
+            console.log('First setpoint entry:', filteredEntries[0].message);
+            console.log('Last setpoint entry:', filteredEntries[filteredEntries.length - 1].message);
+        } else {
+            console.log('No setpoint entries found!');
+        }
     } else if (currentFilter === 'mode') {
         // Filter for entries between specific markers
-        const startMarker = 'app_menu_controller: Entering menu: Mode Menu';
+        const startMarker = 'Entering menu: Mode Menu';
         const endMarker = 'persistence: Successfully wrote 180 bytes to flash';
+        
+        console.log('Starting mode filtering...');
         
         // Find all entries between the start and end markers
         let modeEntries = [];
@@ -839,22 +847,27 @@ function renderVisibleLogEntries(filter) {
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
+            const message = entry.message || '';
             
             // Check if this is the start marker
-            if (entry.message && entry.message.includes(startMarker)) {
+            if (message.includes(startMarker)) {
+                console.log('Found mode start marker at index:', i);
                 inModeSection = true;
                 modeEntries.push(entry);
-                console.log('Found mode start marker at index:', i, 'with message:', entry.message);
-                continue;
             }
-            
-            // If we're in the section, add the entry
-            if (inModeSection) {
+            // If we're in a mode section, add the entry
+            else if (inModeSection) {
                 modeEntries.push(entry);
                 
                 // Check if this is the end marker
-                if (entry.message && entry.message.includes(endMarker)) {
-                    console.log('Found mode end marker at index:', i, 'with message:', entry.message);
+                if (message.includes(endMarker)) {
+                    console.log('Found mode end marker at index:', i);
+                    inModeSection = false;
+                }
+                
+                // Also end the section if we find another menu entry
+                if (message.includes('Entering menu:') && !message.includes(startMarker)) {
+                    console.log('Found another menu entry at index:', i, ', ending mode section');
                     inModeSection = false;
                 }
             }
@@ -862,12 +875,18 @@ function renderVisibleLogEntries(filter) {
         
         filteredEntries = modeEntries;
         console.log('Mode filtered entries:', filteredEntries.length);
-        console.log('First few mode entries:', filteredEntries.slice(0, 5).map(e => e.message));
-        console.log('Last few mode entries:', filteredEntries.slice(-5).map(e => e.message));
+        if (filteredEntries.length > 0) {
+            console.log('First mode entry:', modeEntries[0].message);
+            console.log('Last mode entry:', modeEntries[modeEntries.length - 1].message);
+        } else {
+            console.log('No mode entries found!');
+        }
     } else if (currentFilter === 'temp') {
         // Filter for entries between specific markers for temperature-related logs
-        const startMarker = 'app_menu_controller: Entering menu: Ambient Menu';
+        const startMarker = 'Entering menu: Ambient Menu';
         const endMarker = 'persistence: Successfully wrote 180 bytes to flash';
+        
+        console.log('Starting temp filtering...');
         
         // Find all entries between the start and end markers
         let tempEntries = [];
@@ -875,22 +894,27 @@ function renderVisibleLogEntries(filter) {
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
+            const message = entry.message || '';
             
             // Check if this is the start marker
-            if (entry.message && entry.message.includes(startMarker)) {
+            if (message.includes(startMarker)) {
+                console.log('Found temp start marker at index:', i);
                 inTempSection = true;
                 tempEntries.push(entry);
-                console.log('Found temp start marker at index:', i, 'with message:', entry.message);
-                continue;
             }
-            
-            // If we're in the section, add the entry
-            if (inTempSection) {
+            // If we're in a temp section, add the entry
+            else if (inTempSection) {
                 tempEntries.push(entry);
                 
                 // Check if this is the end marker
-                if (entry.message && entry.message.includes(endMarker)) {
-                    console.log('Found temp end marker at index:', i, 'with message:', entry.message);
+                if (message.includes(endMarker)) {
+                    console.log('Found temp end marker at index:', i);
+                    inTempSection = false;
+                }
+                
+                // Also end the section if we find another menu entry
+                if (message.includes('Entering menu:') && !message.includes(startMarker)) {
+                    console.log('Found another menu entry at index:', i, ', ending temp section');
                     inTempSection = false;
                 }
             }
@@ -898,8 +922,12 @@ function renderVisibleLogEntries(filter) {
         
         filteredEntries = tempEntries;
         console.log('Temp filtered entries:', filteredEntries.length);
-        console.log('First few temp entries:', filteredEntries.slice(0, 5).map(e => e.message));
-        console.log('Last few temp entries:', filteredEntries.slice(-5).map(e => e.message));
+        if (filteredEntries.length > 0) {
+            console.log('First temp entry:', tempEntries[0].message);
+            console.log('Last temp entry:', tempEntries[tempEntries.length - 1].message);
+        } else {
+            console.log('No temp entries found!');
+        }
     } else if (currentFilter === 'boot') {
         // Filter for boot-related entries
         const bootMarkers = [
@@ -912,22 +940,33 @@ function renderVisibleLogEntries(filter) {
             'Reset reason:'
         ];
         
+        console.log('Starting boot filtering...');
+        
         // Find all entries related to boot
         let bootEntries = [];
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
+            const message = entry.message || '';
             
             // Check if this entry contains any boot-related markers
-            if (entry.message && bootMarkers.some(marker => entry.message.includes(marker))) {
-                bootEntries.push(entry);
+            for (const marker of bootMarkers) {
+                if (message.includes(marker)) {
+                    bootEntries.push(entry);
+                    console.log('Found boot marker:', marker, 'at index:', i);
+                    break;
+                }
             }
         }
         
         filteredEntries = bootEntries;
         console.log('Boot filtered entries:', filteredEntries.length);
-        console.log('First few boot entries:', filteredEntries.slice(0, 5).map(e => e.message));
-        console.log('Last few boot entries:', filteredEntries.slice(-5).map(e => e.message));
+        if (filteredEntries.length > 0) {
+            console.log('First boot entry:', bootEntries[0].message);
+            console.log('Last boot entry:', bootEntries[bootEntries.length - 1].message);
+        } else {
+            console.log('No boot entries found!');
+        }
     } else {
         // Default to showing all logs for other filters
         filteredEntries = [...logEntries];
