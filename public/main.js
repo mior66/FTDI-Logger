@@ -773,49 +773,32 @@ function renderVisibleLogEntries(filter) {
         // Show all logs
         filteredEntries = [...logEntries];
     } else if (currentFilter === 'setpoint') {
-        // Filter for setpoint-related entries in the actual logs
-        const setpointEntryPattern = 'Entering menu: Setpoint Menu';
-        const setpointUpdatePatterns = [
-            'Cooling Setpoint Updated:',
-            'Heating Setpoint Updated:',
-            'Setpoint Updated:',
-            'Current Occupied Heating Setpoint:',
-            'Occupied Heating Setpoint:'
-        ];
+        // Filter for entries between specific markers
+        const startMarker = 'app_menu_controller: Entering menu: Setpoint Menu';
+        const endMarker = 'persistence: Successfully wrote 180 bytes to flash';
         
-        // Find all entries related to setpoint changes
+        // Find all entries between the start and end markers
         let setpointEntries = [];
         let inSetpointSection = false;
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
             
-            // Check if this is the start of a setpoint menu section
-            if (entry.message && entry.message.includes(setpointEntryPattern)) {
+            // Check if this is the start marker
+            if (entry.message && entry.message.includes(startMarker)) {
                 inSetpointSection = true;
                 setpointEntries.push(entry);
+                console.log('Found start marker at index:', i, 'with message:', entry.message);
                 continue;
             }
             
-            // Check if this is a setpoint update
-            const isSetpointUpdate = setpointUpdatePatterns.some(pattern => 
-                entry.message && entry.message.includes(pattern)
-            );
-            
-            if (isSetpointUpdate) {
-                // If we find a setpoint update, include it
-                setpointEntries.push(entry);
-                continue;
-            }
-            
-            // If we're in a setpoint section, include entries until we find another menu entry
+            // If we're in the section, add the entry
             if (inSetpointSection) {
                 setpointEntries.push(entry);
                 
-                // Check if this entry indicates entering a different menu
-                if (entry.message && 
-                    entry.message.includes('Entering menu:') && 
-                    !entry.message.includes(setpointEntryPattern)) {
+                // Check if this is the end marker
+                if (entry.message && entry.message.includes(endMarker)) {
+                    console.log('Found end marker at index:', i, 'with message:', entry.message);
                     inSetpointSection = false;
                 }
             }
@@ -823,6 +806,8 @@ function renderVisibleLogEntries(filter) {
         
         filteredEntries = setpointEntries;
         console.log('Setpoint filtered entries:', filteredEntries.length);
+        console.log('First few setpoint entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few setpoint entries:', filteredEntries.slice(-5).map(e => e.message));
     } else if (currentFilter === 'mode') {
         // Filter for mode-related entries in the actual logs
         const modeEntryPattern = 'Entering menu: Mode Menu';
