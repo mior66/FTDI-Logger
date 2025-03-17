@@ -776,6 +776,7 @@ function renderVisibleLogEntries(filter) {
         // Filter for entries between specific markers
         const startMarker = 'app_menu_controller: Entering menu: Setpoint Menu';
         const endMarker = 'persistence: Successfully wrote 180 bytes to flash';
+        const modeMarker = 'app_menu_controller: Entering menu: Mode Menu';
         
         // Find all entries between the start and end markers
         let setpointEntries = [];
@@ -792,8 +793,15 @@ function renderVisibleLogEntries(filter) {
                 continue;
             }
             
-            // If we're in the section, add the entry
+            // If we're in the section, add the entry unless it contains Mode Menu text
             if (inSetpointSection) {
+                // Check if this entry contains Mode Menu text
+                if (entry.message && entry.message.includes(modeMarker)) {
+                    console.log('Found Mode Menu in Setpoint section at index:', i, 'with message:', entry.message);
+                    inSetpointSection = false;
+                    continue; // Skip this entry
+                }
+                
                 setpointEntries.push(entry);
                 
                 // Check if this is the end marker
