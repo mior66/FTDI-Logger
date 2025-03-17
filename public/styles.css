@@ -429,6 +429,12 @@ button.primary:hover {
     gap: 15px;
 }
 
+.right-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 #log-window {
     height: 700px;
     overflow-y: auto;
