@@ -932,7 +932,7 @@ function renderVisibleLogEntries(filter) {
         console.log('First few boot entries:', filteredEntries.slice(0, 5).map(e => e.message));
         console.log('Last few boot entries:', filteredEntries.slice(-5).map(e => e.message));
     } else if (currentFilter === 'options') {
-        // Filter for entries containing 'preferences_helpers' and 2 lines before and after
+        // Filter for entries containing 'preferences_helpers' with 3 lines before and 9 lines after
         const targetMarker = 'preferences_helpers';
         console.log('Starting options filtering...');
         
@@ -946,16 +946,16 @@ function renderVisibleLogEntries(filter) {
             if (entry.message && entry.message.includes(targetMarker)) {
                 console.log('Found options marker at index:', i, 'with message:', entry.message);
                 
-                // Add 2 lines before if available
-                for (let j = Math.max(0, i - 2); j < i; j++) {
+                // Add 3 lines before if available
+                for (let j = Math.max(0, i - 3); j < i; j++) {
                     optionsEntries.push(logEntries[j]);
                 }
                 
                 // Add the current line
                 optionsEntries.push(entry);
                 
-                // Add 2 lines after if available
-                for (let j = i + 1; j <= Math.min(logEntries.length - 1, i + 2); j++) {
+                // Add 9 lines after if available
+                for (let j = i + 1; j <= Math.min(logEntries.length - 1, i + 9); j++) {
                     optionsEntries.push(logEntries[j]);
                 }
             }
