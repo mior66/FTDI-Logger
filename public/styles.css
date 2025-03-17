@@ -1387,9 +1387,120 @@ button.primary:hover {
 #notification.lunch-suggestion {
     border-color: #4CAF50;
     background-color: #f9f9f9;
-    padding: 15px;
+    padding: 0;
     max-width: 400px;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.lunch-suggestion-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.lunch-suggestion-container h3 {
+    background-color: #0d5c23;
+    color: white;
+    margin: 0;
+    padding: 12px 15px;
+    font-size: 18px;
+    border-bottom: 2px solid #094c1b;
+}
+
+.lunch-content {
+    padding: 15px;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.lunch-content a {
+    color: #0d5c23;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.lunch-content a:hover {
+    text-decoration: underline;
+}
+
+/* Restaurant suggestion styling */
+.restaurant-item {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-left: 3px solid #0d5c23;
+    background-color: #f5f5f5;
+    border-radius: 0 4px 4px 0;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.restaurant-item:hover {
+    transform: translateX(3px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.restaurant-name {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.restaurant-rating {
+    color: #ff9800;
+    margin-bottom: 5px;
+}
+
+.rating-number {
+    color: #666;
+    font-size: 12px;
+}
+
+.restaurant-details {
+    display: flex;
+    justify-content: space-between;
+    color: #666;
+    font-size: 13px;
+}
+
+.cuisine-type {
+    font-style: italic;
+}
+
+.hours-info {
+    color: #0d5c23;
+}
+
+.suggestion-footer {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px dashed #ccc;
+    font-size: 12px;
+    color: #666;
+}
+
+.suggestion-info {
+    margin-bottom: 3px;
+}
+
+.suggestion-time {
+    margin-top: 8px;
+    font-style: italic;
+    text-align: right;
+}
+
+.close-lunch-btn {
+    background-color: #0d5c23;
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+    margin-top: auto;
+}
+
+.close-lunch-btn:hover {
+    background-color: #094c1b;
 }
 
 @media (max-width: 768px) {

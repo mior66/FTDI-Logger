@@ -1279,23 +1279,52 @@ function renderLogEntriesAroundIndex(targetIndex) {
 
 // Show a notification
 function showNotification(message, type = 'success') {
+    // Create notification element if it doesn't exist
+    let notification = document.getElementById('notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'notification';
+        notification.className = 'notification hidden';
+        document.body.appendChild(notification);
+    }
+    
     // Use innerHTML for lunch suggestions to allow HTML formatting
     if (type === 'lunch-suggestion') {
-        notification.innerHTML = message;
+        // For lunch suggestions, create a more interactive display
+        notification.innerHTML = `
+            <div class="lunch-suggestion-container">
+                <h3>🍽️ Lunch Suggestions</h3>
+                <div class="lunch-content">${message}</div>
+                <button class="close-lunch-btn">Close</button>
+            </div>
+        `;
+        notification.className = 'notification lunch-suggestion';
+        
+        // Add event listener to the close button
+        setTimeout(() => {
+            const closeBtn = notification.querySelector('.close-lunch-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    notification.classList.add('hidden');
+                });
+            }
+        }, 100);
     } else {
         notification.textContent = message;
+        notification.className = `notification ${type}`;
     }
-    notification.className = type;
     
     // Remove the hidden class to show the notification
     setTimeout(() => {
         notification.classList.remove('hidden');
     }, 10);
     
-    // Hide the notification after a delay
-    setTimeout(() => {
-        notification.classList.add('hidden');
-    }, type === 'lunch-suggestion' ? 8000 : 5000); // Even longer display time for lunch suggestions
+    // Hide the notification after a delay (except for lunch suggestions with close button)
+    if (type !== 'lunch-suggestion') {
+        setTimeout(() => {
+            notification.classList.add('hidden');
+        }, 5000);
+    }
 }
 
 // Display a random inspirational quote
@@ -1358,21 +1387,32 @@ function suggestLunchPlaces() {
             const currentTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
             // Create a message with the suggestions
-            let message = `<strong>Lunch Suggestions in St. John's (${currentTime}):</strong><br><br>`;
+            let message = ``;
             
             suggestions.forEach(place => {
                 // Format hours display
-                const hoursDisplay = place.hours === "24 hours" ? "Open 24 hours" : `Open: ${place.hours}`;
+                const hoursDisplay = place.hours === "24 hours" || place.hours === "24 Hours" ? "Open 24 hours" : `Open: ${place.hours}`;
+                
+                // Format rating with stars
+                const ratingStars = '★'.repeat(Math.floor(place.rating)) + 
+                                    (place.rating % 1 >= 0.5 ? '½' : '');
                 
                 // Create a styled restaurant entry
-                message += `<div style="margin-bottom: 10px; padding: 5px; border-left: 3px solid #4CAF50;">
-                    <strong><a href="${place.url}" target="_blank">${place.name}</a></strong> - ${place.rating}★<br>
-                    <span style="color: #666;">${place.cuisine} • ${hoursDisplay}</span>
+                message += `<div class="restaurant-item">
+                    <div class="restaurant-name"><a href="${place.url}" target="_blank">${place.name}</a></div>
+                    <div class="restaurant-rating">${ratingStars} <span class="rating-number">(${place.rating})</span></div>
+                    <div class="restaurant-details">
+                        <span class="cuisine-type">${place.cuisine}</span>
+                        <span class="hours-info">${hoursDisplay}</span>
+                    </div>
                 </div>`;
             });
             
-            message += "<small>✓ All suggestions are currently open restaurants</small><br>";
-            message += "<small>✓ Click restaurant name to see Yelp reviews</small>";
+            message += `<div class="suggestion-footer">
+                <div class="suggestion-info">✓ All suggestions are currently open restaurants</div>
+                <div class="suggestion-info">✓ Click restaurant name to see reviews</div>
+                <div class="suggestion-time">Suggestions as of ${currentTime}</div>
+            </div>`;
             
             // Show the suggestions in a notification
             showNotification(message, 'lunch-suggestion');
@@ -1477,24 +1517,32 @@ function fetchRestaurantData() {
         
         // Function to check if a restaurant is currently open based on its hours
         function isRestaurantOpen(hours, currentHour, currentDay) {
-            // For this simulation, we'll consider restaurants with lunch hours (11:00-15:00) to be open
-            // In a real implementation, we would check the actual opening hours for each day
-            
             // If restaurant is open 24 hours
-            if (hours === "24 hours") return true;
+            if (hours === "24 hours" || hours === "24 Hours") return true;
             
-            // Parse opening hours
-            const [openingTime, closingTime] = hours.split('-');
-            const openingHour = parseInt(openingTime.split(':')[0]);
-            const closingHour = parseInt(closingTime.split(':')[0]);
-            
-            // Check if current time is within opening hours
-            // For weekends (Saturday = 6, Sunday = 0), some restaurants might have different hours
-            const isWeekend = currentDay === 0 || currentDay === 6;
-            
-            // Basic check - if current hour is between opening and closing hours
-            return currentHour >= openingHour && currentHour < closingHour;
+            try {
+                // Parse opening hours
+                const [openingTime, closingTime] = hours.split('-');
+                const openingHour = parseInt(openingTime.split(':')[0]);
+                const closingHour = parseInt(closingTime.split(':')[0]);
+                
+                // Handle cases where closing time is after midnight
+                if (closingHour < openingHour) {
+                    // If current hour is after opening hour or before closing hour
+                    return currentHour >= openingHour || currentHour < closingHour;
+                } else {
+                    // Normal case - if current hour is between opening and closing hours
+                    return currentHour >= openingHour && currentHour < closingHour;
+                }
+            } catch (error) {
+                console.error('Error parsing restaurant hours:', hours, error);
+                // If there's an error parsing the hours, assume it's open to avoid filtering it out
+                return true;
+            }
         }
+        
+        // For debugging purposes
+        console.log(`Current hour: ${hour}, Day of week: ${dayOfWeek}`);
         
         // Filter only restaurants that are currently open
         const openRestaurants = restaurants.filter(restaurant => 
@@ -1504,8 +1552,8 @@ function fetchRestaurantData() {
         // Log the number of open restaurants available
         console.log(`Found ${openRestaurants.length} open restaurants in St. John's with ratings of 4.0 or higher`);
         
-        // If no restaurants are open (unlikely but possible), use all restaurants
-        const availableRestaurants = openRestaurants.length > 0 ? openRestaurants : restaurants;
+        // If no restaurants are open or very few (less than 5), use all restaurants
+        const availableRestaurants = openRestaurants.length >= 5 ? openRestaurants : restaurants;
         
         // Filter only restaurants with ratings of 4.0 or higher
         const highlyRated = availableRestaurants.filter(restaurant => restaurant.rating >= 4.0);
