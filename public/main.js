@@ -858,41 +858,51 @@ function renderVisibleLogEntries(filter) {
         console.log('First few mode entries:', filteredEntries.slice(0, 5).map(e => e.message));
         console.log('Last few mode entries:', filteredEntries.slice(-5).map(e => e.message));
     } else if (currentFilter === 'temp') {
-        // Filter for entries between specific markers for temperature-related logs
-        const startMarker = 'app_menu_controller: Entering menu: Ambient Menu';
-        const endMarker = 'persistence: Successfully wrote 180 bytes to flash';
+        // Filter for entries between telemetry JSON markers
+        const startMarker = 'telemetry-sender: JSON: {';
+        const endMarker = '}';
+        
+        console.log('Starting telemetry JSON filtering...');
         
         // Find all entries between the start and end markers
-        let tempEntries = [];
-        let inTempSection = false;
+        let telemetryEntries = [];
+        let inTelemetrySection = false;
+        let openBraces = 0;
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
+            const message = entry.message || '';
             
             // Check if this is the start marker
-            if (entry.message && entry.message.includes(startMarker)) {
-                inTempSection = true;
-                tempEntries.push(entry);
-                console.log('Found temp start marker at index:', i, 'with message:', entry.message);
+            if (message.includes(startMarker)) {
+                inTelemetrySection = true;
+                openBraces = 1; // Count the opening brace in the start marker
+                telemetryEntries.push(entry);
+                console.log('Found telemetry JSON start at index:', i, 'with message:', message);
                 continue;
             }
             
-            // If we're in the section, add the entry
-            if (inTempSection) {
-                tempEntries.push(entry);
+            // If we're in a telemetry section, add the entry
+            if (inTelemetrySection) {
+                telemetryEntries.push(entry);
                 
-                // Check if this is the end marker
-                if (entry.message && entry.message.includes(endMarker)) {
-                    console.log('Found temp end marker at index:', i, 'with message:', entry.message);
-                    inTempSection = false;
+                // Count braces to handle nested JSON structures
+                const openBracesInLine = (message.match(/\{/g) || []).length;
+                const closeBracesInLine = (message.match(/\}/g) || []).length;
+                openBraces += openBracesInLine - closeBracesInLine;
+                
+                // If we've reached the end (balanced braces), end the section
+                if (openBraces <= 0) {
+                    console.log('Found telemetry JSON end at index:', i, 'with message:', message);
+                    inTelemetrySection = false;
                 }
             }
         }
         
-        filteredEntries = tempEntries;
-        console.log('Temp filtered entries:', filteredEntries.length);
-        console.log('First few temp entries:', filteredEntries.slice(0, 5).map(e => e.message));
-        console.log('Last few temp entries:', filteredEntries.slice(-5).map(e => e.message));
+        filteredEntries = telemetryEntries;
+        console.log('Telemetry JSON entries:', filteredEntries.length);
+        console.log('First few telemetry entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few telemetry entries:', filteredEntries.slice(-5).map(e => e.message));
     } else if (currentFilter === 'boot') {
         // Filter for entries between specific markers for boot-related logs
         const startMarker = 'ESP-ROM:esp32s3';
