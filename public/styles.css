@@ -479,13 +479,18 @@ button.primary:hover {
     margin-bottom: 10px;
 }
 
+.hidden-log-controls {
+    display: flex;
+    gap: 10px;
+}
+
 .hidden-log-header h3 {
     margin: 0;
     font-size: 16px;
     color: #fff;
 }
 
-#clear-hidden-log {
+#clear-hidden-log, #save-hidden-log {
     background-color: #0d5c23;
     color: white;
     border: none;
@@ -495,7 +500,7 @@ button.primary:hover {
     font-size: 12px;
 }
 
-#clear-hidden-log:hover {
+#clear-hidden-log:hover, #save-hidden-log:hover {
     background-color: #0a7a2e;
 }
 
@@ -789,6 +794,11 @@ button.primary:hover {
     border-bottom: 1px solid #ccc;
     pointer-events: auto; /* Allow hover but prevent selection */
     user-select: none; /* Prevent text selection */
+}
+
+/* Add black line before sub-headers */
+.test-plan-table tr.sub-header-with-line {
+    border-top: 2px solid #000 !important;
 }
 
 .test-plan-table tr.sub-header-row:hover {

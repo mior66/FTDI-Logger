@@ -28,6 +28,7 @@ const connectButton = document.getElementById('connect-button');
 const disconnectButton = document.getElementById('disconnect-button');
 const logFilter = document.getElementById('log-filter');
 const clearHiddenLogButton = document.getElementById('clear-hidden-log');
+const saveHiddenLogButton = document.getElementById('save-hidden-log');
 
 // Thermostat Status Elements
 const thermostatMode = document.getElementById('thermostat-mode');
@@ -164,6 +165,9 @@ function init() {
         hiddenLogWindow.innerHTML = '';
         showNotification('Hidden log cleared', 'success');
     });
+    
+    // Set up save hidden log button
+    saveHiddenLogButton.addEventListener('click', saveHiddenLog);
     
     // Apply the filter to existing logs
     reapplyFilterToExistingLogs();
@@ -1219,6 +1223,46 @@ function saveLog() {
     showNotification('Log saved to file', 'success');
 }
 
+// Save the hidden log to a file
+function saveHiddenLog() {
+    // Check if there are any hidden entries
+    if (hiddenEntries.length === 0) {
+        showNotification('No hidden log entries to save', 'warning');
+        return;
+    }
+    
+    // Create log content
+    const logContent = hiddenEntries.map(entry => 
+        `${formatTimestamp(entry.timestamp)} ${entry.message}`
+    ).join('\n');
+    
+    // Create a blob with the log content
+    const blob = new Blob([logContent], { type: 'text/plain' });
+    
+    // Create a download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    
+    // Generate filename with current date and time
+    const now = new Date();
+    const filename = `hidden_log_${now.toISOString().replace(/[:.]/g, '-')}.txt`;
+    
+    a.href = url;
+    a.download = filename;
+    
+    // Trigger the download
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 0);
+    
+    showNotification('Hidden log saved to file', 'success');
+}
+
 // Save the errors to a file
 function saveErrors() {
     // Create error log content
@@ -2000,6 +2044,9 @@ function displayTestPlanSheet(sheetName) {
             }
         }
         
+        // Keep track of the previous row's sub-header status
+        let previousRowWasSubHeader = false;
+        
         // Add data rows (skip the header row)
         for (let i = 1; i < filteredSheetData.length; i++) {
             const row = document.createElement('tr');
@@ -2112,9 +2159,13 @@ function displayTestPlanSheet(sheetName) {
             
             // Check for Starting Conditions header
             let isStartingConditionsHeader = false;
+            // Check for Setpoint above/below ambient header
+            let isSetpointAmbientHeader = false;
+            
             for (let j = 0; j < rowData.length; j++) {
                 if (rowData[j]) {
                     const cellText = String(rowData[j]).trim();
+                    
                     // Look for any variation of Starting Conditions with Pre-conditions
                     if ((cellText.includes('Starting Conditions') || cellText.includes('starting conditions')) && 
                         (cellText.includes('Pre-conditions') || cellText.includes('pre-conditions') || 
@@ -2132,9 +2183,76 @@ function displayTestPlanSheet(sheetName) {
                     }
                 }
             }
+            
+            // Check for the specific line with "Setpoint is below the ambient" in Test column and "G stays on" in both Zen V1 and Mysa LV columns
+            let testColumnValue = null;
+            let zenV1ColumnValue = null;
+            let mysaLVColumnValue = null;
+            let testColumnIdx = -1;
+            let zenV1ColumnIdx = -1;
+            let mysaLVColumnIdx = -1;
+            
+            // First find the column indices
+            for (let j = 0; j < headers.length; j++) {
+                if (headers[j]) {
+                    const headerText = String(headers[j]).trim().toLowerCase();
+                    if (headerText === 'test') {
+                        testColumnIdx = j;
+                    } else if (headerText === 'zen v1') {
+                        zenV1ColumnIdx = j;
+                    } else if (headerText === 'mysa lv') {
+                        mysaLVColumnIdx = j;
+                    }
+                }
+            }
+            
+            // Then check the values in those columns
+            if (testColumnIdx !== -1 && zenV1ColumnIdx !== -1 && mysaLVColumnIdx !== -1) {
+                testColumnValue = rowData[testColumnIdx] ? String(rowData[testColumnIdx]).trim() : null;
+                zenV1ColumnValue = rowData[zenV1ColumnIdx] ? String(rowData[zenV1ColumnIdx]).trim() : null;
+                mysaLVColumnValue = rowData[mysaLVColumnIdx] ? String(rowData[mysaLVColumnIdx]).trim() : null;
                 
-            if ((isSubHeader && hasTestColumnContent) || isConfigSystemTypeHeader || isStartingConditionsHeader) {
+                // Check if this is the specific line we're looking for
+                if (testColumnValue && zenV1ColumnValue && mysaLVColumnValue) {
+                    if (testColumnValue.includes('Setpoint is below the ambient') && 
+                        zenV1ColumnValue === 'G stays on' && 
+                        mysaLVColumnValue === 'G stays on') {
+                        isSetpointAmbientHeader = true;
+                        console.log('Found Setpoint below ambient header in row:', i);
+                        console.log('Test column:', testColumnValue);
+                        console.log('Zen V1 column:', zenV1ColumnValue);
+                        console.log('Mysa LV column:', mysaLVColumnValue);
+                    }
+                    
+                    // Also check for "Setpoint is above the ambient" case
+                    if (testColumnValue.includes('Setpoint is above the ambient') && 
+                        zenV1ColumnValue === 'G stays on' && 
+                        mysaLVColumnValue === 'G stays on') {
+                        isSetpointAmbientHeader = true;
+                        console.log('Found Setpoint above ambient header in row:', i);
+                        console.log('Test column:', testColumnValue);
+                        console.log('Zen V1 column:', zenV1ColumnValue);
+                        console.log('Mysa LV column:', mysaLVColumnValue);
+                    }
+                }
+            }
+                
+            // Determine if this row is a sub-header
+            const isSubHeaderRow = (isSubHeader && hasTestColumnContent) || isConfigSystemTypeHeader || isStartingConditionsHeader || isSetpointAmbientHeader;
+            
+            if (isSubHeaderRow) {
                 row.classList.add('sub-header-row');
+                
+                // Add a black line before this sub-header if the previous row was not a sub-header
+                if (!previousRowWasSubHeader) {
+                    row.classList.add('sub-header-with-line');
+                }
+                
+                // Update the previous row status
+                previousRowWasSubHeader = true;
+            } else {
+                // Update the previous row status
+                previousRowWasSubHeader = false;
             }
             
             // Handle rows with fewer cells than the header, excluding 'Build' and 'Pass/Fail' columns
