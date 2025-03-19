@@ -773,46 +773,59 @@ function renderVisibleLogEntries(filter) {
         // Show all logs
         filteredEntries = [...logEntries];
     } else if (currentFilter === 'setpoint') {
-        // Filter for entries between specific markers
-        const startMarker = 'app_menu_controller: Entering menu: Setpoint Menu';
-        const endMarker = 'persistence: Successfully wrote 180 bytes to flash';
-        const modeMarker = 'app_menu_controller: Entering menu: Mode Menu';
+        // Filter for entries containing 'Setpoint Updated' and include context
+        const targetPhrase = 'Setpoint Updated';
+        const menuMarker = 'Entering menu: Setpoint Menu';
+        const contextAfter = 2;  // Show 2 logs after
         
-        console.log('Starting setpoint filtering...');
+        console.log('Starting setpoint filtering for "Setpoint Updated" with context...');
         
-        // Find all entries between the start and end markers
+        // Find all entries containing the target phrase and include context
         let setpointEntries = [];
-        let inSetpointSection = false;
+        let addedIndices = new Set(); // Track which entries we've already added
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
             
-            // Check if this is the start marker
-            if (entry.message && entry.message.includes(startMarker)) {
-                // Check if the next line contains Mode Menu text
-                if (i + 1 < logEntries.length && 
-                    logEntries[i + 1].message && 
-                    logEntries[i + 1].message.includes(modeMarker)) {
-                    // Skip this setpoint section as it's immediately followed by Mode Menu
-                    console.log('Skipping Setpoint section at index:', i, 'because next line is Mode Menu');
-                    continue; // Skip this entry
+            // Check if this entry contains the target phrase
+            if (entry.message && entry.message.includes(targetPhrase)) {
+                console.log('Found "Setpoint Updated" at index:', i, 'with message:', entry.message);
+                
+                // Find the most recent 'Entering menu: Setpoint Menu' entry
+                let menuEntryIndex = -1;
+                for (let j = i - 1; j >= 0; j--) {
+                    if (logEntries[j].message && logEntries[j].message.includes(menuMarker)) {
+                        menuEntryIndex = j;
+                        break;
+                    }
                 }
                 
-                // This is a valid setpoint section
-                inSetpointSection = true;
-                setpointEntries.push(entry);
-                console.log('Found valid setpoint start marker at index:', i, 'with message:', entry.message);
-                continue;
-            }
-            
-            // If we're in the section, add the entry
-            if (inSetpointSection) {
-                setpointEntries.push(entry);
+                // Add all entries from menu marker to the target entry
+                if (menuEntryIndex !== -1) {
+                    console.log('Found menu marker at index:', menuEntryIndex, 'with message:', logEntries[menuEntryIndex].message);
+                    for (let j = menuEntryIndex; j < i; j++) {
+                        if (!addedIndices.has(j)) {
+                            setpointEntries.push(logEntries[j]);
+                            addedIndices.add(j);
+                        }
+                    }
+                } else {
+                    console.log('No menu marker found before "Setpoint Updated" at index:', i);
+                }
                 
-                // Check if this is the end marker
-                if (entry.message && entry.message.includes(endMarker)) {
-                    console.log('Found setpoint end marker at index:', i, 'with message:', entry.message);
-                    inSetpointSection = false;
+                // Add the target entry
+                if (!addedIndices.has(i)) {
+                    setpointEntries.push(entry);
+                    addedIndices.add(i);
+                }
+                
+                // Add entries after (context)
+                const endIdx = Math.min(logEntries.length - 1, i + contextAfter);
+                for (let j = i + 1; j <= endIdx; j++) {
+                    if (!addedIndices.has(j)) {
+                        setpointEntries.push(logEntries[j]);
+                        addedIndices.add(j);
+                    }
                 }
             }
         }
@@ -975,6 +988,111 @@ function renderVisibleLogEntries(filter) {
         console.log('Options filtered entries:', filteredEntries.length);
         console.log('First few options entries:', filteredEntries.slice(0, 5).map(e => e.message));
         console.log('Last few options entries:', filteredEntries.slice(-5).map(e => e.message));
+    } else if (currentFilter === 'telemetry') {
+        // Filter for entries containing 'Telemetry'
+        const targetText = 'Telemetry';
+        console.log('Starting telemetry text filtering...');
+        
+        // Find all entries containing the target text
+        let telemetryEntries = [];
+        
+        for (let i = 0; i < logEntries.length; i++) {
+            const entry = logEntries[i];
+            
+            // Check if this entry contains the target text (case insensitive)
+            if (entry.message && entry.message.toLowerCase().includes(targetText.toLowerCase())) {
+                telemetryEntries.push(entry);
+            }
+        }
+        
+        filteredEntries = telemetryEntries;
+        console.log('Telemetry text filtered entries:', filteredEntries.length);
+        console.log('First few telemetry text entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few telemetry text entries:', filteredEntries.slice(-5).map(e => e.message));
+    } else if (currentFilter === 'connection') {
+        // Filter for entries containing 'Connection'
+        const targetText = 'Connection';
+        console.log('Starting connection text filtering...');
+        
+        // Find all entries containing the target text
+        let connectionEntries = [];
+        
+        for (let i = 0; i < logEntries.length; i++) {
+            const entry = logEntries[i];
+            
+            // Check if this entry contains the target text (case insensitive)
+            if (entry.message && entry.message.toLowerCase().includes(targetText.toLowerCase())) {
+                connectionEntries.push(entry);
+            }
+        }
+        
+        filteredEntries = connectionEntries;
+        console.log('Connection text filtered entries:', filteredEntries.length);
+        console.log('First few connection text entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few connection text entries:', filteredEntries.slice(-5).map(e => e.message));
+    } else if (currentFilter === 'mqtt') {
+        // Filter for entries containing 'MQTT'
+        const targetText = 'MQTT';
+        console.log('Starting MQTT text filtering...');
+        
+        // Find all entries containing the target text
+        let mqttEntries = [];
+        
+        for (let i = 0; i < logEntries.length; i++) {
+            const entry = logEntries[i];
+            
+            // Check if this entry contains the target text (case sensitive for MQTT)
+            if (entry.message && entry.message.includes(targetText)) {
+                mqttEntries.push(entry);
+            }
+        }
+        
+        filteredEntries = mqttEntries;
+        console.log('MQTT text filtered entries:', filteredEntries.length);
+        console.log('First few MQTT text entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few MQTT text entries:', filteredEntries.slice(-5).map(e => e.message));
+    } else if (currentFilter === 'wifi') {
+        // Filter for entries containing 'Wifi' or 'WiFi' or 'WIFI'
+        const targetText = 'wifi';
+        console.log('Starting Wifi text filtering...');
+        
+        // Find all entries containing the target text
+        let wifiEntries = [];
+        
+        for (let i = 0; i < logEntries.length; i++) {
+            const entry = logEntries[i];
+            
+            // Check if this entry contains the target text (case insensitive)
+            if (entry.message && entry.message.toLowerCase().includes(targetText.toLowerCase())) {
+                wifiEntries.push(entry);
+            }
+        }
+        
+        filteredEntries = wifiEntries;
+        console.log('Wifi text filtered entries:', filteredEntries.length);
+        console.log('First few Wifi text entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few Wifi text entries:', filteredEntries.slice(-5).map(e => e.message));
+    } else if (currentFilter === 'app') {
+        // Filter for entries containing 'App'
+        const targetText = 'app';
+        console.log('Starting App text filtering...');
+        
+        // Find all entries containing the target text
+        let appEntries = [];
+        
+        for (let i = 0; i < logEntries.length; i++) {
+            const entry = logEntries[i];
+            
+            // Check if this entry contains the target text (case insensitive)
+            if (entry.message && entry.message.toLowerCase().includes(targetText.toLowerCase())) {
+                appEntries.push(entry);
+            }
+        }
+        
+        filteredEntries = appEntries;
+        console.log('App text filtered entries:', filteredEntries.length);
+        console.log('First few App text entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few App text entries:', filteredEntries.slice(-5).map(e => e.message));
     } else {
         // Default to showing all logs for other filters
         filteredEntries = [...logEntries];
@@ -1438,7 +1556,7 @@ function fetchRestaurantData() {
         // Extensive list of restaurants in St. John's with Yelp links (as of 2025)
         // These restaurants have been manually verified to be open and operating
         // Last verification: March 2025
-        // Verified restaurant data - all restaurants are in St. John's with 4+ star ratings
+        // Includes both highly-rated restaurants (4+ stars) and classic local spots
         // Last verification: March 2025
         const restaurants = [
             // Downtown restaurants - all verified with 4+ stars
@@ -1512,7 +1630,21 @@ function fetchRestaurantData() {
             { name: "Raymonds Restaurant", rating: 4.8, cuisine: "Fine Dining", url: "https://www.yelp.ca/biz/raymonds-restaurant-st-johns", hours: "17:30-21:30" },
             { name: "Evoo in the Courtyard", rating: 4.4, cuisine: "Mediterranean", url: "https://www.yelp.ca/biz/evoo-in-the-courtyard-st-johns", hours: "11:30-21:30" },
             { name: "Tavola", rating: 4.5, cuisine: "Italian", url: "https://www.yelp.ca/biz/tavola-st-johns", hours: "17:00-22:00" },
-            { name: "Seto Kitchen + Bar", rating: 4.5, cuisine: "Asian Fusion", url: "https://www.yelp.ca/biz/seto-kitchen-and-bar-st-johns-2", hours: "11:30-22:00" }
+            { name: "Seto Kitchen + Bar", rating: 4.5, cuisine: "Asian Fusion", url: "https://www.yelp.ca/biz/seto-kitchen-and-bar-st-johns-2", hours: "11:30-22:00" },
+            
+            // Classic local spots in St. John's
+            { name: "Pizza Supreme", rating: 3.8, cuisine: "Pizza", url: "https://www.yelp.ca/biz/pizza-supreme-st-johns", hours: "11:00-23:00" },
+            { name: "McDonald's", rating: 3.5, cuisine: "Fast Food", url: "https://www.yelp.ca/biz/mcdonalds-st-johns", hours: "24 Hours" },
+            { name: "Wendy's", rating: 3.6, cuisine: "Fast Food", url: "https://www.yelp.ca/biz/wendys-st-johns", hours: "10:00-23:00" },
+            { name: "Mustang Sally's", rating: 4.2, cuisine: "American", url: "https://www.yelp.ca/biz/mustang-sallys-st-johns", hours: "11:00-22:00" },
+            { name: "A & W", rating: 3.7, cuisine: "Fast Food", url: "https://www.yelp.ca/biz/a-and-w-st-johns-2", hours: "7:00-23:00" },
+            { name: "Sun Sushi", rating: 4.5, cuisine: "Japanese", url: "https://www.yelp.ca/biz/sun-sushi-st-johns-2", hours: "11:30-21:00" },
+            { name: "Sushi Island", rating: 4.3, cuisine: "Japanese", url: "https://www.yelp.ca/biz/sushi-island-saint-johns", hours: "11:00-22:00" },
+            { name: "Thai Express", rating: 3.8, cuisine: "Thai", url: "https://www.yelp.ca/biz/thai-express-saint-johns", hours: "11:00-21:00" },
+            { name: "Flavours Indian Cuisine", rating: 3.7, cuisine: "Indian", url: "https://www.yelp.ca/biz/flavours-indian-cuisine-st-johns", hours: "10:00-21:00" },
+            { name: "Georgetown Bakery", rating: 4.2, cuisine: "Bakery", url: "https://www.yelp.ca/search?find_desc=Bakeries&find_loc=St.+John%27s%2C+NL", hours: "8:00-18:00" },
+            { name: "The Market Family Cafe", rating: 3.9, cuisine: "Cafe", url: "https://www.yelp.ca/biz/the-market-family-cafe-st-johns", hours: "7:00-23:00" },
+            { name: "Subway", rating: 3.5, cuisine: "Sandwiches", url: "https://www.yelp.ca/biz/subway-st-johns-3", hours: "8:00-22:00" }
         ];
         
         // Function to check if a restaurant is currently open based on its hours
@@ -1555,11 +1687,11 @@ function fetchRestaurantData() {
         // If no restaurants are open or very few (less than 5), use all restaurants
         const availableRestaurants = openRestaurants.length >= 5 ? openRestaurants : restaurants;
         
-        // Filter only restaurants with ratings of 4.0 or higher
-        const highlyRated = availableRestaurants.filter(restaurant => restaurant.rating >= 4.0);
+        // No longer filtering by rating to include classic spots
+        const highlyRated = availableRestaurants;
         
         // Log the number of restaurants available after filtering
-        console.log(`Found ${highlyRated.length} open restaurants in St. John's with ratings of 4.0 or higher`);
+        console.log(`Found ${highlyRated.length} open restaurants in St. John's (including classic spots)`);
         
         // Resolve with the filtered list
         resolve(highlyRated);
@@ -3085,6 +3217,21 @@ function initializeEnvChart() {
                         color: 'rgba(255, 255, 255, 0.7)',
                         boxWidth: 12,
                         padding: 10
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                if (label.includes('Temp')) {
+                                    return `Temp = ${parseFloat(context.raw).toFixed(2)} °`;
+                                } else if (label.includes('Humidity')) {
+                                    return `Humidity = ${context.raw}%`;
+                                }
+                            }
+                            return label;
+                        }
                     }
                 }
             },
