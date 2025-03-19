@@ -1664,7 +1664,7 @@ function fetchRestaurantData() {
             // Signal Hill area
             { name: "Mallard Cottage", rating: 4.7, cuisine: "Canadian", url: "https://www.yelp.ca/biz/mallard-cottage-st-johns-2", hours: "10:00-21:00" },
             { name: "The Battery Cafe", rating: 4.5, cuisine: "Cafe", url: "https://www.yelp.ca/biz/the-battery-cafe-st-johns", hours: "8:00-16:00" },
-            { name: "Newfoundland Chocolate Company", rating: 4.6, cuisine: "Dessert", url: "https://www.yelp.ca/biz/the-newfoundland-chocolate-company-st-johns-2", hours: "10:00-18:00" },
+            { name: "Newfoundland Chocolate Company", rating: 4.6, cuisine: "Dessert", url: "https://www.newfoundlandchocolatecompany.com/", hours: "10:00-18:00" },
             
             // Additional St. John's area
             { name: "Gingergrass", rating: 4.5, cuisine: "Thai/Vietnamese", url: "https://www.yelp.ca/biz/gingergrass-st-johns", hours: "11:30-20:00" },
