@@ -1601,12 +1601,8 @@ function fetchRestaurantData() {
         // These restaurants have been manually verified to be open and operating
         // Last verification: March 2025
         // Includes both highly-rated restaurants (4+ stars) and classic local spots
-        // Last verification: March 2025
         const restaurants = [
-            // Downtown restaurants - all verified with 4+ stars
-            { name: "Portage", rating: 4.8, cuisine: "Canadian", url: "https://www.yelp.ca/biz/portage-st-johns", hours: "17:00-22:00" },
             { name: "Chinched", rating: 4.6, cuisine: "Gastropub", url: "https://www.yelp.ca/biz/chinched-st-johns", hours: "11:30-22:00" },
-            { name: "Terre Restaurant", rating: 4.7, cuisine: "Canadian", url: "https://www.yelp.ca/biz/terre-restaurant-st-johns-2", hours: "17:30-22:00" },
             { name: "YellowBelly Brewery", rating: 4.4, cuisine: "Pub", url: "https://www.yelp.ca/biz/yellowbelly-brewery-st-johns-2", hours: "11:00-23:00" },
             { name: "India Gate", rating: 4.3, cuisine: "Indian", url: "https://www.yelp.ca/biz/india-gate-restaurant-st-johns", hours: "11:30-21:30" },
             { name: "Sun Sushi", rating: 4.5, cuisine: "Japanese", url: "https://www.yelp.ca/biz/sun-sushi-st-johns", hours: "11:30-21:00" },
@@ -1621,7 +1617,6 @@ function fetchRestaurantData() {
             { name: "St. John's Fish Exchange", rating: 4.6, cuisine: "Seafood", url: "https://www.yelp.ca/biz/st-johns-fish-exchange-st-johns", hours: "11:30-22:00" },
             { name: "The Duke of Duckworth", rating: 4.2, cuisine: "Pub", url: "https://www.yelp.ca/biz/the-duke-of-duckworth-st-johns", hours: "11:00-23:00" },
             { name: "Oliver's", rating: 4.5, cuisine: "Canadian", url: "https://www.yelp.ca/biz/olivers-st-johns", hours: "11:30-22:00" },
-            { name: "No.4 Restaurant & Bar", rating: 4.5, cuisine: "Canadian", url: "https://www.yelp.ca/biz/no-4-restaurant-and-bar-st-johns-2", hours: "17:00-00:00" },
             { name: "Exile Restaurant & Lounge", rating: 4.3, cuisine: "Fusion", url: "https://www.yelp.ca/biz/exile-restaurant-and-lounge-st-johns-2", hours: "11:30-22:00" },
             { name: "Bivver", rating: 4.4, cuisine: "Gastropub", url: "https://www.yelp.ca/biz/bivver-st-johns-2", hours: "11:30-22:00" },
             { name: "The Merchant Tavern", rating: 4.7, cuisine: "Contemporary", url: "https://www.yelp.ca/biz/the-merchant-tavern-st-johns", hours: "11:30-22:00" },
@@ -1629,54 +1624,40 @@ function fetchRestaurantData() {
             { name: "Basho", rating: 4.4, cuisine: "Japanese", url: "https://www.yelp.ca/biz/basho-restaurant-and-lounge-st-johns", hours: "11:30-22:00" },
             { name: "The Gypsy Tea Room", rating: 4.2, cuisine: "Mediterranean", url: "https://www.yelp.ca/biz/gypsy-tea-room-st-johns", hours: "11:30-22:00" },
             { name: "Kimchi & Sushi", rating: 4.3, cuisine: "Korean", url: "https://www.facebook.com/kimchiandsushiwaterstreet/", hours: "11:30-21:00" },
-            { name: "Adelaide Oyster House", rating: 4.5, cuisine: "Seafood", url: "https://www.yelp.ca/biz/adelaide-oyster-house-st-johns", hours: "17:00-00:00" },
-            { name: "Get Stuffed", rating: 4.3, cuisine: "Canadian", url: "https://www.facebook.com/getstuffedsj/", hours: "12:00-22:00" },
             { name: "The Sprout", rating: 4.5, cuisine: "Vegetarian", url: "https://www.yelp.ca/biz/the-sprout-restaurant-st-johns", hours: "11:30-21:00" },
-            
-            // Quidi Vidi area
+
             { name: "Quidi Vidi Brewery", rating: 4.5, cuisine: "Brewery", url: "https://www.yelp.ca/biz/quidi-vidi-brewery-st-johns", hours: "11:00-22:00" },
             { name: "The Rooms Cafe", rating: 4.4, cuisine: "Cafe", url: "https://www.yelp.ca/biz/the-rooms-cafe-st-johns", hours: "10:00-17:00" },
             { name: "Fifth Ticket", rating: 4.4, cuisine: "Contemporary", url: "https://www.yelp.ca/biz/fifth-ticket-st-johns", hours: "11:30-22:00" },
-            
-            // West End
+
             { name: "Bernard Stanley Gastropub", rating: 4.3, cuisine: "Gastropub", url: "https://www.yelp.ca/biz/bernard-stanley-gastropub-saint-johns", hours: "11:00-21:00" },
             { name: "RJ Pinoy Yum", rating: 4.4, cuisine: "Filipino", url: "https://www.yelp.ca/biz/rj-pinoy-yum-st-johns", hours: "11:00-20:00" },
             { name: "Jack Astor's", rating: 4.0, cuisine: "American", url: "https://www.yelp.ca/biz/jack-astors-st-johns", hours: "11:00-23:00" },
             { name: "Sushi Island", rating: 4.3, cuisine: "Japanese", url: "https://www.yelp.ca/biz/sushi-island-saint-johns", hours: "11:00-22:00" },
             { name: "Fionn MacCool's", rating: 4.1, cuisine: "Irish", url: "https://www.yelp.ca/biz/fionn-maccools-st-johns", hours: "11:00-23:00" },
             { name: "Mildred's Family Restaurant", rating: 4.3, cuisine: "Breakfast", url: "https://www.yelp.ca/biz/mildreds-family-restaurant-st-johns", hours: "7:00-15:00" },
-            { name: "Boca Tapas Bar", rating: 4.4, cuisine: "Spanish", url: "https://www.yelp.ca/biz/boca-tapas-bar-st-johns", hours: "17:00-22:00" },
             { name: "Sushi Island", rating: 4.3, cuisine: "Japanese", url: "https://www.yelp.ca/biz/sushi-island-saint-johns", hours: "11:00-22:00" },
-            
-            // Churchill Square area
+
             { name: "Jumping Bean Coffee", rating: 4.3, cuisine: "Cafe", url: "https://www.yelp.ca/biz/jumping-bean-coffee-st-johns-2", hours: "7:00-19:00" },
             { name: "Noodle Nami", rating: 4.5, cuisine: "Asian Fusion", url: "https://www.yelp.ca/biz/noodle-nami-st-johns", hours: "11:30-21:00" },
             { name: "Quintana's", rating: 4.6, cuisine: "Mexican", url: "https://www.yelp.ca/biz/quintanas-and-arribas-st-johns-2", hours: "11:30-21:00" },
             { name: "Cojones Tacos + Tequila", rating: 4.4, cuisine: "Mexican", url: "https://www.yelp.ca/biz/cojones-st-johns", hours: "11:30-22:00" },
             { name: "Mustang Sally's", rating: 4.2, cuisine: "American", url: "https://www.yelp.ca/biz/mustang-sallys-st-johns", hours: "11:00-22:00" },
-            
-            // East End area
+
             { name: "Fort Amherst Pub", rating: 4.3, cuisine: "Pub", url: "https://www.yelp.ca/biz/fort-amherst-pub-st-johns", hours: "11:00-23:00" },
             { name: "Sushi Nami Royale", rating: 4.2, cuisine: "Japanese", url: "https://www.yelp.ca/biz/sushi-nami-royale-saint-johns", hours: "11:30-21:00" },
             { name: "Toslow", rating: 4.6, cuisine: "Cafe", url: "https://www.yelp.ca/biz/toslow-st-johns", hours: "8:00-22:00" },
             { name: "Bannerman Brewing Co", rating: 4.7, cuisine: "Brewery/Cafe", url: "https://www.yelp.ca/biz/bannerman-brewing-co-st-johns", hours: "8:00-23:00" },
-            
-            // Signal Hill area
-            { name: "Mallard Cottage", rating: 4.7, cuisine: "Canadian", url: "https://www.yelp.ca/biz/mallard-cottage-st-johns-2", hours: "10:00-21:00" },
+
             { name: "The Battery Cafe", rating: 4.5, cuisine: "Cafe", url: "https://www.yelp.ca/biz/the-battery-cafe-st-johns", hours: "8:00-16:00" },
             { name: "Newfoundland Chocolate Company", rating: 4.6, cuisine: "Dessert", url: "https://www.newfoundlandchocolatecompany.com/", hours: "10:00-18:00" },
-            
-            // Additional St. John's area
+
             { name: "Gingergrass", rating: 4.5, cuisine: "Thai/Vietnamese", url: "https://www.yelp.ca/biz/gingergrass-st-johns", hours: "11:30-20:00" },
-            { name: "Smitty's Family Restaurant", rating: 4.0, cuisine: "American", url: "https://www.yelp.ca/biz/smittys-family-restaurant-st-johns", hours: "8:00-19:00" },
             { name: "Peaceful Loft", rating: 4.3, cuisine: "Vegetarian", url: "https://www.yelp.ca/biz/peaceful-loft-vegetarian-restaurant-st-johns", hours: "11:30-20:00" },
             { name: "Bagel Cafe", rating: 4.4, cuisine: "Cafe", url: "https://www.yelp.ca/biz/bagel-cafe-st-johns", hours: "8:00-18:00" },
-            { name: "Raymonds Restaurant", rating: 4.8, cuisine: "Fine Dining", url: "https://www.yelp.ca/biz/raymonds-restaurant-st-johns", hours: "17:30-21:30" },
             { name: "Evoo in the Courtyard", rating: 4.4, cuisine: "Mediterranean", url: "https://www.yelp.ca/biz/evoo-in-the-courtyard-st-johns", hours: "11:30-21:30" },
-            { name: "Tavola", rating: 4.5, cuisine: "Italian", url: "https://www.yelp.ca/biz/tavola-st-johns", hours: "17:00-22:00" },
             { name: "Seto Kitchen + Bar", rating: 4.5, cuisine: "Asian Fusion", url: "https://www.yelp.ca/biz/seto-kitchen-and-bar-st-johns-2", hours: "11:30-22:00" },
-            
-            // Classic local spots in St. John's
+
             { name: "Pizza Supreme", rating: 3.8, cuisine: "Pizza", url: "https://www.yelp.ca/biz/pizza-supreme-st-johns", hours: "11:00-23:00" },
             { name: "McDonald's", rating: 3.5, cuisine: "Fast Food", url: "https://www.yelp.ca/biz/mcdonalds-st-johns", hours: "24 Hours" },
             { name: "Wendy's", rating: 3.6, cuisine: "Fast Food", url: "https://www.yelp.ca/biz/wendys-st-johns", hours: "10:00-23:00" },
@@ -1688,7 +1669,8 @@ function fetchRestaurantData() {
             { name: "Flavours Indian Cuisine", rating: 3.7, cuisine: "Indian", url: "https://www.yelp.ca/biz/flavours-indian-cuisine-st-johns", hours: "10:00-21:00" },
             { name: "Georgetown Bakery", rating: 4.2, cuisine: "Bakery", url: "https://www.yelp.ca/search?find_desc=Bakeries&find_loc=St.+John%27s%2C+NL", hours: "8:00-18:00" },
             { name: "The Market Family Cafe", rating: 3.9, cuisine: "Cafe", url: "https://www.yelp.ca/biz/the-market-family-cafe-st-johns", hours: "7:00-23:00" },
-            { name: "Subway", rating: 3.5, cuisine: "Sandwiches", url: "https://www.yelp.ca/biz/subway-st-johns-3", hours: "8:00-22:00" }
+            { name: "Subway", rating: 3.5, cuisine: "Sandwiches", url: "https://www.yelp.ca/biz/subway-st-johns-3", hours: "8:00-22:00" },
+            { name: "Postmaster's Bakery", rating: 4.7, cuisine: "Bakery", url: "https://postmastersbakery.com/menu/", hours: "8:00-18:00" }
         ];
         
         // Function to check if a restaurant is currently open based on its hours
