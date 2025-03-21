@@ -62,6 +62,7 @@
                     <span class="status-label">Lang:</span>
                     <span id="language" class="status-value">--</span>
                     <button id="lunch-idea-button" class="primary lunch-button">Lunch Idea <span class="lightbulb">💡</span></button>
+                    <button id="work-tasks-button" class="primary work-tasks-button">Work Tasks <span class="tasks-icon">📋</span></button>
                 </div>
             </div>
             
@@ -211,6 +212,22 @@
         <div id="notification" class="hidden"></div>
     </div>
     
+    <!-- Work Tasks Overlay -->
+    <div id="tasks-overlay" class="tasks-overlay">
+        <div class="tasks-window">
+            <div class="tasks-header">
+                <h2>Work Tasks</h2>
+                <button id="tasks-close" class="tasks-close">&times;</button>
+            </div>
+            <div class="tasks-content">
+                <textarea id="tasks-textarea" class="tasks-textarea" placeholder="Enter your work tasks here..."></textarea>
+            </div>
+            <div class="tasks-footer">
+                <button id="tasks-save" class="tasks-save">Save Tasks</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="quotes.js"></script>
     <script src="main.js"></script>

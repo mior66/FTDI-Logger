@@ -29,6 +29,11 @@ const disconnectButton = document.getElementById('disconnect-button');
 const logFilter = document.getElementById('log-filter');
 const clearHiddenLogButton = document.getElementById('clear-hidden-log');
 const saveHiddenLogButton = document.getElementById('save-hidden-log');
+const workTasksButton = document.getElementById('work-tasks-button');
+const tasksOverlay = document.getElementById('tasks-overlay');
+const tasksTextarea = document.getElementById('tasks-textarea');
+const tasksCloseButton = document.getElementById('tasks-close');
+const tasksSaveButton = document.getElementById('tasks-save');
 
 // Thermostat Status Elements
 const thermostatMode = document.getElementById('thermostat-mode');
@@ -100,6 +105,9 @@ function init() {
     // Fetch available ports when the page loads
     refreshPorts();
     
+    // Initialize work tasks
+    initWorkTasks();
+    
     // Load default settings
     loadDefaultSettings();
     
@@ -140,6 +148,18 @@ function init() {
     if (lunchIdeaButton) {
         lunchIdeaButton.addEventListener('click', suggestLunchPlaces);
     }
+    
+    // Setup work tasks button
+    workTasksButton.addEventListener('click', openWorkTasks);
+    tasksCloseButton.addEventListener('click', closeWorkTasks);
+    tasksSaveButton.addEventListener('click', saveWorkTasks);
+    
+    // Close tasks overlay when clicking outside the window
+    tasksOverlay.addEventListener('click', function(e) {
+        if (e.target === tasksOverlay) {
+            closeWorkTasks();
+        }
+    });
     
     // Set up error legend filtering
     setupErrorLegendFiltering();
@@ -1501,6 +1521,30 @@ function displayRandomQuote() {
     }
 }
 
+// Work Tasks Functions
+function initWorkTasks() {
+    // Load saved tasks from localStorage
+    const savedTasks = localStorage.getItem('workTasks');
+    if (savedTasks) {
+        tasksTextarea.value = savedTasks;
+    }
+}
+
+function openWorkTasks() {
+    tasksOverlay.classList.add('active');
+}
+
+function closeWorkTasks() {
+    tasksOverlay.classList.remove('active');
+}
+
+function saveWorkTasks() {
+    const tasks = tasksTextarea.value;
+    localStorage.setItem('workTasks', tasks);
+    showNotification('Work tasks saved successfully!', 'success');
+    closeWorkTasks();
+}
+
 // Suggest random lunch places in St. John's with ratings of at least 4 out of 5
 function suggestLunchPlaces() {
     // Fetch restaurant data (only open restaurants)
@@ -1602,7 +1646,6 @@ function fetchRestaurantData() {
         // Last verification: March 2025
         // Includes both highly-rated restaurants (4+ stars) and classic local spots
         const restaurants = [
-            { name: "Chinched", rating: 4.6, cuisine: "Gastropub", url: "https://www.yelp.ca/biz/chinched-st-johns", hours: "11:30-22:00" },
             { name: "YellowBelly Brewery", rating: 4.4, cuisine: "Pub", url: "https://www.yelp.ca/biz/yellowbelly-brewery-st-johns-2", hours: "11:00-23:00" },
             { name: "India Gate", rating: 4.3, cuisine: "Indian", url: "https://www.yelp.ca/biz/india-gate-restaurant-st-johns", hours: "11:30-21:30" },
             { name: "Sun Sushi", rating: 4.5, cuisine: "Japanese", url: "https://www.yelp.ca/biz/sun-sushi-st-johns", hours: "11:30-21:00" },
@@ -1617,8 +1660,6 @@ function fetchRestaurantData() {
             { name: "St. John's Fish Exchange", rating: 4.6, cuisine: "Seafood", url: "https://www.yelp.ca/biz/st-johns-fish-exchange-st-johns", hours: "11:30-22:00" },
             { name: "The Duke of Duckworth", rating: 4.2, cuisine: "Pub", url: "https://www.yelp.ca/biz/the-duke-of-duckworth-st-johns", hours: "11:00-23:00" },
             { name: "Oliver's", rating: 4.5, cuisine: "Canadian", url: "https://www.yelp.ca/biz/olivers-st-johns", hours: "11:30-22:00" },
-            { name: "Exile Restaurant & Lounge", rating: 4.3, cuisine: "Fusion", url: "https://www.yelp.ca/biz/exile-restaurant-and-lounge-st-johns-2", hours: "11:30-22:00" },
-            { name: "Bivver", rating: 4.4, cuisine: "Gastropub", url: "https://www.yelp.ca/biz/bivver-st-johns-2", hours: "11:30-22:00" },
             { name: "The Merchant Tavern", rating: 4.7, cuisine: "Contemporary", url: "https://www.yelp.ca/biz/the-merchant-tavern-st-johns", hours: "11:30-22:00" },
             { name: "Manna Bakery", rating: 4.6, cuisine: "Bakery", url: "https://www.yelp.ca/biz/manna-european-bakery-and-deli-st-johns", hours: "8:00-18:00" },
             { name: "Basho", rating: 4.4, cuisine: "Japanese", url: "https://www.yelp.ca/biz/basho-restaurant-and-lounge-st-johns", hours: "11:30-22:00" },
@@ -1635,8 +1676,6 @@ function fetchRestaurantData() {
             { name: "Jack Astor's", rating: 4.0, cuisine: "American", url: "https://www.yelp.ca/biz/jack-astors-st-johns", hours: "11:00-23:00" },
             { name: "Sushi Island", rating: 4.3, cuisine: "Japanese", url: "https://www.yelp.ca/biz/sushi-island-saint-johns", hours: "11:00-22:00" },
             { name: "Fionn MacCool's", rating: 4.1, cuisine: "Irish", url: "https://www.yelp.ca/biz/fionn-maccools-st-johns", hours: "11:00-23:00" },
-            { name: "Mildred's Family Restaurant", rating: 4.3, cuisine: "Breakfast", url: "https://www.yelp.ca/biz/mildreds-family-restaurant-st-johns", hours: "7:00-15:00" },
-            { name: "Sushi Island", rating: 4.3, cuisine: "Japanese", url: "https://www.yelp.ca/biz/sushi-island-saint-johns", hours: "11:00-22:00" },
 
             { name: "Jumping Bean Coffee", rating: 4.3, cuisine: "Cafe", url: "https://www.yelp.ca/biz/jumping-bean-coffee-st-johns-2", hours: "7:00-19:00" },
             { name: "Noodle Nami", rating: 4.5, cuisine: "Asian Fusion", url: "https://www.yelp.ca/biz/noodle-nami-st-johns", hours: "11:30-21:00" },
@@ -1653,11 +1692,8 @@ function fetchRestaurantData() {
             { name: "Newfoundland Chocolate Company", rating: 4.6, cuisine: "Dessert", url: "https://www.newfoundlandchocolatecompany.com/", hours: "10:00-18:00" },
 
             { name: "Gingergrass", rating: 4.5, cuisine: "Thai/Vietnamese", url: "https://www.yelp.ca/biz/gingergrass-st-johns", hours: "11:30-20:00" },
-            { name: "Peaceful Loft", rating: 4.3, cuisine: "Vegetarian", url: "https://www.yelp.ca/biz/peaceful-loft-vegetarian-restaurant-st-johns", hours: "11:30-20:00" },
             { name: "Bagel Cafe", rating: 4.4, cuisine: "Cafe", url: "https://www.yelp.ca/biz/bagel-cafe-st-johns", hours: "8:00-18:00" },
             { name: "Evoo in the Courtyard", rating: 4.4, cuisine: "Mediterranean", url: "https://www.yelp.ca/biz/evoo-in-the-courtyard-st-johns", hours: "11:30-21:30" },
-            { name: "Seto Kitchen + Bar", rating: 4.5, cuisine: "Asian Fusion", url: "https://www.yelp.ca/biz/seto-kitchen-and-bar-st-johns-2", hours: "11:30-22:00" },
-
             { name: "Pizza Supreme", rating: 3.8, cuisine: "Pizza", url: "https://www.yelp.ca/biz/pizza-supreme-st-johns", hours: "11:00-23:00" },
             { name: "McDonald's", rating: 3.5, cuisine: "Fast Food", url: "https://www.yelp.ca/biz/mcdonalds-st-johns", hours: "24 Hours" },
             { name: "Wendy's", rating: 3.6, cuisine: "Fast Food", url: "https://www.yelp.ca/biz/wendys-st-johns", hours: "10:00-23:00" },
@@ -1670,7 +1706,10 @@ function fetchRestaurantData() {
             { name: "Georgetown Bakery", rating: 4.2, cuisine: "Bakery", url: "https://www.yelp.ca/search?find_desc=Bakeries&find_loc=St.+John%27s%2C+NL", hours: "8:00-18:00" },
             { name: "The Market Family Cafe", rating: 3.9, cuisine: "Cafe", url: "https://www.yelp.ca/biz/the-market-family-cafe-st-johns", hours: "7:00-23:00" },
             { name: "Subway", rating: 3.5, cuisine: "Sandwiches", url: "https://www.yelp.ca/biz/subway-st-johns-3", hours: "8:00-22:00" },
-            { name: "Postmaster's Bakery", rating: 4.7, cuisine: "Bakery", url: "https://postmastersbakery.com/menu/", hours: "8:00-18:00" }
+            { name: "Postmaster's Bakery", rating: 4.7, cuisine: "Bakery", url: "https://postmastersbakery.com/menu/", hours: "8:00-18:00" },
+            { name: "Magic Wok", rating: 4.2, cuisine: "Chinese", url: "https://www.yelp.ca/biz/magic-wok-restaurant-st-johns", hours: "11:30-21:00" },
+            { name: "Fat Bastard Burrito", rating: 4.0, cuisine: "Mexican", url: "https://www.yelp.ca/biz/fat-bastard-burrito-co-st-johns", hours: "11:00-22:00" },
+            { name: "Colemans Grocery Store", rating: 4.1, cuisine: "Grocery/Deli", url: "https://www.colemans.ca/locations/merrymeeting-road/", hours: "8:00-22:00" }
         ];
         
         // Function to check if a restaurant is currently open based on its hours
