@@ -103,9 +103,17 @@ header {
     margin-right: 15px;
 }
 
-/* Lunch Idea Button and Work Tasks Button */
-.lunch-button, .work-tasks-button {
-    margin-left: 15px;
+/* Button group container */
+.button-group {
+    display: inline-flex;
+    margin-left: 10px;
+    align-items: center;
+}
+
+/* Lunch Idea Button, Work Tasks Button, and Bug List Button */
+.lunch-button, .work-tasks-button, .bug-list-button {
+    margin-left: 3px; /* Even smaller margin between buttons */
+    margin-right: 3px;
     font-size: 0.9em;
     padding: 6px 12px;
     border: none;
@@ -127,6 +135,10 @@ header {
     background-color: #2196F3;
 }
 
+.bug-list-button {
+    background-color: #FF5722;
+}
+
 .lunch-button:hover {
     background-color: #45a049;
 }
@@ -135,7 +147,11 @@ header {
     background-color: #0b7dda;
 }
 
-.lightbulb, .tasks-icon {
+.bug-list-button:hover {
+    background-color: #E64A19;
+}
+
+.lightbulb, .tasks-icon, .bug-icon {
     margin-left: 5px;
     font-size: 1.1em;
 }
@@ -1524,6 +1540,125 @@ button.primary:hover {
     background-color: #094c1b;
 }
 
+/* Bug List Styles */
+.bug-list-window {
+    width: 900px;
+    max-width: 95%;
+}
+
+.bug-list-summary {
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bug-count-total {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.bug-count-by-priority {
+    display: flex;
+    gap: 15px;
+}
+
+.bug-count-by-priority span {
+    margin-right: 5px;
+}
+
+.bug-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.bug-list-table th,
+.bug-list-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.bug-list-table th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+    color: #333;
+    position: relative;
+}
+
+.bug-list-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.bug-list-table th.sortable:hover {
+    background-color: #e0e0e0;
+}
+
+.bug-list-table th.sort-asc .sort-icon:after {
+    content: '↑';
+}
+
+.bug-list-table th.sort-desc .sort-icon:after {
+    content: '↓';
+}
+
+.sort-icon {
+    margin-left: 5px;
+    font-size: 12px;
+    color: #999;
+}
+
+.bug-list-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+.bug-list-table .priority-highest {
+    color: #d50000;
+    font-weight: bold;
+}
+
+.bug-list-table .priority-high {
+    color: #ff6d00;
+    font-weight: bold;
+}
+
+.bug-list-table .priority-medium {
+    color: #ff9100;
+}
+
+.bug-list-table .priority-low {
+    color: #2e7d32;
+}
+
+.bug-list-table .status-open {
+    color: #d50000;
+}
+
+.bug-list-table .status-inprogress {
+    color: #2196F3;
+}
+
+.bug-list-table .status-resolved {
+    color: #2e7d32;
+}
+
+.bug-list-loading,
+.bug-list-error {
+    padding: 20px;
+    text-align: center;
+    font-size: 16px;
+}
+
+.bug-list-error {
+    color: #d50000;
+}
+
 /* Work Tasks Styles */
 .tasks-overlay {
     position: fixed;
@@ -1531,14 +1666,15 @@ button.primary:hover {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s, visibility 0.3s;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+
 }
 
 .tasks-overlay.active {

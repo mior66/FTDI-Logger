@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const fileUpload = require('express-fileupload');
 const XLSX = require('xlsx');
+const fetch = require('node-fetch');
 
 const app = express();
 const server = http.createServer(app);
@@ -150,6 +151,100 @@ app.get('/default-settings', (req, res) => {
     defaultBaudRate: 115200,
     timeStampFormat: 'Time+Millis'
   });
+});
+
+// Route to fetch bug list from Jira
+app.get('/bug-list', async (req, res) => {
+  try {
+    console.log('Fetching bug list from Jira...');
+    
+    // Mock data for development - in a real scenario, you would fetch this from Jira API
+    // This simulates the data from the Jira URL provided
+    const mockBugData = [
+      {
+        number: 'LV-1234',
+        title: 'Device disconnects randomly during testing',
+        status: 'In Progress',
+        assignee: 'John Smith',
+        updated: '2025-03-22',
+        priority: 'High'
+      },
+      {
+        number: 'LV-1233',
+        title: 'Temperature readings are inconsistent',
+        status: 'Open',
+        assignee: 'Jane Doe',
+        updated: '2025-03-20',
+        priority: 'Highest'
+      },
+      {
+        number: 'LV-1232',
+        title: 'UI freezes when multiple devices connected',
+        status: 'In Progress',
+        assignee: 'John Smith',
+        updated: '2025-03-19',
+        priority: 'Medium'
+      },
+      {
+        number: 'LV-1231',
+        title: 'Log export fails with large datasets',
+        status: 'Resolved',
+        assignee: 'Adam Johnson',
+        updated: '2025-03-18',
+        priority: 'Medium'
+      },
+      {
+        number: 'LV-1230',
+        title: 'Error messages not displaying correctly',
+        status: 'Open',
+        assignee: 'Unassigned',
+        updated: '2025-03-17',
+        priority: 'Low'
+      },
+      {
+        number: 'LV-1229',
+        title: 'MQTT connection fails intermittently',
+        status: 'In Progress',
+        assignee: 'Sarah Williams',
+        updated: '2025-03-15',
+        priority: 'High'
+      },
+      {
+        number: 'LV-1228',
+        title: 'Test plan import crashes with specific Excel formats',
+        status: 'Open',
+        assignee: 'Adam Johnson',
+        updated: '2025-03-14',
+        priority: 'Medium'
+      }
+    ];
+    
+    // In a real implementation, you would use fetch to get data from Jira API
+    // const response = await fetch('https://empoweredhomes.atlassian.net/jira/software/c/projects/LV/issues/?jql=project%20%3D%20%22LV%22%20AND%20reporter%20%3D%2062726ff1106b60006f583820%20ORDER%20BY%20created%20DESC', {
+    //   headers: {
+    //     'Authorization': 'Basic ' + Buffer.from('your_email:your_api_token').toString('base64'),
+    //     'Accept': 'application/json'
+    //   }
+    // });
+    // const data = await response.json();
+    // Process the data to extract the required fields
+    
+    // For now, we'll use the mock data
+    setTimeout(() => {
+      // Add a small delay to simulate network request
+      res.json({
+        success: true,
+        bugs: mockBugData
+      });
+    }, 1000);
+    
+  } catch (error) {
+    console.error('Error fetching bug list:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch bug list', 
+      message: error.message
+    });
+  }
 });
 
 // List available ports for the frontend to use

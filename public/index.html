@@ -61,8 +61,11 @@
                     <span id="temp-unit" class="status-value">--</span>
                     <span class="status-label">Lang:</span>
                     <span id="language" class="status-value">--</span>
-                    <button id="lunch-idea-button" class="primary lunch-button">Lunch Idea <span class="lightbulb">💡</span></button>
-                    <button id="work-tasks-button" class="primary work-tasks-button">Work Tasks <span class="tasks-icon">📋</span></button>
+                    <div class="button-group">
+                        <button id="lunch-idea-button" class="primary lunch-button">Lunch Idea <span class="lightbulb">💡</span></button>
+                        <button id="work-tasks-button" class="primary work-tasks-button">Work Tasks <span class="tasks-icon">📋</span></button>
+                        <button id="bug-list-button" class="primary bug-list-button">Bug List <span class="bug-icon">🐞</span></button>
+                    </div>
                 </div>
             </div>
             
@@ -224,6 +227,49 @@
             </div>
             <div class="tasks-footer">
                 <button id="tasks-save" class="tasks-save">Save Tasks</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bug List Overlay -->
+    <div id="bug-list-overlay" class="tasks-overlay">
+        <div class="tasks-window bug-list-window">
+            <div class="tasks-header">
+                <h2>Bug List</h2>
+                <button id="bug-list-close" class="tasks-close">&times;</button>
+            </div>
+            <div class="tasks-content bug-list-content">
+                <div class="bug-list-loading">Loading bug list...</div>
+                <div class="bug-list-error" style="display: none;">Error loading bug list. Please try again.</div>
+                <div class="bug-list-container" style="display: none;">
+                    <div class="bug-list-summary">
+                        <div class="bug-count-total">Total Bugs: <span id="bug-count-total">0</span></div>
+                        <div class="bug-count-by-priority">
+                            <span class="priority-highest">Highest: <span id="bug-count-highest">0</span></span>
+                            <span class="priority-high">High: <span id="bug-count-high">0</span></span>
+                            <span class="priority-medium">Medium: <span id="bug-count-medium">0</span></span>
+                            <span class="priority-low">Low: <span id="bug-count-low">0</span></span>
+                        </div>
+                    </div>
+                    <table class="bug-list-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="number">Number <span class="sort-icon">↕</span></th>
+                                <th class="sortable" data-sort="title">Title <span class="sort-icon">↕</span></th>
+                                <th class="sortable" data-sort="status">Status <span class="sort-icon">↕</span></th>
+                                <th class="sortable" data-sort="assignee">Assignee <span class="sort-icon">↕</span></th>
+                                <th class="sortable" data-sort="updated">Updated <span class="sort-icon">↕</span></th>
+                                <th class="sortable" data-sort="priority">Priority <span class="sort-icon">↕</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="bug-list-tbody">
+                            <!-- Bug list items will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tasks-footer">
+                <button id="bug-list-refresh" class="tasks-save">Refresh</button>
             </div>
         </div>
     </div>
