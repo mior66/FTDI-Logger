@@ -1,3 +1,6 @@
+// Load environment variables from .env file
+require('dotenv').config();
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -8,6 +11,19 @@ const fs = require('fs');
 const fileUpload = require('express-fileupload');
 const XLSX = require('xlsx');
 const fetch = require('node-fetch');
+
+// Log environment variables status
+console.log('Checking Jira API credentials...');
+if (process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN) {
+  console.log('Jira API credentials loaded successfully');
+} else {
+  console.warn('Jira API credentials not found or incomplete');
+}
+
+// Jira API configuration
+const JIRA_EMAIL = process.env.JIRA_EMAIL;
+const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
+const JIRA_DOMAIN = process.env.JIRA_DOMAIN || 'empoweredhomes.atlassian.net';
 
 const app = express();
 const server = http.createServer(app);
@@ -31,6 +47,56 @@ app.get('/', (req, res) => {
 // Route for the test plan viewer
 app.get('/test-plan', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'test-plan-viewer.html'));
+});
+
+// Test route to get all projects from Jira
+app.get('/jira-projects', async (req, res) => {
+  try {
+    console.log('Fetching all projects from Jira...');
+    
+    // Check if Jira credentials are available
+    if (!JIRA_EMAIL || !JIRA_API_TOKEN) {
+      console.error('Jira API credentials not found.');
+      return res.status(500).json({ 
+        error: 'Jira API credentials not configured'
+      });
+    }
+    
+    const jiraUrl = `https://${JIRA_DOMAIN}/rest/api/2/project`;
+    console.log('Sending request to Jira API:', jiraUrl);
+    
+    const response = await fetch(jiraUrl, {
+      headers: {
+        'Authorization': `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`,
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Jira API error response:', errorText);
+      throw new Error(`Jira API responded with status: ${response.status}`);
+    }
+    
+    const projects = await response.json();
+    console.log(`Retrieved ${projects.length} projects from Jira API`);
+    
+    return res.json({
+      success: true,
+      projects: projects.map(project => ({
+        id: project.id,
+        key: project.key,
+        name: project.name
+      }))
+    });
+    
+  } catch (error) {
+    console.error('Error fetching projects from Jira:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch projects', 
+      message: error.message
+    });
+  }
 });
 
 // Route to serve the test plan data directly
@@ -157,126 +223,96 @@ app.get('/default-settings', (req, res) => {
 app.get('/bug-list', async (req, res) => {
   try {
     console.log('Fetching bug list from Jira...');
+    const reporter = req.query.reporter || 'adam';
     
-    // These are the actual bugs from the Jira link
-    const jiraBugs = [
-      {
-        key: 'LV-24',
-        summary: 'If device is not connected to WIFi, it attempts to reconnect every 10 seconds and device degrades',
-        status: 'Unresolved',
-        assignee: 'Unassigned',
-        reporter: 'Adam Mior',
-        created: '20/Mar/25',
-        updated: 'Mar 24, 2025',
-        priority: 'Medium',
-        url: 'https://empoweredhomes.atlassian.net/browse/LV-24'
-      },
-      {
-        key: 'LV-16',
-        summary: 'Restaurant suggestions feature shows incorrect links',
-        status: 'Unresolved',
-        assignee: 'Unassigned',
-        reporter: 'Adam Mior',
-        created: '19/Mar/25',
-        updated: 'Mar 23, 2025',
-        priority: 'Low',
-        url: 'https://empoweredhomes.atlassian.net/browse/LV-16'
-      },
-      {
-        key: 'LV-15',
-        summary: 'Serial port connection drops randomly during testing',
-        status: 'Unresolved',
-        assignee: 'Unassigned',
-        reporter: 'Adam Mior',
-        created: '18/Mar/25',
-        updated: 'Mar 22, 2025',
-        priority: 'Medium',
-        url: 'https://empoweredhomes.atlassian.net/browse/LV-15'
-      },
-      {
-        key: 'LV-14',
-        summary: 'Error messages not displaying correctly in log window',
-        status: 'Unresolved',
-        assignee: 'Unassigned',
-        reporter: 'Adam Mior',
-        created: '17/Mar/25',
-        updated: 'Mar 21, 2025',
-        priority: 'Medium',
-        url: 'https://empoweredhomes.atlassian.net/browse/LV-14'
-      },
-      {
-        key: 'LV-13',
-        summary: 'Test plan viewer crashes with specific Excel formats',
-        status: 'Unresolved',
-        assignee: 'Unassigned',
-        reporter: 'Adam Mior',
-        created: '16/Mar/25',
-        updated: 'Mar 20, 2025',
-        priority: 'Medium',
-        url: 'https://empoweredhomes.atlassian.net/browse/LV-13'
-      },
-      {
-        key: 'LV-12',
-        summary: 'MQTT connection fails intermittently',
-        status: 'Unresolved',
-        assignee: 'Unassigned',
-        reporter: 'Adam Mior',
-        created: '15/Mar/25',
-        updated: 'Mar 19, 2025',
-        priority: 'High',
-        url: 'https://empoweredhomes.atlassian.net/browse/LV-12'
-      },
-      {
-        key: 'LV-11',
-        summary: 'UI freezes when multiple devices connected',
-        status: 'Unresolved',
-        assignee: 'Unassigned',
-        reporter: 'Adam Mior',
-        created: '14/Mar/25',
-        updated: 'Mar 18, 2025',
-        priority: 'High',
-        url: 'https://empoweredhomes.atlassian.net/browse/LV-11'
-      },
-      {
-        key: 'LV-10',
-        summary: 'Log files not being rotated properly',
-        status: 'Unresolved',
-        assignee: 'Unassigned',
-        reporter: 'Adam Mior',
-        created: '13/Mar/25',
-        updated: 'Mar 17, 2025',
-        priority: 'Low',
-        url: 'https://empoweredhomes.atlassian.net/browse/LV-10'
-      },
-      {
-        key: 'LV-9',
-        summary: 'Temperature sensor readings are inconsistent',
-        status: 'Unresolved',
-        assignee: 'Unassigned',
-        reporter: 'Adam Mior',
-        created: '12/Mar/25',
-        updated: 'Mar 16, 2025',
-        priority: 'Medium',
-        url: 'https://empoweredhomes.atlassian.net/browse/LV-9'
-      },
-      {
-        key: 'LV-8',
-        summary: 'Device fails to connect to WiFi after power cycle',
-        status: 'Unresolved',
-        assignee: 'Unassigned',
-        reporter: 'Adam Mior',
-        created: '11/Mar/25',
-        updated: 'Mar 15, 2025',
-        priority: 'High',
-        url: 'https://empoweredhomes.atlassian.net/browse/LV-8'
+    // Check if Jira credentials are available
+    if (!process.env.JIRA_EMAIL || !process.env.JIRA_API_TOKEN || !process.env.JIRA_DOMAIN) {
+      console.error('Jira API credentials not found. Please set JIRA_EMAIL, JIRA_API_TOKEN, and JIRA_DOMAIN environment variables.');
+      return res.status(500).json({ 
+        error: 'Jira API credentials not configured', 
+        message: 'Please set JIRA_EMAIL, JIRA_API_TOKEN, and JIRA_DOMAIN environment variables.'
+      });
+    }
+    
+    // Fetch real data from Jira API
+    console.log('Fetching bugs from Jira API...');
+    try {
+      // Construct JQL query based on reporter parameter
+      let jql;
+      // Since we know the project key is LV from the URL you shared
+      if (reporter === 'all') {
+        jql = 'project = LV ORDER BY created DESC';
+      } else {
+        // Use a simpler query without currentUser() function
+        jql = 'project = LV ORDER BY created DESC';
       }
-    ];
+      
+      // Log the exact JQL query for debugging
+      console.log('Using simplified JQL query:', jql);
+      
+      const jiraUrl = `https://${process.env.JIRA_DOMAIN}/rest/api/2/search`;
+      const authToken = Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64');
+      
+      console.log('Sending request to Jira API:', jiraUrl);
+      
+      const response = await fetch(jiraUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${authToken}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          jql: jql,
+          maxResults: 20,
+          fields: [
+            'summary',
+            'status',
+            'assignee',
+            'reporter',
+            'created',
+            'updated',
+            'priority'
+          ]
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Jira API error response:', errorText);
+        throw new Error(`Jira API responded with status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(`Retrieved ${data.issues?.length || 0} bugs from Jira API`);
+      
+      // Transform Jira API response to our bug list format
+      const jiraBugs = data.issues.map(issue => ({
+        key: issue.key,
+        summary: issue.fields.summary,
+        status: issue.fields.status.name,
+        assignee: issue.fields.assignee ? issue.fields.assignee.displayName : 'Unassigned',
+        reporter: issue.fields.reporter.displayName,
+        created: new Date(issue.fields.created).toLocaleDateString(),
+        updated: new Date(issue.fields.updated).toLocaleDateString(),
+        priority: issue.fields.priority.name,
+        url: `https://${process.env.JIRA_DOMAIN}/browse/${issue.key}`
+      }));
+      
+      return res.json({
+        success: true,
+        bugs: jiraBugs,
+        source: 'jira-api'
+      });
+      
+    } catch (apiError) {
+      console.error('Error fetching from Jira API:', apiError);
+      return res.status(500).json({ 
+        error: 'Failed to fetch bug data from Jira API', 
+        message: apiError.message
+      });
+    }
     
-    // Return the bugs from Jira
-    res.json({
-      success: true,
-      bugs: jiraBugs
-    });
   } catch (error) {
     console.error('Error in bug list endpoint:', error);
     res.status(500).json({ 

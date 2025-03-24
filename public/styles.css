@@ -1546,6 +1546,28 @@ button.primary:hover {
     max-width: 95%;
 }
 
+.bug-list-filters {
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.bug-list-filters label {
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.reporter-filter {
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    cursor: pointer;
+}
+
 .bug-list-summary {
     margin-bottom: 15px;
     padding: 10px 15px;

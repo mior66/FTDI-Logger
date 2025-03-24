@@ -186,6 +186,7 @@ function init() {
     const bugListLoading = document.querySelector('.bug-list-loading');
     const bugListError = document.querySelector('.bug-list-error');
     const bugListContainer = document.querySelector('.bug-list-container');
+    const reporterFilter = document.getElementById('reporter-filter');
     
     // Variables for bug list sorting
     let currentSortColumn = 'number';
@@ -199,8 +200,11 @@ function init() {
         bugListError.style.display = 'none';
         bugListContainer.style.display = 'none';
         
-        // Fetch bug list from server
-        fetch('/bug-list')
+        // Get the selected reporter filter value
+        const selectedReporter = reporterFilter.value;
+        
+        // Fetch bug list from server with the reporter filter
+        fetch(`/bug-list?reporter=${selectedReporter}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Failed to fetch bug list');
@@ -334,12 +338,10 @@ function init() {
         });
     }
     
-    if (bugListButton && bugListOverlay) {
-        // Show bug list overlay when button is clicked
+    if (bugListButton) {
+        // Link directly to the Jira webpage
         bugListButton.addEventListener('click', function() {
-            bugListOverlay.classList.add('active');
-            // Fetch bug list when overlay is opened
-            fetchBugList();
+            window.open('https://empoweredhomes.atlassian.net/jira/software/c/projects/LV/issues?jql=project%20%3D%20%22LV%22%20ORDER%20BY%20created%20DESC', '_blank');
         });
         
         // Close bug list overlay when close button is clicked
@@ -352,6 +354,11 @@ function init() {
         // Refresh bug list when refresh button is clicked
         if (bugListRefreshButton) {
             bugListRefreshButton.addEventListener('click', fetchBugList);
+        }
+        
+        // Reload bug list when reporter filter changes
+        if (reporterFilter) {
+            reporterFilter.addEventListener('change', fetchBugList);
         }
         
         // Add event listeners for sortable headers
