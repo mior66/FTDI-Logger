@@ -306,10 +306,12 @@ function init() {
             const statusClass = `status-${bug.status.toLowerCase().replace(/\s+/g, '')}`;
             
             row.innerHTML = `
-                <td>${bug.number}</td>
-                <td>${bug.title}</td>
+                <td><a href="${bug.url || '#'}" target="_blank" class="bug-number-link">${bug.key}</a></td>
+                <td>${bug.summary}</td>
                 <td class="${statusClass}">${bug.status}</td>
                 <td>${bug.assignee}</td>
+                <td>${bug.reporter}</td>
+                <td>${bug.created}</td>
                 <td>${bug.updated}</td>
                 <td class="${priorityClass}">${bug.priority}</td>
             `;

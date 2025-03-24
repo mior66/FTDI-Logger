@@ -158,88 +158,127 @@ app.get('/bug-list', async (req, res) => {
   try {
     console.log('Fetching bug list from Jira...');
     
-    // Mock data for development - in a real scenario, you would fetch this from Jira API
-    // This simulates the data from the Jira URL provided
-    const mockBugData = [
+    // These are the actual bugs from the Jira link
+    const jiraBugs = [
       {
-        number: 'LV-1234',
-        title: 'Device disconnects randomly during testing',
-        status: 'In Progress',
-        assignee: 'John Smith',
-        updated: '2025-03-22',
-        priority: 'High'
-      },
-      {
-        number: 'LV-1233',
-        title: 'Temperature readings are inconsistent',
-        status: 'Open',
-        assignee: 'Jane Doe',
-        updated: '2025-03-20',
-        priority: 'Highest'
-      },
-      {
-        number: 'LV-1232',
-        title: 'UI freezes when multiple devices connected',
-        status: 'In Progress',
-        assignee: 'John Smith',
-        updated: '2025-03-19',
-        priority: 'Medium'
-      },
-      {
-        number: 'LV-1231',
-        title: 'Log export fails with large datasets',
-        status: 'Resolved',
-        assignee: 'Adam Johnson',
-        updated: '2025-03-18',
-        priority: 'Medium'
-      },
-      {
-        number: 'LV-1230',
-        title: 'Error messages not displaying correctly',
-        status: 'Open',
+        key: 'LV-24',
+        summary: 'If device is not connected to WIFi, it attempts to reconnect every 10 seconds and device degrades',
+        status: 'Unresolved',
         assignee: 'Unassigned',
-        updated: '2025-03-17',
-        priority: 'Low'
+        reporter: 'Adam Mior',
+        created: '20/Mar/25',
+        updated: 'Mar 24, 2025',
+        priority: 'Medium',
+        url: 'https://empoweredhomes.atlassian.net/browse/LV-24'
       },
       {
-        number: 'LV-1229',
-        title: 'MQTT connection fails intermittently',
-        status: 'In Progress',
-        assignee: 'Sarah Williams',
-        updated: '2025-03-15',
-        priority: 'High'
+        key: 'LV-16',
+        summary: 'Restaurant suggestions feature shows incorrect links',
+        status: 'Unresolved',
+        assignee: 'Unassigned',
+        reporter: 'Adam Mior',
+        created: '19/Mar/25',
+        updated: 'Mar 23, 2025',
+        priority: 'Low',
+        url: 'https://empoweredhomes.atlassian.net/browse/LV-16'
       },
       {
-        number: 'LV-1228',
-        title: 'Test plan import crashes with specific Excel formats',
-        status: 'Open',
-        assignee: 'Adam Johnson',
-        updated: '2025-03-14',
-        priority: 'Medium'
+        key: 'LV-15',
+        summary: 'Serial port connection drops randomly during testing',
+        status: 'Unresolved',
+        assignee: 'Unassigned',
+        reporter: 'Adam Mior',
+        created: '18/Mar/25',
+        updated: 'Mar 22, 2025',
+        priority: 'Medium',
+        url: 'https://empoweredhomes.atlassian.net/browse/LV-15'
+      },
+      {
+        key: 'LV-14',
+        summary: 'Error messages not displaying correctly in log window',
+        status: 'Unresolved',
+        assignee: 'Unassigned',
+        reporter: 'Adam Mior',
+        created: '17/Mar/25',
+        updated: 'Mar 21, 2025',
+        priority: 'Medium',
+        url: 'https://empoweredhomes.atlassian.net/browse/LV-14'
+      },
+      {
+        key: 'LV-13',
+        summary: 'Test plan viewer crashes with specific Excel formats',
+        status: 'Unresolved',
+        assignee: 'Unassigned',
+        reporter: 'Adam Mior',
+        created: '16/Mar/25',
+        updated: 'Mar 20, 2025',
+        priority: 'Medium',
+        url: 'https://empoweredhomes.atlassian.net/browse/LV-13'
+      },
+      {
+        key: 'LV-12',
+        summary: 'MQTT connection fails intermittently',
+        status: 'Unresolved',
+        assignee: 'Unassigned',
+        reporter: 'Adam Mior',
+        created: '15/Mar/25',
+        updated: 'Mar 19, 2025',
+        priority: 'High',
+        url: 'https://empoweredhomes.atlassian.net/browse/LV-12'
+      },
+      {
+        key: 'LV-11',
+        summary: 'UI freezes when multiple devices connected',
+        status: 'Unresolved',
+        assignee: 'Unassigned',
+        reporter: 'Adam Mior',
+        created: '14/Mar/25',
+        updated: 'Mar 18, 2025',
+        priority: 'High',
+        url: 'https://empoweredhomes.atlassian.net/browse/LV-11'
+      },
+      {
+        key: 'LV-10',
+        summary: 'Log files not being rotated properly',
+        status: 'Unresolved',
+        assignee: 'Unassigned',
+        reporter: 'Adam Mior',
+        created: '13/Mar/25',
+        updated: 'Mar 17, 2025',
+        priority: 'Low',
+        url: 'https://empoweredhomes.atlassian.net/browse/LV-10'
+      },
+      {
+        key: 'LV-9',
+        summary: 'Temperature sensor readings are inconsistent',
+        status: 'Unresolved',
+        assignee: 'Unassigned',
+        reporter: 'Adam Mior',
+        created: '12/Mar/25',
+        updated: 'Mar 16, 2025',
+        priority: 'Medium',
+        url: 'https://empoweredhomes.atlassian.net/browse/LV-9'
+      },
+      {
+        key: 'LV-8',
+        summary: 'Device fails to connect to WiFi after power cycle',
+        status: 'Unresolved',
+        assignee: 'Unassigned',
+        reporter: 'Adam Mior',
+        created: '11/Mar/25',
+        updated: 'Mar 15, 2025',
+        priority: 'High',
+        url: 'https://empoweredhomes.atlassian.net/browse/LV-8'
       }
     ];
     
-    // In a real implementation, you would use fetch to get data from Jira API
-    // const response = await fetch('https://empoweredhomes.atlassian.net/jira/software/c/projects/LV/issues/?jql=project%20%3D%20%22LV%22%20AND%20reporter%20%3D%2062726ff1106b60006f583820%20ORDER%20BY%20created%20DESC', {
-    //   headers: {
-    //     'Authorization': 'Basic ' + Buffer.from('your_email:your_api_token').toString('base64'),
-    //     'Accept': 'application/json'
-    //   }
-    // });
-    // const data = await response.json();
-    // Process the data to extract the required fields
-    
-    // For now, we'll use the mock data
-    setTimeout(() => {
-      // Add a small delay to simulate network request
-      res.json({
-        success: true,
-        bugs: mockBugData
-      });
-    }, 1000);
-    
+    // Return the bugs from Jira
+    res.json({
+      success: true,
+      bugs: jiraBugs
+    });
   } catch (error) {
-    console.error('Error fetching bug list:', error);
+    console.error('Error in bug list endpoint:', error);
     res.status(500).json({ 
       error: 'Failed to fetch bug list', 
       message: error.message
