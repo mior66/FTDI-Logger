@@ -193,48 +193,10 @@ function init() {
     let currentSortDirection = 'asc';
     let bugData = [];
     
-    // Function to fetch bug list from server
-    function fetchBugList() {
-        // Show loading state
-        bugListLoading.style.display = 'block';
-        bugListError.style.display = 'none';
-        bugListContainer.style.display = 'none';
-        
-        // Get the selected reporter filter value
-        const selectedReporter = reporterFilter.value;
-        
-        // Fetch bug list from server with the reporter filter
-        fetch(`/bug-list?reporter=${selectedReporter}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch bug list');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success && data.bugs && data.bugs.length > 0) {
-                    // Store the bug data for sorting
-                    bugData = data.bugs;
-                    
-                    // Update bug counts
-                    updateBugCounts(bugData);
-                    
-                    // Sort and render the bugs
-                    sortAndRenderBugs();
-                    
-                    // Show bug list container
-                    bugListLoading.style.display = 'none';
-                    bugListContainer.style.display = 'block';
-                } else {
-                    throw new Error('No bugs found');
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching bug list:', error);
-                bugListLoading.style.display = 'none';
-                bugListError.style.display = 'block';
-                bugListError.textContent = `Error loading bug list: ${error.message}`;
-            });
+    // Function to open the Jira page directly
+    function openJiraPage() {
+        // Direct link to the actual Jira page
+        window.open('https://empoweredhomes.atlassian.net/jira/software/c/projects/LV/issues/?jql=project%20%3D%20%22LV%22%20AND%20reporter%20%3D%2062726ff1106b60006f583820%20ORDER%20BY%20created%20DESC', '_blank');
     }
     
     // Function to update bug counts
@@ -251,7 +213,8 @@ function init() {
         };
         
         bugs.forEach(bug => {
-            const priority = bug.priority.toLowerCase();
+            // Add null check before using toLowerCase
+            const priority = bug.priority ? bug.priority.toLowerCase() : 'medium';
             if (priorityCounts.hasOwnProperty(priority)) {
                 priorityCounts[priority]++;
             }
@@ -279,8 +242,8 @@ function init() {
             // Handle priority sorting
             if (column === 'priority') {
                 const priorityOrder = { 'highest': 0, 'high': 1, 'medium': 2, 'low': 3 };
-                valueA = priorityOrder[valueA.toLowerCase()] || 999;
-                valueB = priorityOrder[valueB.toLowerCase()] || 999;
+                valueA = priorityOrder[valueA && typeof valueA === 'string' ? valueA.toLowerCase() : 'medium'] || 999;
+                valueB = priorityOrder[valueB && typeof valueB === 'string' ? valueB.toLowerCase() : 'medium'] || 999;
             }
             
             // Compare values
@@ -303,20 +266,16 @@ function init() {
         bugs.forEach(bug => {
             const row = document.createElement('tr');
             
-            // Add priority class
-            const priorityClass = `priority-${bug.priority.toLowerCase()}`;
+            // Add priority class with null check
+            const priorityClass = `priority-${bug.priority ? bug.priority.toLowerCase() : 'medium'}`;
             
-            // Add status class
-            const statusClass = `status-${bug.status.toLowerCase().replace(/\s+/g, '')}`;
+            // Add status class with null check
+            const statusClass = bug.status ? `status-${bug.status.toLowerCase().replace(/\s+/g, '')}` : 'status-unknown';
             
             row.innerHTML = `
                 <td><a href="${bug.url || '#'}" target="_blank" class="bug-number-link">${bug.key}</a></td>
-                <td>${bug.summary}</td>
-                <td class="${statusClass}">${bug.status}</td>
-                <td>${bug.assignee}</td>
                 <td>${bug.reporter}</td>
-                <td>${bug.created}</td>
-                <td>${bug.updated}</td>
+                <td>${bug.summary}</td>
                 <td class="${priorityClass}">${bug.priority}</td>
             `;
             
@@ -339,46 +298,12 @@ function init() {
     }
     
     if (bugListButton) {
-        // Link directly to the Jira webpage
+        // Open the actual Jira page when button is clicked
         bugListButton.addEventListener('click', function() {
-            window.open('https://empoweredhomes.atlassian.net/jira/software/c/projects/LV/issues?jql=project%20%3D%20%22LV%22%20ORDER%20BY%20created%20DESC', '_blank');
+            openJiraPage();
         });
         
-        // Close bug list overlay when close button is clicked
-        if (bugListCloseButton) {
-            bugListCloseButton.addEventListener('click', function() {
-                bugListOverlay.classList.remove('active');
-            });
-        }
-        
-        // Refresh bug list when refresh button is clicked
-        if (bugListRefreshButton) {
-            bugListRefreshButton.addEventListener('click', fetchBugList);
-        }
-        
-        // Reload bug list when reporter filter changes
-        if (reporterFilter) {
-            reporterFilter.addEventListener('change', fetchBugList);
-        }
-        
-        // Add event listeners for sortable headers
-        document.querySelectorAll('.bug-list-table th.sortable').forEach(th => {
-            th.addEventListener('click', () => {
-                const column = th.dataset.sort;
-                
-                // If clicking the same column, toggle sort direction
-                if (column === currentSortColumn) {
-                    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
-                } else {
-                    // If clicking a new column, set it as current and default to ascending
-                    currentSortColumn = column;
-                    currentSortDirection = 'asc';
-                }
-                
-                // Sort and render the bugs
-                sortAndRenderBugs();
-            });
-        });
+        // No need for other bug list related event listeners
     }
     
     // Set up error legend filtering

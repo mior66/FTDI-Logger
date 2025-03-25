@@ -1611,14 +1611,10 @@ button.primary:hover {
 }
 
 /* Set specific column widths */
-.bug-list-table th:nth-child(1), .bug-list-table td:nth-child(1) { width: 7%; } /* Key */
-.bug-list-table th:nth-child(2), .bug-list-table td:nth-child(2) { width: 30%; } /* Summary */
-.bug-list-table th:nth-child(3), .bug-list-table td:nth-child(3) { width: 9%; } /* Status */
-.bug-list-table th:nth-child(4), .bug-list-table td:nth-child(4) { width: 9%; } /* Assignee */
-.bug-list-table th:nth-child(5), .bug-list-table td:nth-child(5) { width: 9%; } /* Reporter */
-.bug-list-table th:nth-child(6), .bug-list-table td:nth-child(6) { width: 9%; } /* Created */
-.bug-list-table th:nth-child(7), .bug-list-table td:nth-child(7) { width: 9%; } /* Updated */
-.bug-list-table th:nth-child(8), .bug-list-table td:nth-child(8) { width: 8%; } /* Priority */
+.bug-list-table th:nth-child(1), .bug-list-table td:nth-child(1) { width: 10%; } /* Key */
+.bug-list-table th:nth-child(2), .bug-list-table td:nth-child(2) { width: 15%; } /* Reporter */
+.bug-list-table th:nth-child(3), .bug-list-table td:nth-child(3) { width: 60%; } /* Summary */
+.bug-list-table th:nth-child(4), .bug-list-table td:nth-child(4) { width: 15%; } /* Risk Profile */
 
 .bug-list-table th {
     background-color: #f5f5f5;

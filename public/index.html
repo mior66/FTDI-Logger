@@ -235,7 +235,7 @@
     <div id="bug-list-overlay" class="tasks-overlay">
         <div class="tasks-window bug-list-window">
             <div class="tasks-header">
-                <h2>LV Bug List</h2>
+                <h2>Real-Time LV Bug List</h2>
                 <button id="bug-list-close" class="tasks-close">&times;</button>
             </div>
             <div class="tasks-content bug-list-content">
@@ -247,6 +247,7 @@
                         <select id="reporter-filter" class="reporter-filter">
                             <option value="adam">Adam Mior</option>
                             <option value="all">All</option>
+                            <option value="currentuser">Current User</option>
                         </select>
                     </div>
                     <div class="bug-list-summary">
@@ -262,13 +263,9 @@
                         <thead>
                             <tr>
                                 <th class="sortable" data-sort="key">Key <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-sort="summary">Summary <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-sort="status">Status <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-sort="assignee">Assignee <span class="sort-icon">↕</span></th>
                                 <th class="sortable" data-sort="reporter">Reporter <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-sort="created">Created <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-sort="updated">Updated <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-sort="priority">Priority <span class="sort-icon">↕</span></th>
+                                <th class="sortable" data-sort="summary">Summary <span class="sort-icon">↕</span></th>
+                                <th class="sortable" data-sort="priority">Risk Profile <span class="sort-icon">↕</span></th>
                             </tr>
                         </thead>
                         <tbody id="bug-list-tbody">
