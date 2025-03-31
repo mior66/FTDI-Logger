@@ -146,6 +146,7 @@ function init() {
     const tasksOverlay = document.getElementById('tasks-overlay');
     const tasksCloseButton = document.getElementById('tasks-close');
     const tasksSaveButton = document.getElementById('tasks-save');
+    const tasksExportButton = document.getElementById('tasks-export');
     const tasksTextarea = document.getElementById('tasks-textarea');
     
     if (workTasksButton && tasksOverlay) {
@@ -173,6 +174,37 @@ function init() {
                 localStorage.setItem('workTasks', tasksTextarea.value);
                 showNotification('Tasks saved successfully!', 'success');
                 tasksOverlay.classList.remove('active');
+            });
+        }
+        
+        // Export tasks to text file when export button is clicked
+        if (tasksExportButton && tasksTextarea) {
+            tasksExportButton.addEventListener('click', function() {
+                const tasksContent = tasksTextarea.value;
+                if (!tasksContent.trim()) {
+                    showNotification('No tasks to export', 'error');
+                    return;
+                }
+                
+                // Create a blob with the tasks content
+                const blob = new Blob([tasksContent], { type: 'text/plain' });
+                
+                // Create a download link
+                const downloadLink = document.createElement('a');
+                downloadLink.href = URL.createObjectURL(blob);
+                
+                // Generate filename with current date and time
+                const now = new Date();
+                const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+                const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-'); // HH-MM-SS
+                downloadLink.download = `FTDI-Logger-Tasks_${dateStr}_${timeStr}.txt`;
+                
+                // Trigger download
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                
+                showNotification('Tasks exported successfully!', 'success');
             });
         }
     }
@@ -1622,17 +1654,109 @@ function showNotification(message, type = 'success') {
             <div class="lunch-suggestion-container">
                 <h3>🍽️ Lunch Suggestions</h3>
                 <div class="lunch-content">${message}</div>
-                <button class="close-lunch-btn">Close</button>
+                <div class="lunch-buttons">
+                    <button class="print-lunch-btn">Print</button>
+                    <button class="close-lunch-btn">Close</button>
+                </div>
             </div>
         `;
         notification.className = 'notification lunch-suggestion';
         
-        // Add event listener to the close button
+        // Add event listeners to the buttons
         setTimeout(() => {
             const closeBtn = notification.querySelector('.close-lunch-btn');
             if (closeBtn) {
                 closeBtn.addEventListener('click', () => {
                     notification.classList.add('hidden');
+                });
+            }
+            
+            const printBtn = notification.querySelector('.print-lunch-btn');
+            if (printBtn) {
+                printBtn.addEventListener('click', () => {
+                    // Create a new window for printing
+                    const printWindow = window.open('', '_blank');
+                    
+                    // Get the lunch content
+                    const lunchContent = notification.querySelector('.lunch-content').innerHTML;
+                    
+                    // Create a styled document for printing
+                    printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>FTDI Logger - Lunch Suggestions</title>
+                            <style>
+                                body {
+                                    font-family: Arial, sans-serif;
+                                    padding: 20px;
+                                    max-width: 600px;
+                                    margin: 0 auto;
+                                }
+                                h1 {
+                                    color: #0d5c23;
+                                    border-bottom: 2px solid #0d5c23;
+                                    padding-bottom: 10px;
+                                    margin-bottom: 20px;
+                                }
+                                .restaurant-item {
+                                    margin-bottom: 20px;
+                                    padding: 15px;
+                                    border: 1px solid #ddd;
+                                    border-radius: 5px;
+                                }
+                                .restaurant-name {
+                                    font-size: 18px;
+                                    font-weight: bold;
+                                    margin-bottom: 5px;
+                                }
+                                .restaurant-rating {
+                                    color: #f8c000;
+                                    margin-bottom: 5px;
+                                }
+                                .rating-number {
+                                    color: #666;
+                                }
+                                .restaurant-details {
+                                    display: flex;
+                                    justify-content: space-between;
+                                    color: #666;
+                                    font-size: 14px;
+                                }
+                                .suggestion-footer {
+                                    margin-top: 30px;
+                                    padding-top: 10px;
+                                    border-top: 1px dashed #ccc;
+                                    font-size: 12px;
+                                    color: #666;
+                                }
+                                .suggestion-time {
+                                    margin-top: 5px;
+                                    font-style: italic;
+                                }
+                                @media print {
+                                    body {
+                                        padding: 0;
+                                    }
+                                    .no-print {
+                                        display: none;
+                                    }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <h1>FTDI Logger - Lunch Suggestions</h1>
+                            ${lunchContent}
+                            <div class="no-print">
+                                <button onclick="window.print();" style="padding: 8px 15px; background-color: #0d5c23; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px;">Print</button>
+                                <button onclick="window.close();" style="padding: 8px 15px; background-color: #666; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; margin-left: 10px;">Close</button>
+                            </div>
+                        </body>
+                        </html>
+                    `);
+                    
+                    // Focus the new window
+                    printWindow.focus();
                 });
             }
         }, 100);
@@ -2538,7 +2662,7 @@ function displayTestPlanSheet(sheetName) {
 }
 
 // Display the selected test case in the panel
-function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
+function displaySelectedTestCase(testCaseId, sheetName, rowIndices, targetElement) {
     // Store the currently displayed test case ID
     currentlyDisplayedTestCase = testCaseId;
     
@@ -2547,14 +2671,19 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
         window.testCaseNotes = {};
     }
     
-    // Clear the display area
-    selectedTestCaseDisplay.innerHTML = '';
+    // Determine where to display the test case
+    const displayTarget = targetElement || selectedTestCaseDisplay;
     
-    // Update test action buttons state
-    updateTestActionButtonsState();
-    
-    // Enable the export button if there are test logs for this test case
-    exportSelectedTestCaseButton.disabled = !(testLogEntries[testCaseId] && testLogEntries[testCaseId].start);
+    // Clear the display area if it's the main display
+    if (!targetElement) {
+        selectedTestCaseDisplay.innerHTML = '';
+        
+        // Update test action buttons state
+        updateTestActionButtonsState();
+        
+        // Enable the export button if there are test logs for this test case
+        exportSelectedTestCaseButton.disabled = !(testLogEntries[testCaseId] && testLogEntries[testCaseId].start);
+    }
     
     if (!testPlanData || !testPlanData.sheets || !testPlanData.sheets[sheetName]) {
         return;
@@ -2603,7 +2732,7 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
     const displaySheetName = tabNameMappings[sheetName] || sheetName;
     
     titleDiv.textContent = `Test Case ${testCaseNumber} from ${displaySheetName}`;
-    selectedTestCaseDisplay.appendChild(titleDiv);
+    displayTarget.appendChild(titleDiv);
     
     // Create a table for the test case data
     const table = document.createElement('table');
@@ -2648,10 +2777,10 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
     });
     
     table.appendChild(tbody);
-    selectedTestCaseDisplay.appendChild(table);
+    displayTarget.appendChild(table);
     
     // Add a subtle entrance animation
-    selectedTestCaseDisplay.animate([
+    displayTarget.animate([
         { opacity: 0, transform: 'translateY(-10px)' },
         { opacity: 1, transform: 'translateY(0)' }
     ], {
@@ -2697,7 +2826,7 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices) {
     notesContent.appendChild(notesTextarea);
     notesContainer.appendChild(notesToggle);
     notesContainer.appendChild(notesContent);
-    selectedTestCaseDisplay.appendChild(notesContainer);
+    displayTarget.appendChild(notesContainer);
 }
 
 // Clear the selected test case panel
@@ -2804,11 +2933,20 @@ function selectAllTestCasesInTab(sheetName, displayName) {
     descHeader.textContent = 'Description';
     headerRow.appendChild(descHeader);
     
+    // Add Status column
+    const statusHeader = document.createElement('th');
+    statusHeader.textContent = 'Status';
+    statusHeader.style.width = '80px';
+    headerRow.appendChild(statusHeader);
+    
     thead.appendChild(headerRow);
     table.appendChild(thead);
     
     // Create the table body
     const tbody = document.createElement('tbody');
+    
+    // Store test case data for later use
+    const testCaseData = [];
     
     // Find and add all test case rows
     let testCaseCount = 0;
@@ -2828,12 +2966,9 @@ function selectAllTestCasesInTab(sheetName, displayName) {
         
         if (isTestCaseRow) {
             testCaseCount++;
-            const row = document.createElement('tr');
             
-            // Add Test # cell
-            const testNumCell = document.createElement('td');
-            testNumCell.textContent = testCaseValue;
-            row.appendChild(testNumCell);
+            // Create test case ID
+            const testCaseId = `${sheetName}-test-${testCaseValue}`;
             
             // Find description column (usually the second column or column after test #)
             let descColumnIndex = 1;
@@ -2841,10 +2976,144 @@ function selectAllTestCasesInTab(sheetName, displayName) {
                 descColumnIndex = 2;
             }
             
+            // Find all rows that belong to this test case
+            const testCaseRows = [];
+            let currentRowIndex = i;
+            let nextTestCaseFound = false;
+            
+            // Add the current row
+            testCaseRows.push(currentRowIndex);
+            
+            // Look ahead for additional rows that belong to this test case
+            for (let j = i + 1; j < filteredSheetData.length; j++) {
+                const nextRowData = filteredSheetData[j];
+                const nextTestCaseValue = nextRowData[testCaseColumnIndex];
+                
+                // Check if this is a new test case row
+                const isNextTestCaseRow = nextTestCaseValue && (
+                    (typeof nextTestCaseValue === 'string' && 
+                     (nextTestCaseValue.match(/\d/) || 
+                      nextTestCaseValue.toLowerCase().startsWith('test') || 
+                      nextTestCaseValue.includes('#'))) ||
+                    (typeof nextTestCaseValue === 'number') ||
+                    (!isNaN(parseInt(nextTestCaseValue, 10)))
+                );
+                
+                if (isNextTestCaseRow) {
+                    nextTestCaseFound = true;
+                    break;
+                }
+                
+                // Add this row to the current test case
+                testCaseRows.push(j);
+            }
+            
+            // Store test case data
+            testCaseData.push({
+                id: testCaseId,
+                testNumber: testCaseValue,
+                description: rowData[descColumnIndex] || '',
+                rows: testCaseRows
+            });
+            
+            // Create the test case row
+            const row = document.createElement('tr');
+            row.className = 'test-case-row';
+            row.dataset.testCaseId = testCaseId;
+            
+            // Add Test # cell
+            const testNumCell = document.createElement('td');
+            testNumCell.textContent = testCaseValue;
+            row.appendChild(testNumCell);
+            
             // Add Description cell
             const descCell = document.createElement('td');
             descCell.textContent = rowData[descColumnIndex] || '';
             row.appendChild(descCell);
+            
+            // Add Status cell with expand/collapse button
+            const statusCell = document.createElement('td');
+            statusCell.className = 'test-case-status';
+            
+            const expandButton = document.createElement('button');
+            expandButton.className = 'expand-button';
+            expandButton.innerHTML = '▶';
+            expandButton.title = 'Show test case details';
+            statusCell.appendChild(expandButton);
+            
+            row.appendChild(statusCell);
+            
+            // Add click event to expand/collapse test case details
+            row.addEventListener('click', function(event) {
+                // Get the test case ID
+                const testCaseId = this.dataset.testCaseId;
+                
+                // Find the test case data
+                const testCase = testCaseData.find(tc => tc.id === testCaseId);
+                
+                if (!testCase) return;
+                
+                // Check if details are already expanded
+                const detailsRow = tbody.querySelector(`.test-case-details[data-parent-id="${testCaseId}"]`);
+                
+                if (detailsRow) {
+                    // Details are already expanded, collapse them
+                    detailsRow.remove();
+                    expandButton.innerHTML = '▶';
+                    expandButton.title = 'Show test case details';
+                    this.classList.remove('expanded');
+                } else {
+                    // Collapse any other expanded test case
+                    const expandedDetails = tbody.querySelectorAll('.test-case-details');
+                    expandedDetails.forEach(detail => {
+                        const parentId = detail.dataset.parentId;
+                        const parentRow = tbody.querySelector(`tr[data-test-case-id="${parentId}"]`);
+                        if (parentRow) {
+                            const parentButton = parentRow.querySelector('.expand-button');
+                            if (parentButton) {
+                                parentButton.innerHTML = '▶';
+                                parentButton.title = 'Show test case details';
+                            }
+                            parentRow.classList.remove('expanded');
+                        }
+                        detail.remove();
+                    });
+                    
+                    // Create details row
+                    const detailsRow = document.createElement('tr');
+                    detailsRow.className = 'test-case-details';
+                    detailsRow.dataset.parentId = testCaseId;
+                    
+                    // Create details cell that spans all columns
+                    const detailsCell = document.createElement('td');
+                    detailsCell.colSpan = 3;
+                    
+                    // Display the test case details
+                    displaySelectedTestCase(testCaseId, sheetName, testCase.rows, detailsCell);
+                    
+                    detailsRow.appendChild(detailsCell);
+                    
+                    // Insert after the current row
+                    this.parentNode.insertBefore(detailsRow, this.nextSibling);
+                    
+                    // Update button
+                    expandButton.innerHTML = '▼';
+                    expandButton.title = 'Hide test case details';
+                    this.classList.add('expanded');
+                    
+                    // Add animation
+                    detailsRow.animate([
+                        { opacity: 0, height: '0' },
+                        { opacity: 1, height: 'auto' }
+                    ], {
+                        duration: 300,
+                        easing: 'ease-out'
+                    });
+                }
+                
+                // Prevent event from bubbling to parent elements
+                event.stopPropagation();
+            });
             
             tbody.appendChild(row);
         }

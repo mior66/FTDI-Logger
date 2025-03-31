@@ -588,6 +588,55 @@ button.primary:hover {
     min-width: 1700px;
 }
 
+/* Expandable Test Case Styles */
+.test-case-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.test-case-row:hover {
+    background-color: rgba(0, 114, 255, 0.05);
+}
+
+.test-case-row.expanded {
+    background-color: rgba(0, 114, 255, 0.1);
+    font-weight: 500;
+}
+
+.test-case-status {
+    text-align: center;
+}
+
+.expand-button {
+    background: none;
+    border: none;
+    color: #0072ff;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.expand-button:hover {
+    background-color: rgba(0, 114, 255, 0.1);
+}
+
+.test-case-details {
+    background-color: #f9f9f9;
+}
+
+.test-case-details td {
+    padding: 0;
+}
+
+.test-case-details .test-case-title {
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-bottom: 1px solid #ddd;
+    font-weight: 500;
+}
+
 .test-plan-header {
     padding: 15px 20px;
     background: linear-gradient(135deg, #0a2a12, #0d5c23);
@@ -1525,15 +1574,34 @@ button.primary:hover {
     text-align: right;
 }
 
+.lunch-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: auto;
+}
+
+.print-lunch-btn,
 .close-lunch-btn {
-    background-color: #0d5c23;
+    flex: 1;
     color: white;
     border: none;
     padding: 10px;
     cursor: pointer;
     font-weight: bold;
     transition: background-color 0.2s;
-    margin-top: auto;
+}
+
+.print-lunch-btn {
+    background-color: #2c5282;
+    margin-right: 1px;
+}
+
+.print-lunch-btn:hover {
+    background-color: #1e3a5f;
+}
+
+.close-lunch-btn {
+    background-color: #0d5c23;
 }
 
 .close-lunch-btn:hover {
@@ -1809,6 +1877,22 @@ button.primary:hover {
 
 .tasks-save:hover {
     background-color: #0a4a1c;
+}
+
+.tasks-export {
+    background-color: #2c5282;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s;
+    margin-left: 10px;
+}
+
+.tasks-export:hover {
+    background-color: #1e3a5f;
 }
 
 @media (max-width: 768px) {
