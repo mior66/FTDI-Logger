@@ -10,7 +10,8 @@ let temperatureData = [];
 let humidityData = [];
 let timeLabels = [];
 const MAX_DATA_POINTS = 20; // Maximum number of data points to display on the chart
-const MAX_VISIBLE_LOG_ENTRIES = 1000; // Maximum number of log entries to render in DOM
+const MAX_VISIBLE_LOG_ENTRIES = 500; // Reduced from 1000 to 500 for better performance
+const LOG_BATCH_RENDER_SIZE = 50; // Number of logs to render in a batch for better performance
 
 // Debounce utility function to limit how often a function can be called
 function debounce(func, wait) {
@@ -82,8 +83,20 @@ let selectedTestCases = new Set(); // Store selected test case rows
 let currentlyDisplayedTestCase = null; // Store the currently displayed test case ID
 let testLogEntries = {}; // Store test log entries by test case ID
 
-// Text to filter out from main log and show in hidden section
-const hiddenTextPattern = 'esp_matter_attribute:';
+// Array to store custom filter patterns
+let customFilterPatterns = [];
+
+// Helper function to check if a message should be hidden
+function shouldHideMessage(message) {
+    // Check custom filter patterns
+    for (const pattern of customFilterPatterns) {
+        if (message.includes(pattern)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
 
 // Error count tracking
 let errorCounts = {
@@ -121,6 +134,25 @@ function init() {
     clearErrorsButton.addEventListener('click', clearErrors);
     saveErrorsButton.addEventListener('click', saveErrors);
     clearSelectedTestCaseButton.addEventListener('click', clearSelectedTestCase);
+    
+    // Set up hidden filter input event listeners
+    const addHiddenFilterButton = document.getElementById('add-hidden-filter');
+    const hiddenFilterText = document.getElementById('hidden-filter-text');
+    
+    if (addHiddenFilterButton && hiddenFilterText) {
+        // Add filter when button is clicked
+        addHiddenFilterButton.addEventListener('click', addCustomFilter);
+        
+        // Add filter when Enter key is pressed in the input field
+        hiddenFilterText.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                addCustomFilter();
+            }
+        });
+    }
+    
+    // Initialize the parsed line types list
+    updateParsedLineTypesList();
     
     // Command input and temperature setpoint buttons have been removed
     
@@ -417,36 +449,63 @@ function setupSocketListeners() {
         updatePortList(ports);
     });
     
-    // Listen for serial data
+    // Create a queue for processing log entries to prevent UI blocking
+    let logQueue = [];
+    let processingQueue = false;
+    
+    // Function to process the log queue in batches
+    function processLogQueue() {
+        if (logQueue.length === 0) {
+            processingQueue = false;
+            return;
+        }
+        
+        processingQueue = true;
+        
+        // Process a batch of logs
+        const batch = logQueue.splice(0, LOG_BATCH_RENDER_SIZE);
+        
+        // Process each log entry in the batch
+        batch.forEach(data => {
+            // Check if this data should be hidden
+            if (shouldHideMessage(data.data)) {
+                // Add to hidden entries
+                hiddenEntries.push({ timestamp: data.timestamp, message: data.data });
+                
+                // Update hidden log window (debounced to prevent excessive updates)
+                updateHiddenLogWindow();
+            } else {
+                // Add to regular log entries
+                addLogEntry(data.timestamp, data.data);
+            }
+            
+            // Check for various data patterns (using a single pass for efficiency)
+            checkForEnvironmentData(data.data);
+            checkForThermostatInfo(data.data);
+            checkForAppVersion(data.data);
+            checkForTemperatureUnit(data.data);
+            checkForLanguage(data.data);
+        });
+        
+        // If there are more logs to process, schedule the next batch
+        if (logQueue.length > 0) {
+            setTimeout(processLogQueue, 0);
+        } else {
+            processingQueue = false;
+        }
+    }
+    
+    // Listen for serial data with high priority
     socket.on('serial-data', (data) => {
         console.log('Received serial data:', data);
         
-        // Check if this data contains the hidden text pattern
-        if (data.data.includes(hiddenTextPattern)) {
-            // Add to hidden entries
-            hiddenEntries.push({ timestamp: data.timestamp, message: data.data });
-            
-            // Update hidden log window
-            updateHiddenLogWindow();
-        } else {
-            // Add to regular log entries
-            addLogEntry(data.timestamp, data.data);
+        // Add to queue
+        logQueue.push(data);
+        
+        // Start processing if not already processing
+        if (!processingQueue) {
+            processLogQueue();
         }
-        
-        // Check for temperature and humidity data
-        checkForEnvironmentData(data.data);
-        
-        // Check for thermostat information
-        checkForThermostatInfo(data.data);
-        
-        // Check for App version information
-        checkForAppVersion(data.data);
-        
-        // Check for temperature unit information
-        checkForTemperatureUnit(data.data);
-        
-        // Check for language information
-        checkForLanguage(data.data);
     });
     
     // Listen for connection status updates
@@ -622,20 +681,37 @@ function addLogEntry(timestamp, message) {
     // Skip empty messages
     if (!message || message.trim() === '') return;
     
-    // Create log entry object
+    // Create log entry object with current time if timestamp is more than 1 minute old
+    // This helps prevent the appearance of delayed logs
+    const now = new Date();
+    const msgTime = new Date(timestamp);
+    const timeDiff = now - msgTime;
+    
+    // If the timestamp is more than 60 seconds old, use current time instead
+    // This prevents logs from appearing to be delayed
+    if (timeDiff > 60000) {
+        console.log(`Adjusting timestamp for delayed log (${timeDiff}ms old):`, message);
+        timestamp = now.toISOString();
+    }
+    
     const entry = { timestamp, message };
     const entryIndex = logEntries.length;
     logEntries.push(entry);
     
+    // Process the entry immediately without waiting for the next render cycle
+    // This ensures that logs appear as soon as they are received
+    
     // Always re-render when using a filter other than 'full'
     if (currentFilter !== 'full') {
-        // Re-render with the current filter
-        renderVisibleLogEntries();
-        
-        // Auto-scroll if enabled
-        if (autoscrollCheckbox.checked) {
-            logWindow.scrollTop = logWindow.scrollHeight;
-        }
+        // Use requestAnimationFrame for smoother rendering
+        requestAnimationFrame(() => {
+            renderVisibleLogEntries();
+            
+            // Auto-scroll if enabled
+            if (autoscrollCheckbox.checked) {
+                logWindow.scrollTop = logWindow.scrollHeight;
+            }
+        });
     } else {
         // For 'full' filter, use the virtual scrolling logic
         if (logEntries.length > MAX_VISIBLE_LOG_ENTRIES) {
@@ -644,16 +720,21 @@ function addLogEntry(timestamp, message) {
             
             // Clear and re-render only if we're at the bottom or if this is the first entry over the limit
             if (isAtBottom || logEntries.length === MAX_VISIBLE_LOG_ENTRIES + 1) {
-                renderVisibleLogEntries();
+                requestAnimationFrame(() => {
+                    renderVisibleLogEntries();
+                });
             }
         } else {
             // Just create and add this single entry if we're under the limit and using the full filter
-            createLogEntryElement(entry, entryIndex);
-            
-            // Auto-scroll if enabled
-            if (autoscrollCheckbox.checked) {
-                logWindow.scrollTop = logWindow.scrollHeight;
-            }
+            // Use requestAnimationFrame for smoother rendering
+            requestAnimationFrame(() => {
+                createLogEntryElement(entry, entryIndex);
+                
+                // Auto-scroll if enabled
+                if (autoscrollCheckbox.checked) {
+                    logWindow.scrollTop = logWindow.scrollHeight;
+                }
+            });
         }
     }
     
@@ -876,7 +957,7 @@ function reapplyFilterToExistingLogs() {
         const entry = logEntries[i];
         
         // Check if this entry should be hidden
-        if (entry.message && entry.message.includes(hiddenTextPattern)) {
+        if (entry.message && shouldHideMessage(entry.message)) {
             newHiddenEntries.push(entry);
         } else {
             filteredLogEntries.push(entry);
@@ -4053,6 +4134,89 @@ function checkForLanguage(message) {
         } catch (error) {
             console.error('Error parsing language setting:', error);
         }
+    }
+}
+
+// Function to add a custom filter pattern
+function addCustomFilter() {
+    const hiddenFilterText = document.getElementById('hidden-filter-text');
+    if (!hiddenFilterText || !hiddenFilterText.value.trim()) {
+        return;
+    }
+    
+    const filterText = hiddenFilterText.value.trim();
+    
+    // Don't add duplicate filters
+    if (customFilterPatterns.includes(filterText)) {
+        showNotification('This filter pattern already exists!', 'warning');
+        hiddenFilterText.value = '';
+        return;
+    }
+    
+    // Add the new filter pattern
+    customFilterPatterns.push(filterText);
+    
+    // Clear the input field
+    hiddenFilterText.value = '';
+    
+    // Update the parsed line types list
+    updateParsedLineTypesList();
+    
+    // Reapply filters to existing logs
+    reapplyFilterToExistingLogs();
+    
+    showNotification(`Added new filter pattern: "${filterText}"`, 'success');
+}
+
+// Function to remove a custom filter pattern
+function removeCustomFilter(pattern) {
+    const index = customFilterPatterns.indexOf(pattern);
+    if (index !== -1) {
+        customFilterPatterns.splice(index, 1);
+        
+        // Update the parsed line types list
+        updateParsedLineTypesList();
+        
+        // Reapply filters to existing logs
+        reapplyFilterToExistingLogs();
+        
+        showNotification(`Removed filter pattern: "${pattern}"`, 'success');
+    }
+}
+
+// Function to update the parsed line types list
+function updateParsedLineTypesList() {
+    const parsedLineTypesList = document.getElementById('parsed-line-types-list');
+    if (!parsedLineTypesList) {
+        return;
+    }
+    
+    // Clear the list
+    parsedLineTypesList.innerHTML = '';
+    
+    // Add custom filter patterns
+    if (customFilterPatterns.length === 0) {
+        // Display a message when no filters are active
+        const noFiltersMessage = document.createElement('div');
+        noFiltersMessage.className = 'no-filters-message';
+        noFiltersMessage.textContent = 'No active filters. Add a filter pattern above.';
+        parsedLineTypesList.appendChild(noFiltersMessage);
+    } else {
+        // Add each custom filter pattern
+        customFilterPatterns.forEach(pattern => {
+            const filterTag = document.createElement('div');
+            filterTag.className = 'filter-tag';
+            filterTag.innerHTML = `
+                <span>${pattern}</span>
+                <span class="remove-filter" title="Remove this filter">✖</span>
+            `;
+            
+            // Add event listener to remove button
+            const removeButton = filterTag.querySelector('.remove-filter');
+            removeButton.addEventListener('click', () => removeCustomFilter(pattern));
+            
+            parsedLineTypesList.appendChild(filterTag);
+        });
     }
 }
 

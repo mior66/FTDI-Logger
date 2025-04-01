@@ -414,7 +414,7 @@ io.on('connection', (socket) => {
       // Log connection information
       console.log(`Connected to ${path} at ${baudRate} baud`);
       
-        // Add a small delay before setting up data handler to allow device to initialize
+        // Reduced delay before setting up data handler to allow device to initialize
         setTimeout(() => {
           console.log('Setting up data handler...');
           
@@ -439,11 +439,23 @@ io.on('connection', (socket) => {
             // Keep it in the buffer for the next data chunk
             dataBuffer = lines.pop() || '';
             
-            // Send complete lines to all connected clients
+            // Send complete lines to all connected clients immediately
             for (const line of lines) {
               if (line.trim().length > 0) {
-                io.emit('serial-data', { timestamp: new Date().toISOString(), data: line });
+                // Use current timestamp for more accurate logging
+                io.volatile.emit('serial-data', { timestamp: new Date().toISOString(), data: line });
               }
+            }
+            
+            // If we have data in the buffer for more than 100ms, send it anyway
+            // This ensures partial lines don't get stuck in the buffer
+            if (dataBuffer.trim().length > 0) {
+              setTimeout(() => {
+                if (dataBuffer.trim().length > 0) {
+                  io.volatile.emit('serial-data', { timestamp: new Date().toISOString(), data: dataBuffer + ' [partial]' });
+                  dataBuffer = '';
+                }
+              }, 100);  // 100ms timeout for partial lines
             }
           });
           
@@ -470,7 +482,7 @@ io.on('connection', (socket) => {
             parity,
             stopBits
           });
-        }, 500);
+        }, 100);  // Reduced from 500ms to 100ms for faster initialization
 
       
       // Handle serial port errors

@@ -531,6 +531,36 @@ button.primary:hover {
     background-color: #0a7a2e;
 }
 
+.hidden-filter-input {
+    display: flex;
+    margin: 10px 0;
+    gap: 5px;
+}
+
+#hidden-filter-text {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #0d5c23;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+}
+
+#add-hidden-filter {
+    background-color: #0d5c23;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#add-hidden-filter:hover {
+    background-color: #0a7a2e;
+}
+
 #hidden-log-window {
     height: 120px;
     overflow-y: auto;
@@ -545,6 +575,50 @@ button.primary:hover {
     white-space: pre-wrap;
     word-wrap: break-word;
     width: 100%;
+}
+
+.parsed-line-types {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 4px;
+}
+
+.parsed-line-types h4 {
+    margin-bottom: 10px;
+    color: #d4d4d4;
+    font-size: 14px;
+}
+
+#parsed-line-types-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filter-tag {
+    background-color: #0d5c23;
+    border: 1px solid #0a7a2e;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+}
+
+.filter-tag .remove-filter {
+    margin-left: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #ff9999;
+}
+
+.no-filters-message {
+    color: #888;
+    font-style: italic;
+    font-size: 12px;
 }
 
 #error-window {
