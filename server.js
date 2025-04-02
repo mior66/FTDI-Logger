@@ -423,39 +423,70 @@ io.on('connection', (socket) => {
           
           // Create a buffer to store incomplete data
           let dataBuffer = '';
+          let partialLineTimer = null;
+          
+          // Function to check if a line is complete (not just by newline, but also by content)
+          const isCompleteLogLine = (line) => {
+            // Check if line ends with a complete ANSI color code or reset
+            // This helps prevent splitting in the middle of color codes
+            return !line.includes('[partial]') && 
+                  (!line.includes('[0') || line.endsWith('m'));
+          };
           
           currentPort.on('data', (buffer) => {
-            // Convert buffer to string - use 'binary' encoding to preserve all bytes
-            const data = buffer.toString('binary');
+            // Convert buffer to string - use 'utf8' encoding for better handling of special characters
+            const data = buffer.toString('utf8');
             console.log('Received data:', data);
             
             // Append to our buffer
             dataBuffer += data;
             
-            // Check if we have complete lines (ending with \r, \n, or both)
-            const lines = dataBuffer.split(/\r\n|\r|\n/);
+            // Clear any existing timer for partial lines
+            if (partialLineTimer) {
+              clearTimeout(partialLineTimer);
+              partialLineTimer = null;
+            }
             
-            // If the last line doesn't end with a newline, it's incomplete
-            // Keep it in the buffer for the next data chunk
-            dataBuffer = lines.pop() || '';
+            // More sophisticated line splitting that respects ANSI color codes
+            // First split by definite line endings
+            const potentialLines = dataBuffer.split(/\r\n|\r|\n/);
+            
+            // Process all complete lines except the last one (which might be incomplete)
+            const completeLines = potentialLines.slice(0, -1);
+            let remainingBuffer = potentialLines[potentialLines.length - 1] || '';
             
             // Send complete lines to all connected clients immediately
-            for (const line of lines) {
+            for (const line of completeLines) {
               if (line.trim().length > 0) {
                 // Use current timestamp for more accurate logging
                 io.volatile.emit('serial-data', { timestamp: new Date().toISOString(), data: line });
               }
             }
             
-            // If we have data in the buffer for more than 100ms, send it anyway
+            // Check if the remaining buffer looks like a complete line despite not ending with newline
+            // This helps with lines that have ANSI color codes or other special sequences
+            if (remainingBuffer.trim().length > 0 && isCompleteLogLine(remainingBuffer)) {
+              io.volatile.emit('serial-data', { timestamp: new Date().toISOString(), data: remainingBuffer });
+              remainingBuffer = '';
+            }
+            
+            // Update the data buffer with any remaining content
+            dataBuffer = remainingBuffer;
+            
+            // If we still have data in the buffer, set a timer to send it as partial
             // This ensures partial lines don't get stuck in the buffer
             if (dataBuffer.trim().length > 0) {
-              setTimeout(() => {
+              partialLineTimer = setTimeout(() => {
                 if (dataBuffer.trim().length > 0) {
-                  io.volatile.emit('serial-data', { timestamp: new Date().toISOString(), data: dataBuffer + ' [partial]' });
+                  // Only mark as partial if it's actually incomplete
+                  const partialMarker = isCompleteLogLine(dataBuffer) ? '' : ' [partial]';
+                  io.volatile.emit('serial-data', { 
+                    timestamp: new Date().toISOString(), 
+                    data: dataBuffer + partialMarker
+                  });
                   dataBuffer = '';
                 }
-              }, 100);  // 100ms timeout for partial lines
+              }, 200);  // Increased timeout for partial lines to allow more time for completion
             }
           });
           
