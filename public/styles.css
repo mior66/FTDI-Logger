@@ -112,8 +112,8 @@ header {
     align-items: center;
 }
 
-/* Lunch Idea Button, Work Tasks Button, and Bug List Button */
-.lunch-button, .work-tasks-button, .bug-list-button {
+/* Lunch Idea Button, Work Tasks Button, Bug List Button, and Sports Button */
+.lunch-button, .work-tasks-button, .bug-list-button, .sports-button {
     margin-left: 3px; /* Even smaller margin between buttons */
     margin-right: 3px;
     font-size: 0.9em;
@@ -141,6 +141,10 @@ header {
     background-color: #FF5722;
 }
 
+.sports-button {
+    background-color: #9C27B0;
+}
+
 .lunch-button:hover {
     background-color: #45a049;
 }
@@ -153,7 +157,11 @@ header {
     background-color: #E64A19;
 }
 
-.lightbulb, .tasks-icon, .bug-icon {
+.sports-button:hover {
+    background-color: #7B1FA2;
+}
+
+.lightbulb, .tasks-icon, .bug-icon, .sports-icon {
     margin-left: 5px;
     font-size: 1.1em;
 }
@@ -392,15 +400,15 @@ button.primary:hover {
     flex-direction: column;
 }
 
-/* Log container takes 65% of the space */
+/* Log container takes 60% of the space */
 .log-container {
-    flex: 1.85; /* 65% of space (1.85:1 ratio is approximately 65:35) */
+    width: 60%; /* Explicitly set width to 60% */
     min-width: 400px; /* Reduced from 800px to be more responsive */
 }
 
-/* Error container takes 35% of the space */
+/* Error container takes 40% of the space */
 .error-container {
-    flex: 1; /* 35% of space */
+    width: 40%; /* Explicitly set width to 40% */
     min-width: 350px; /* Slightly wider than original */
 }
 
@@ -1066,6 +1074,23 @@ button.primary:hover {
     padding-bottom: 12px;
 }
 
+/* Mode/Ambient/Setpoint/Lights sub-header styles */
+.test-plan-table tr.mode-ambient-setpoint-header {
+    background-color: #f0f8ff; /* Light blue background */
+    font-weight: bold;
+    border-top: 1px solid #0066cc;
+    border-bottom: 1px solid #0066cc;
+}
+
+.test-plan-table tr.mode-ambient-setpoint-header td {
+    color: #0066cc; /* Blue text for better visibility */
+    font-size: 0.95em;
+}
+
+.test-plan-table tr.mode-ambient-setpoint-header .sub-header-cell {
+    font-style: normal; /* Override italic from regular sub-headers */
+}
+
 .test-plan-table tr.test-case-header td:first-child {
     font-weight: bold;
     color: #333;
@@ -1169,6 +1194,245 @@ button.primary:hover {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     background-color: #fff;
     width: 100%;
+}
+
+/* Test case header container with title and collapse button */
+.test-case-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Collapse/expand button styles */
+.collapse-expand-button {
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.collapse-expand-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Content container for collapsible content */
+.test-case-content-container {
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+/* Sub-header row styles */
+.sub-header-row {
+    background-color: #f0f7ff;
+}
+
+.sub-header-cell {
+    font-weight: 600;
+    color: #0072ff;
+    padding: 8px 12px;
+    border-bottom: 1px solid #d0e3ff;
+}
+
+.mode-ambient-setpoint-header {
+    border-top: 2px solid #d0e3ff;
+    border-bottom: 2px solid #d0e3ff;
+}
+
+/* Modal styles */
+.modal {
+    display: block;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    position: relative;
+    animation: slideDown 0.3s ease-out;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Sports modal specific styles */
+.sports-modal {
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Sports date subtitle */
+.sports-date {
+    color: #666;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-weight: normal;
+    font-size: 16px;
+}
+
+/* Sports container */
+.sports-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* League section */
+.league-section {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.league-section:last-child {
+    border-bottom: none;
+}
+
+.league-section h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 18px;
+}
+
+/* Events list */
+.events-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.event-item {
+    padding: 8px 0;
+    border-bottom: 1px dotted #eee;
+}
+
+.event-item:last-child {
+    border-bottom: none;
+}
+
+.event-teams {
+    font-weight: bold;
+}
+
+.event-time {
+    color: #0072ff;
+}
+
+.event-channel {
+    color: #666;
+}
+
+/* Loading indicator */
+.loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    text-align: center;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(0, 114, 255, 0.2);
+    border-radius: 50%;
+    border-top-color: #0072ff;
+    animation: spin 1s ease-in-out infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Error message */
+.error-message {
+    color: #e74c3c;
+    text-align: center;
+    padding: 20px;
+    font-weight: bold;
+}
+
+/* No events message */
+.no-events-message {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+}
+
+/* Retry button */
+.retry-container {
+    text-align: center;
+    padding: 15px;
+    margin-top: 10px;
+}
+
+.retry-button {
+    background-color: #0072ff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.retry-button:hover {
+    background-color: #0058cc;
+}
+
+/* Error item */
+.error-item {
+    color: #e74c3c;
 }
 
 /* Test case notes styles */

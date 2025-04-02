@@ -49,6 +49,93 @@ app.get('/test-plan', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'test-plan-viewer.html'));
 });
 
+// Route to proxy sports data requests
+app.get('/api/sports/:league', async (req, res) => {
+  try {
+    const { league } = req.params;
+    let apiUrl;
+    
+    // Get today's date in YYYY-MM-DD format for the API
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const dateString = `${year}${month}${day}`;
+    
+    // Map league parameter to ESPN API endpoints with date parameter
+    switch(league) {
+      case 'nba':
+        apiUrl = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${dateString}`;
+        break;
+      case 'nhl':
+        apiUrl = `https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard?dates=${dateString}`;
+        break;
+      case 'mlb':
+        apiUrl = `https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=${dateString}`;
+        break;
+      case 'nfl':
+        apiUrl = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=${dateString}`;
+        break;
+      case 'golf':
+        apiUrl = `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?dates=${dateString}`;
+        break;
+      case 'wnba':
+        apiUrl = `https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard?dates=${dateString}`;
+        break;
+      case 'mls':
+        apiUrl = `https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard?dates=${dateString}`;
+        break;
+      default:
+        return res.status(400).json({ error: 'Invalid league parameter' });
+    }
+    
+    console.log(`Fetching sports data for ${league} from: ${apiUrl}`);
+    
+    // Set a timeout for the fetch request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    try {
+      const response = await fetch(apiUrl, { 
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'application/json',
+          'Accept-Language': 'en-US,en;q=0.9'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      console.log(`${league} API response status:`, response.status);
+      
+      if (!response.ok) {
+        throw new Error(`ESPN API responded with status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(`${league} data received with ${data.events ? data.events.length : 0} events`);
+      
+      // Just log if no events are found, don't add sample data
+      if (!data.events || data.events.length === 0) {
+        console.log(`No events found for ${league}`);
+      }
+      
+      res.json(data);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      throw fetchError;
+    }
+  } catch (error) {
+    console.error(`Error fetching sports data for ${req.params.league}:`, error);
+    res.status(500).json({ 
+      error: 'Failed to fetch sports data', 
+      message: error.message,
+      league: req.params.league
+    });
+  }
+});
+
 // Test route to get all projects from Jira
 app.get('/jira-projects', async (req, res) => {
   try {

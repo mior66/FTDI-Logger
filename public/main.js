@@ -263,6 +263,274 @@ function init() {
         window.open('https://empoweredhomes.atlassian.net/jira/software/c/projects/LV/issues/?jql=project%20%3D%20%22LV%22%20AND%20reporter%20%3D%2062726ff1106b60006f583820%20ORDER%20BY%20created%20DESC', '_blank');
     }
     
+    // Function to show today's sports events
+    function showTodaysSports() {
+        // Create a modal dialog
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        
+        // Create the modal content
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content sports-modal';
+        
+        // Add a close button
+        const closeButton = document.createElement('span');
+        closeButton.className = 'close-button';
+        closeButton.innerHTML = '&times;';
+        closeButton.addEventListener('click', function() {
+            document.body.removeChild(modal);
+        });
+        
+        // Add a title
+        const title = document.createElement('h2');
+        title.textContent = 'Today\'s Sports Events';
+        
+        // Get current date
+        const now = new Date();
+        const dateString = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        
+        // Add date subtitle
+        const dateSubtitle = document.createElement('h3');
+        dateSubtitle.textContent = dateString;
+        dateSubtitle.className = 'sports-date';
+        
+        // Create the sports events container
+        const sportsContainer = document.createElement('div');
+        sportsContainer.className = 'sports-container';
+        
+        // Add loading indicator
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.className = 'loading-indicator';
+        loadingIndicator.innerHTML = '<div class="spinner"></div><p>Loading today\'s games...</p>';
+        sportsContainer.appendChild(loadingIndicator);
+        
+        // Assemble the modal
+        modalContent.appendChild(closeButton);
+        modalContent.appendChild(title);
+        modalContent.appendChild(dateSubtitle);
+        modalContent.appendChild(sportsContainer);
+        modal.appendChild(modalContent);
+        
+        // Add the modal to the body
+        document.body.appendChild(modal);
+        
+        // Close the modal when clicking outside of it
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
+        
+        // Fetch real sports data
+        fetchSportsData(sportsContainer);
+    }
+    
+    // Function to fetch real sports data from API
+    function fetchSportsData(container) {
+        // Clear any existing content
+        container.innerHTML = '';
+        
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
+        
+        // Define league info using our server-side proxy
+        const leagues = [
+            { id: 'nba', name: 'NBA', icon: '🏀', apiEndpoint: '/api/sports/nba' },
+            { id: 'nhl', name: 'NHL', icon: '🏒', apiEndpoint: '/api/sports/nhl' },
+            { id: 'mlb', name: 'MLB', icon: '⚾', apiEndpoint: '/api/sports/mlb' },
+            { id: 'nfl', name: 'NFL', icon: '🏈', apiEndpoint: '/api/sports/nfl' },
+            { id: 'golf', name: 'Golf', icon: '⛳', apiEndpoint: '/api/sports/golf' },
+            { id: 'wnba', name: 'WNBA', icon: '🏀', apiEndpoint: '/api/sports/wnba' },
+            { id: 'mls', name: 'MLS Soccer', icon: '⚽', apiEndpoint: '/api/sports/mls' }
+        ];
+        
+        // Create a promise for each league
+        const promises = leagues.map(league => {
+            console.log(`Fetching data for ${league.name} from: ${league.apiEndpoint}`);
+            return fetch(league.apiEndpoint)
+                .then(response => {
+                    console.log(`${league.name} response status:`, response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(`${league.name} data received:`, data);
+                    if (!data || !data.events) {
+                        console.error(`${league.name} data is missing events property:`, data);
+                        throw new Error('Invalid data format');
+                    }
+                    return { league, data };
+                })
+                .catch(error => {
+                    console.error(`Error fetching ${league.name} data:`, error);
+                    return { 
+                        league, 
+                        data: { events: [] }, 
+                        error: true 
+                    };
+                });
+        });
+        
+        // Wait for all promises to resolve
+        Promise.all(promises)
+            .then(results => {
+                let hasAnyEvents = false;
+                let hasAnyErrors = false;
+                
+                // Process each league's data
+                results.forEach(result => {
+                    const { league, data, error } = result;
+                    
+                    // Create league section
+                    const leagueSection = document.createElement('div');
+                    leagueSection.className = 'league-section';
+                    
+                    // Add league header
+                    const leagueHeader = document.createElement('h4');
+                    leagueHeader.innerHTML = `${league.icon} ${league.name}`;
+                    leagueSection.appendChild(leagueHeader);
+                    
+                    // Add events
+                    const eventsList = document.createElement('ul');
+                    eventsList.className = 'events-list';
+                    
+                    if (error || !data.events || data.events.length === 0) {
+                        const eventItem = document.createElement('li');
+                        eventItem.className = 'event-item';
+                        eventItem.textContent = error ? 'Error loading games' : 'No games scheduled today';
+                        eventsList.appendChild(eventItem);
+                        
+                        if (error) {
+                            hasAnyErrors = true;
+                            console.error(`Error with ${league.name} data:`, error);
+                        }
+                    } else {
+                        hasAnyEvents = true;
+                        
+                        // Log all events for debugging
+                        console.log(`${league.name} all events:`, data.events);
+                        
+                        // For now, just use all events from the API
+                        // The ESPN API should be returning today's events by default
+                        const todaysEvents = data.events;
+                        
+                        // Log the events we're using
+                        console.log(`${league.name}: Using ${todaysEvents.length} events`);
+                        
+                        console.log(`${league.name}: Found ${todaysEvents.length} events for today out of ${data.events.length} total events`);
+                        
+                        if (todaysEvents.length === 0) {
+                            const eventItem = document.createElement('li');
+                            eventItem.className = 'event-item';
+                            eventItem.textContent = 'No games scheduled today';
+                            eventsList.appendChild(eventItem);
+                        } else {
+                            // Process today's events for this league
+                            todaysEvents.forEach(event => {
+                                try {
+                                    const eventItem = document.createElement('li');
+                                    eventItem.className = 'event-item';
+                                    
+                                    // Get teams
+                                    const homeTeam = event.competitions[0].competitors.find(team => team.homeAway === 'home');
+                                    const awayTeam = event.competitions[0].competitors.find(team => team.homeAway === 'away');
+                                    
+                                    if (!homeTeam || !awayTeam) {
+                                        throw new Error('Missing team data');
+                                    }
+                                    
+                                    const matchup = `${awayTeam.team.displayName} vs. ${homeTeam.team.displayName}`;
+                                    
+                                    // Get time
+                                    const date = new Date(event.date);
+                                    const timeString = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                                    
+                                    // Get broadcast info
+                                    let channel = 'TBD';
+                                    if (event.competitions[0].broadcasts && event.competitions[0].broadcasts.length > 0) {
+                                        channel = event.competitions[0].broadcasts[0].names.join(', ');
+                                    }
+                                    
+                                    const teamsSpan = document.createElement('span');
+                                    teamsSpan.className = 'event-teams';
+                                    teamsSpan.textContent = matchup;
+                                    
+                                    const timeSpan = document.createElement('span');
+                                    timeSpan.className = 'event-time';
+                                    timeSpan.textContent = timeString;
+                                    
+                                    const channelSpan = document.createElement('span');
+                                    channelSpan.className = 'event-channel';
+                                    channelSpan.textContent = `on ${channel}`;
+                                    
+                                    eventItem.appendChild(teamsSpan);
+                                    eventItem.appendChild(document.createTextNode(' • '));
+                                    eventItem.appendChild(timeSpan);
+                                    eventItem.appendChild(document.createTextNode(' • '));
+                                    eventItem.appendChild(channelSpan);
+                                    
+                                    eventsList.appendChild(eventItem);
+                                } catch (eventError) {
+                                    console.error('Error processing event:', eventError, event);
+                                    const errorItem = document.createElement('li');
+                                    errorItem.className = 'event-item error-item';
+                                    errorItem.textContent = 'Error processing game data';
+                                    eventsList.appendChild(errorItem);
+                                }
+                            });
+                        }
+                    }
+                    
+                    leagueSection.appendChild(eventsList);
+                    container.appendChild(leagueSection);
+                });
+                
+                // If no events were found for any league
+                if (container.children.length === 0) {
+                    const noEventsMessage = document.createElement('div');
+                    noEventsMessage.className = 'no-events-message';
+                    noEventsMessage.textContent = 'No sports events scheduled for today.';
+                    container.appendChild(noEventsMessage);
+                } else if (!hasAnyEvents && hasAnyErrors) {
+                    // Add a retry button if we had errors but no events
+                    const retryButton = document.createElement('button');
+                    retryButton.className = 'retry-button';
+                    retryButton.textContent = 'Retry Loading Data';
+                    retryButton.addEventListener('click', function() {
+                        fetchSportsData(container);
+                    });
+                    
+                    const retryContainer = document.createElement('div');
+                    retryContainer.className = 'retry-container';
+                    retryContainer.appendChild(retryButton);
+                    container.appendChild(retryContainer);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching sports data:', error);
+                container.innerHTML = '<div class="error-message">Error loading sports data. Please try again later.</div>';
+                
+                // Add a retry button
+                const retryButton = document.createElement('button');
+                retryButton.className = 'retry-button';
+                retryButton.textContent = 'Retry Loading Data';
+                retryButton.addEventListener('click', function() {
+                    fetchSportsData(container);
+                });
+                
+                const retryContainer = document.createElement('div');
+                retryContainer.className = 'retry-container';
+                retryContainer.appendChild(retryButton);
+                container.appendChild(retryContainer);
+            });
+    }
+    
     // Function to update bug counts
     function updateBugCounts(bugs) {
         const totalCount = bugs.length;
@@ -368,6 +636,14 @@ function init() {
         });
         
         // No need for other bug list related event listeners
+    }
+    
+    // Set up Today's Sports button event listener
+    const todaysSportsButton = document.getElementById('todays-sports-button');
+    if (todaysSportsButton) {
+        todaysSportsButton.addEventListener('click', function() {
+            showTodaysSports();
+        });
     }
     
     // Set up error legend filtering
@@ -1982,39 +2258,28 @@ function fetchRestaurantData() {
             { name: "Toslow", rating: 4.6, cuisine: "Cafe", url: "https://www.yelp.ca/biz/toslow-st-johns-2", hours: "7:30-16:00" },
             { name: "Hungry Heart Cafe", rating: 4.3, cuisine: "Cafe", url: "https://www.yelp.ca/biz/hungry-heart-cafe-st-johns", hours: "8:00-16:00" },
             { name: "Rocket Bakery and Fresh Food", rating: 4.4, cuisine: "Bakery", url: "https://www.yelp.ca/biz/rocket-bakery-and-fresh-food-st-johns", hours: "7:30-18:00" },
-            { name: "Blue on Water", rating: 4.4, cuisine: "Seafood", url: "https://www.yelp.ca/biz/blue-on-water-st-johns", hours: "11:00-22:00" },
             { name: "The Battery Cafe", rating: 4.5, cuisine: "Cafe", url: "https://www.yelp.ca/biz/the-battery-cafe-st-johns", hours: "8:00-16:00" },
             { name: "St. John's Fish Exchange", rating: 4.6, cuisine: "Seafood", url: "https://www.yelp.ca/biz/st-johns-fish-exchange-st-johns", hours: "11:30-22:00" },
             { name: "The Duke of Duckworth", rating: 4.2, cuisine: "Pub", url: "https://www.yelp.ca/biz/the-duke-of-duckworth-st-johns", hours: "11:00-23:00" },
-            { name: "Oliver's", rating: 4.5, cuisine: "Canadian", url: "https://www.yelp.ca/biz/olivers-st-johns", hours: "11:30-22:00" },
-            { name: "Exile Restaurant & Lounge", rating: 4.3, cuisine: "Fusion", url: "https://www.yelp.ca/biz/exile-restaurant-and-lounge-st-johns-2", hours: "11:30-22:00" },
             { name: "Manna Bakery", rating: 4.6, cuisine: "Bakery", url: "https://www.yelp.ca/biz/manna-european-bakery-and-deli-st-johns", hours: "8:00-18:00" },
             { name: "Basho", rating: 4.4, cuisine: "Japanese", url: "https://www.yelp.ca/biz/basho-restaurant-and-lounge-st-johns", hours: "11:30-22:00" },
             { name: "The Gypsy Tea Room", rating: 4.2, cuisine: "Mediterranean", url: "https://www.yelp.ca/biz/gypsy-tea-room-st-johns", hours: "11:30-22:00" },
             { name: "The Sprout", rating: 4.5, cuisine: "Vegetarian", url: "https://www.yelp.ca/biz/the-sprout-restaurant-st-johns", hours: "11:30-21:00" },
-
             { name: "Quidi Vidi Brewery", rating: 4.5, cuisine: "Brewery", url: "https://www.yelp.ca/biz/quidi-vidi-brewery-st-johns", hours: "11:00-22:00" },
             { name: "The Rooms Cafe", rating: 4.4, cuisine: "Cafe", url: "https://www.yelp.ca/biz/the-rooms-cafe-st-johns", hours: "10:00-17:00" },
-
             { name: "Bernard Stanley Gastropub", rating: 4.3, cuisine: "Gastropub", url: "https://www.yelp.ca/biz/bernard-stanley-gastropub-saint-johns", hours: "11:00-21:00" },
             { name: "RJ Pinoy Yum", rating: 4.4, cuisine: "Filipino", url: "https://www.yelp.ca/biz/rj-pinoy-yum-st-johns", hours: "11:00-20:00" },
             { name: "Jack Astor's", rating: 4.0, cuisine: "American", url: "https://www.yelp.ca/biz/jack-astors-st-johns", hours: "11:00-23:00" },
             { name: "Sushi Island", rating: 4.3, cuisine: "Japanese", url: "https://www.yelp.ca/biz/sushi-island-saint-johns", hours: "11:00-22:00" },
             { name: "Fionn MacCool's", rating: 4.1, cuisine: "Irish", url: "https://www.yelp.ca/biz/fionn-maccools-st-johns", hours: "11:00-23:00" },
-
             { name: "Jumping Bean Coffee", rating: 4.3, cuisine: "Cafe", url: "https://www.yelp.ca/biz/jumping-bean-coffee-st-johns-2", hours: "7:00-19:00" },
             { name: "Noodle Nami", rating: 4.5, cuisine: "Asian Fusion", url: "https://www.yelp.ca/biz/noodle-nami-st-johns", hours: "11:30-21:00" },
             { name: "Quintana's", rating: 4.6, cuisine: "Mexican", url: "https://www.yelp.ca/biz/quintanas-and-arribas-st-johns-2", hours: "11:30-21:00" },
             { name: "Cojones Tacos + Tequila", rating: 4.4, cuisine: "Mexican", url: "https://www.yelp.ca/biz/cojones-st-johns", hours: "11:30-22:00" },
             { name: "Mustang Sally's", rating: 4.2, cuisine: "American", url: "https://www.yelp.ca/biz/mustang-sallys-st-johns", hours: "11:00-22:00" },
-
-            { name: "Sushi Nami Royale", rating: 4.2, cuisine: "Japanese", url: "https://www.yelp.ca/biz/sushi-nami-royale-saint-johns", hours: "11:30-21:00" },
-            { name: "Toslow", rating: 4.6, cuisine: "Cafe", url: "https://www.yelp.ca/biz/toslow-st-johns", hours: "8:00-22:00" },
             { name: "Bannerman Brewing Co", rating: 4.7, cuisine: "Brewery/Cafe", url: "https://www.yelp.ca/biz/bannerman-brewing-co-st-johns", hours: "8:00-23:00" },
-
             { name: "The Battery Cafe", rating: 4.5, cuisine: "Cafe", url: "https://www.yelp.ca/biz/the-battery-cafe-st-johns", hours: "8:00-16:00" },
             { name: "Newfoundland Chocolate Company", rating: 4.6, cuisine: "Dessert", url: "https://www.newfoundlandchocolatecompany.com/", hours: "10:00-18:00" },
-
             { name: "Gingergrass", rating: 4.5, cuisine: "Thai/Vietnamese", url: "https://www.yelp.ca/biz/gingergrass-st-johns", hours: "11:30-20:00" },
             { name: "Bagel Cafe", rating: 4.4, cuisine: "Cafe", url: "https://www.yelp.ca/biz/bagel-cafe-st-johns", hours: "8:00-18:00" },
             { name: "Pizza Supreme", rating: 3.8, cuisine: "Pizza", url: "https://www.yelp.ca/biz/pizza-supreme-st-johns", hours: "11:00-23:00" },
@@ -2029,8 +2294,6 @@ function fetchRestaurantData() {
             { name: "The Market Family Cafe", rating: 3.9, cuisine: "Cafe", url: "https://www.yelp.ca/biz/the-market-family-cafe-st-johns", hours: "7:00-23:00" },
             { name: "Subway", rating: 3.5, cuisine: "Sandwiches", url: "https://www.yelp.ca/biz/subway-st-johns-3", hours: "8:00-22:00" },
             { name: "Postmaster's Bakery", rating: 4.7, cuisine: "Bakery", url: "https://postmastersbakery.com/menu/", hours: "8:00-18:00" },
-            
-            // Added new restaurants as requested
             { name: "Pizza Hut", rating: 3.6, cuisine: "Pizza", url: "https://www.yelp.ca/biz/pizza-hut-st-johns-3", hours: "11:00-23:00" },
             { name: "Celtic Hearth", rating: 4.1, cuisine: "Irish", url: "https://www.yelp.ca/biz/the-celtic-hearth-st-johns", hours: "24 Hours" },
             { name: "Keith's Diner", rating: 4.2, cuisine: "Diner", url: "https://www.tripadvisor.ca/Restaurant_Review-g1519599-d4085605-Reviews-Keith_s_Diner-Goulds_St_John_s_Newfoundland_Newfoundland_and_Labrador.html", hours: "7:00-20:00" },
@@ -2040,7 +2303,11 @@ function fetchRestaurantData() {
             { name: "Persepolis Persian", rating: 4.4, cuisine: "Persian", url: "https://www.facebook.com/persepolisnl/", hours: "11:30-21:00" },
             { name: "Afro Kitchen NL", rating: 4.5, cuisine: "African", url: "https://www.facebook.com/afrokitchennl/", hours: "11:00-20:00" },
             { name: "Mary Brown's East End", rating: 3.9, cuisine: "Fried Chicken", url: "https://www.yelp.ca/biz/mary-browns-st-johns-5", hours: "11:00-22:00" },
-            { name: "RJ Pinoy Yum", rating: 4.4, cuisine: "Filipino", url: "https://www.yelp.ca/biz/rj-pinoy-yum-st-johns-2", hours: "11:00-20:00" }
+            { name: "RJ Pinoy Yum", rating: 4.4, cuisine: "Filipino", url: "https://www.yelp.ca/biz/rj-pinoy-yum-st-johns-2", hours: "11:00-20:00" },
+            { name: "Mr Sub", rating: 3.8, cuisine: "Sandwiches", url: "https://www.yelp.ca/biz/mr-sub-st-johns-2", hours: "10:00-20:00" },
+            { name: "Johnny & Mae's", rating: 4.6, cuisine: "Food Truck", url: "https://www.yelp.com/biz/johnny-and-maes-st-johns", hours: "11:00-19:00" },
+            { name: "Colemans Grocery Store", rating: 4.2, cuisine: "Grocery", url: "https://www.yelp.ca/biz/colemans-st-johns", hours: "7:00-21:00" },
+            { name: "Venice Pizzeria", rating: 4.0, cuisine: "Pizza", url: "https://www.yelp.com/biz/venice-pizzeria-st-johns", hours: "12:00-24:00" }
         ];
         
         // Function to check if a restaurant is currently open based on its hours
@@ -2358,6 +2625,9 @@ function displayTestPlanSheet(sheetName) {
         let currentTestCaseId = null;
         let currentGroupRows = [];
         
+        // Keep track of sub-header rows that need to be associated with test cases
+        const subHeaderRows = new Map();
+        
         // First pass: identify test case groups
         for (let i = 1; i < filteredSheetData.length; i++) {
             const rowData = filteredSheetData[i];
@@ -2398,6 +2668,42 @@ function displayTestPlanSheet(sheetName) {
         
         // Keep track of the previous row's sub-header status
         let previousRowWasSubHeader = false;
+        
+        // Find the important sub-header row for Specific Config Testing tab
+        let modeAmbientSetpointHeaderRow = -1;
+        let modeAmbientSetpointHeaderData = null;
+        
+        // Only for Specific Config Testing tab
+        if (isSpecificConfigTab) {
+            // Look for the sub-header row that contains Mode, Ambient, Setpoint, Lights
+            for (let i = 1; i < filteredSheetData.length; i++) {
+                const rowData = filteredSheetData[i];
+                let containsAllHeaders = true;
+                let headerTexts = [];
+                
+                // Check if this row contains the key header terms
+                for (let j = 0; j < rowData.length; j++) {
+                    if (rowData[j]) {
+                        const cellText = String(rowData[j]).trim().toLowerCase();
+                        headerTexts.push(cellText);
+                    }
+                }
+                
+                // Check if this row contains all the key header terms we're looking for
+                const headerString = headerTexts.join(' ');
+                if (headerString.includes('mode') && 
+                    headerString.includes('ambient') && 
+                    headerString.includes('setpoint') && 
+                    headerString.includes('lights') && 
+                    (headerString.includes('config') || headerString.includes('system type') || headerString.includes('description'))) {
+                    
+                    console.log('Found Mode/Ambient/Setpoint/Lights header row at index:', i);
+                    modeAmbientSetpointHeaderRow = i;
+                    modeAmbientSetpointHeaderData = rowData;
+                    break;
+                }
+            }
+        }
         
         // Add data rows (skip the header row)
         for (let i = 1; i < filteredSheetData.length; i++) {
@@ -2444,6 +2750,12 @@ function displayTestPlanSheet(sheetName) {
             if (isTestCaseRow) {
                 row.classList.add('test-case-header');
                 row.dataset.testCaseId = `${sheetName}-test-${testCaseValue}`;
+                
+                // For Specific Config Testing tab, insert the sub-header after each test case header
+                if (isSpecificConfigTab && modeAmbientSetpointHeaderData) {
+                    // We'll add the sub-header row after this test case row is added to the tbody
+                    row.dataset.needsSubHeader = 'true';
+                }
             }
             
             // Check if this row is a sub-header (only has content in the Test column)
@@ -2644,8 +2956,8 @@ function displayTestPlanSheet(sheetName) {
             
             // Add click event to make the row selectable (except for sub-headers)
             row.addEventListener('click', function() {
-                // Skip selection for sub-header rows
-                if (this.classList.contains('sub-header-row')) {
+                // Skip selection for regular sub-header rows, but allow our custom mode-ambient-setpoint-header
+                if (this.classList.contains('sub-header-row') && !this.classList.contains('mode-ambient-setpoint-header')) {
                     return;
                 }
                 
@@ -2685,10 +2997,20 @@ function displayTestPlanSheet(sheetName) {
                 // Get all rows in this test case group
                 const groupRows = [];
                 for (const rowIndex of groupToToggle) {
-                    const groupRowId = `${sheetName}-row-${rowIndex}`;
-                    const groupRow = tbody.querySelector(`tr[data-row-id="${groupRowId}"]`);
-                    if (groupRow) {
-                        groupRows.push({ row: groupRow, id: groupRowId });
+                    if (rowIndex < 0) {
+                        // This is a virtual row index for a sub-header
+                        const subHeaderRow = subHeaderRows.get(rowIndex);
+                        if (subHeaderRow) {
+                            const subHeaderId = subHeaderRow.dataset.rowId;
+                            groupRows.push({ row: subHeaderRow, id: subHeaderId });
+                        }
+                    } else {
+                        // This is a regular row index
+                        const groupRowId = `${sheetName}-row-${rowIndex}`;
+                        const groupRow = tbody.querySelector(`tr[data-row-id="${groupRowId}"]`);
+                        if (groupRow) {
+                            groupRows.push({ row: groupRow, id: groupRowId });
+                        }
                     }
                 }
                 
@@ -2727,6 +3049,66 @@ function displayTestPlanSheet(sheetName) {
             });
             
             tbody.appendChild(row);
+            
+            // If this row needs a sub-header (for Specific Config Testing tab)
+            if (isSpecificConfigTab && row.dataset.needsSubHeader === 'true' && modeAmbientSetpointHeaderData) {
+                // Create a sub-header row
+                const subHeaderRow = document.createElement('tr');
+                subHeaderRow.classList.add('sub-header-row');
+                subHeaderRow.classList.add('mode-ambient-setpoint-header');
+                
+                // Link this sub-header to the same test case as the header row
+                if (row.dataset.testCaseId) {
+                    const testCaseId = row.dataset.testCaseId;
+                    subHeaderRow.dataset.testCaseId = testCaseId;
+                    subHeaderRow.dataset.partOfTestCase = 'true';
+                    
+                    // Add this sub-header row to the test case group
+                    if (testCaseGroups.has(testCaseId)) {
+                        const groupRows = testCaseGroups.get(testCaseId);
+                        // Add a virtual row index for this sub-header
+                        // We'll use a negative number to distinguish it from real rows
+                        const virtualRowIndex = -1 * (i + 1000); // Ensure it's unique and negative
+                        groupRows.push(virtualRowIndex);
+                        // Store the sub-header row with its virtual index for later reference
+                        subHeaderRows.set(virtualRowIndex, subHeaderRow);
+                    }
+                }
+                
+                // Add the same row ID pattern but with a suffix to link it to the original row
+                const subHeaderRowId = `${rowId}-subheader`;
+                subHeaderRow.dataset.rowId = subHeaderRowId;
+                
+                // Add cells to the sub-header row
+                for (let j = 0; j < headers.length; j++) {
+                    // Skip excluded columns
+                    if (excludeColumns.includes(j)) continue;
+                    
+                    const cell = document.createElement('td');
+                    let cellContent = modeAmbientSetpointHeaderData[j] !== undefined ? modeAmbientSetpointHeaderData[j] : '';
+                    cell.textContent = cellContent;
+                    
+                    // Add a special class to highlight these cells
+                    cell.classList.add('sub-header-cell');
+                    
+                    subHeaderRow.appendChild(cell);
+                }
+                
+                // Add the sub-header row to the tbody
+                tbody.appendChild(subHeaderRow);
+                
+                // Add click event to the sub-header row to select the entire test case
+                subHeaderRow.addEventListener('click', function() {
+                    // Find the test case header row and trigger its click event
+                    if (this.dataset.testCaseId) {
+                        const testCaseId = this.dataset.testCaseId;
+                        const testCaseHeaderRow = tbody.querySelector(`tr[data-test-case-id="${testCaseId}"]:not(.sub-header-row)`);
+                        if (testCaseHeaderRow) {
+                            testCaseHeaderRow.click();
+                        }
+                    }
+                });
+            }
         }
         
         table.appendChild(tbody);
@@ -2801,6 +3183,12 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices, targetElemen
     
     // Create a title for the test case
     const testCaseNumber = testCaseId.split('-test-')[1];
+    
+    // Create a header container with title and collapse button
+    const headerContainer = document.createElement('div');
+    headerContainer.className = 'test-case-header-container';
+    
+    // Create the title div
     const titleDiv = document.createElement('div');
     titleDiv.className = 'test-case-title';
     
@@ -2813,7 +3201,22 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices, targetElemen
     const displaySheetName = tabNameMappings[sheetName] || sheetName;
     
     titleDiv.textContent = `Test Case ${testCaseNumber} from ${displaySheetName}`;
-    displayTarget.appendChild(titleDiv);
+    
+    // Create collapse/expand button
+    const collapseButton = document.createElement('button');
+    collapseButton.className = 'collapse-expand-button';
+    collapseButton.innerHTML = '▼';
+    collapseButton.title = 'Collapse/Expand test case';
+    
+    // Add elements to header container
+    headerContainer.appendChild(titleDiv);
+    headerContainer.appendChild(collapseButton);
+    displayTarget.appendChild(headerContainer);
+    
+    // Create a content container for collapsible content
+    const contentContainer = document.createElement('div');
+    contentContainer.className = 'test-case-content-container';
+    contentContainer.style.maxHeight = 'none'; // Start expanded
     
     // Create a table for the test case data
     const table = document.createElement('table');
@@ -2837,8 +3240,104 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices, targetElemen
     // Create the table body
     const tbody = document.createElement('tbody');
     
+    // Check if this is the Specific Config Testing tab
+    const isSpecificConfigTab = sheetName === 'Specific Config Testing';
+    
+    // Find the Mode/Ambient/Setpoint/Lights header data if this is the Specific Config Testing tab
+    let modeAmbientSetpointHeaderData = null;
+    let modeAmbientSetpointHeaderRow = -1;
+    if (isSpecificConfigTab) {
+        // Look for the row that contains Mode, Ambient, Setpoint, Lights
+        for (let i = 1; i < filteredSheetData.length; i++) {
+            const rowData = filteredSheetData[i];
+            let headerTexts = [];
+            
+            // Check if this row contains the key header terms
+            for (let j = 0; j < rowData.length; j++) {
+                if (rowData[j]) {
+                    const cellText = String(rowData[j]).trim().toLowerCase();
+                    headerTexts.push(cellText);
+                }
+            }
+            
+            // Check if this row contains all the key header terms we're looking for
+            const headerString = headerTexts.join(' ');
+            if (headerString.includes('mode') && 
+                headerString.includes('ambient') && 
+                headerString.includes('setpoint') && 
+                headerString.includes('lights') && 
+                (headerString.includes('config') || headerString.includes('system type') || headerString.includes('description'))) {
+                
+                modeAmbientSetpointHeaderData = rowData;
+                modeAmbientSetpointHeaderRow = i;
+                console.log('Found Mode/Ambient/Setpoint/Lights header row at index:', i);
+                break;
+            }
+        }
+    }
+    
+    // First, let's ensure we always show the sub-header for Specific Config Testing
+    // Add it at the beginning of the table if it's not already included in rowIndices
+    if (isSpecificConfigTab && modeAmbientSetpointHeaderData) {
+        let hasSubHeader = rowIndices.some(index => index < 0);
+        
+        if (!hasSubHeader) {
+            // Create a sub-header row with the Mode/Ambient/Setpoint/Lights data
+            const subHeaderRow = document.createElement('tr');
+            subHeaderRow.classList.add('sub-header-row');
+            subHeaderRow.classList.add('mode-ambient-setpoint-header');
+            
+            // Add cells to the sub-header row
+            for (let j = 0; j < headers.length; j++) {
+                // Skip excluded columns
+                if (excludeColumns.includes(j)) continue;
+                
+                const cell = document.createElement('td');
+                let cellContent = modeAmbientSetpointHeaderData[j] !== undefined ? modeAmbientSetpointHeaderData[j] : '';
+                cell.textContent = cellContent;
+                
+                // Add a special class to highlight these cells
+                cell.classList.add('sub-header-cell');
+                
+                subHeaderRow.appendChild(cell);
+            }
+            
+            tbody.appendChild(subHeaderRow);
+        }
+    }
+    
     // Add the test case rows
     rowIndices.forEach(rowIndex => {
+        // Handle negative indices (virtual rows for sub-headers)
+        if (rowIndex < 0) {
+            // This is a virtual row for a sub-header
+            // Create a sub-header row with the Mode/Ambient/Setpoint/Lights data
+            if (isSpecificConfigTab && modeAmbientSetpointHeaderData) {
+                const subHeaderRow = document.createElement('tr');
+                subHeaderRow.classList.add('sub-header-row');
+                subHeaderRow.classList.add('mode-ambient-setpoint-header');
+                
+                // Add cells to the sub-header row
+                for (let j = 0; j < headers.length; j++) {
+                    // Skip excluded columns
+                    if (excludeColumns.includes(j)) continue;
+                    
+                    const cell = document.createElement('td');
+                    let cellContent = modeAmbientSetpointHeaderData[j] !== undefined ? modeAmbientSetpointHeaderData[j] : '';
+                    cell.textContent = cellContent;
+                    
+                    // Add a special class to highlight these cells
+                    cell.classList.add('sub-header-cell');
+                    
+                    subHeaderRow.appendChild(cell);
+                }
+                
+                tbody.appendChild(subHeaderRow);
+            }
+            return; // Skip the rest of the processing for virtual rows
+        }
+        
+        // Handle regular rows
         if (rowIndex < filteredSheetData.length) {
             const rowData = filteredSheetData[rowIndex];
             const row = document.createElement('tr');
@@ -2858,7 +3357,25 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices, targetElemen
     });
     
     table.appendChild(tbody);
-    displayTarget.appendChild(table);
+    contentContainer.appendChild(table);
+    
+    // Add the content container to the display
+    displayTarget.appendChild(contentContainer);
+    
+    // Add event listener to the collapse button
+    collapseButton.addEventListener('click', () => {
+        if (contentContainer.style.maxHeight === 'none' || contentContainer.style.maxHeight === '') {
+            // Collapse
+            contentContainer.style.maxHeight = '0px';
+            collapseButton.innerHTML = '▶';
+            collapseButton.title = 'Expand test case';
+        } else {
+            // Expand
+            contentContainer.style.maxHeight = 'none';
+            collapseButton.innerHTML = '▼';
+            collapseButton.title = 'Collapse test case';
+        }
+    });
     
     // Add a subtle entrance animation
     displayTarget.animate([
@@ -2907,7 +3424,7 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices, targetElemen
     notesContent.appendChild(notesTextarea);
     notesContainer.appendChild(notesToggle);
     notesContainer.appendChild(notesContent);
-    displayTarget.appendChild(notesContainer);
+    contentContainer.appendChild(notesContainer);
 }
 
 // Clear the selected test case panel
@@ -3197,6 +3714,66 @@ function selectAllTestCasesInTab(sheetName, displayName) {
             });
             
             tbody.appendChild(row);
+            
+            // If this row needs a sub-header (for Specific Config Testing tab)
+            if (isSpecificConfigTab && row.dataset.needsSubHeader === 'true' && modeAmbientSetpointHeaderData) {
+                // Create a sub-header row
+                const subHeaderRow = document.createElement('tr');
+                subHeaderRow.classList.add('sub-header-row');
+                subHeaderRow.classList.add('mode-ambient-setpoint-header');
+                
+                // Link this sub-header to the same test case as the header row
+                if (row.dataset.testCaseId) {
+                    const testCaseId = row.dataset.testCaseId;
+                    subHeaderRow.dataset.testCaseId = testCaseId;
+                    subHeaderRow.dataset.partOfTestCase = 'true';
+                    
+                    // Add this sub-header row to the test case group
+                    if (testCaseGroups.has(testCaseId)) {
+                        const groupRows = testCaseGroups.get(testCaseId);
+                        // Add a virtual row index for this sub-header
+                        // We'll use a negative number to distinguish it from real rows
+                        const virtualRowIndex = -1 * (i + 1000); // Ensure it's unique and negative
+                        groupRows.push(virtualRowIndex);
+                        // Store the sub-header row with its virtual index for later reference
+                        subHeaderRows.set(virtualRowIndex, subHeaderRow);
+                    }
+                }
+                
+                // Add the same row ID pattern but with a suffix to link it to the original row
+                const subHeaderRowId = `${rowId}-subheader`;
+                subHeaderRow.dataset.rowId = subHeaderRowId;
+                
+                // Add cells to the sub-header row
+                for (let j = 0; j < headers.length; j++) {
+                    // Skip excluded columns
+                    if (excludeColumns.includes(j)) continue;
+                    
+                    const cell = document.createElement('td');
+                    let cellContent = modeAmbientSetpointHeaderData[j] !== undefined ? modeAmbientSetpointHeaderData[j] : '';
+                    cell.textContent = cellContent;
+                    
+                    // Add a special class to highlight these cells
+                    cell.classList.add('sub-header-cell');
+                    
+                    subHeaderRow.appendChild(cell);
+                }
+                
+                // Add the sub-header row to the tbody
+                tbody.appendChild(subHeaderRow);
+                
+                // Add click event to the sub-header row to select the entire test case
+                subHeaderRow.addEventListener('click', function() {
+                    // Find the test case header row and trigger its click event
+                    if (this.dataset.testCaseId) {
+                        const testCaseId = this.dataset.testCaseId;
+                        const testCaseHeaderRow = tbody.querySelector(`tr[data-test-case-id="${testCaseId}"]:not(.sub-header-row)`);
+                        if (testCaseHeaderRow) {
+                            testCaseHeaderRow.click();
+                        }
+                    }
+                });
+            }
         }
     }
     
