@@ -470,8 +470,8 @@ button.primary:hover {
 }
 
 #log-filter:hover {
-    background-color: #0d3b18;
-    border-color: #0f6e2a;
+    background-color: #e0e0e0;
+    border-color: #999;
 }
 
 #log-filter:focus {

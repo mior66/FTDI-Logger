@@ -135,6 +135,18 @@ function init() {
     saveErrorsButton.addEventListener('click', saveErrors);
     clearSelectedTestCaseButton.addEventListener('click', clearSelectedTestCase);
     
+    // Set up print buttons
+    const printLogButton = document.getElementById('print-log');
+    const printErrorsButton = document.getElementById('print-errors');
+    
+    if (printLogButton) {
+        printLogButton.addEventListener('click', printLog);
+    }
+    
+    if (printErrorsButton) {
+        printErrorsButton.addEventListener('click', printErrors);
+    }
+    
     // Set up hidden filter input event listeners
     const addHiddenFilterButton = document.getElementById('add-hidden-filter');
     const hiddenFilterText = document.getElementById('hidden-filter-text');
@@ -455,15 +467,46 @@ function init() {
                                     const eventItem = document.createElement('li');
                                     eventItem.className = 'event-item';
                                     
-                                    // Get teams
-                                    const homeTeam = event.competitions[0].competitors.find(team => team.homeAway === 'home');
-                                    const awayTeam = event.competitions[0].competitors.find(team => team.homeAway === 'away');
+                                    // Handle different sports formats
+                                    let matchup = '';
                                     
-                                    if (!homeTeam || !awayTeam) {
-                                        throw new Error('Missing team data');
+                                    // Special handling for golf which doesn't have home/away teams
+                                    if (league.id === 'golf') {
+                                        // For golf, show the tournament name and top competitors
+                                        const tournamentName = event.name || 'Golf Tournament';
+                                        
+                                        // Try to get top competitors if available
+                                        let topPlayers = '';
+                                        if (event.competitions[0].competitors && event.competitions[0].competitors.length > 0) {
+                                            // Get top 3 players if available
+                                            const players = event.competitions[0].competitors
+                                                .slice(0, 3)
+                                                .map(player => {
+                                                    // Try to get player name from different possible locations in the API response
+                                                    return player.athlete?.displayName || 
+                                                           player.athlete?.fullName || 
+                                                           player.team?.displayName || 
+                                                           player.displayName || 
+                                                           'Unknown Player';
+                                                });
+                                            
+                                            if (players.length > 0) {
+                                                topPlayers = `: ${players.join(', ')}...`;
+                                            }
+                                        }
+                                        
+                                        matchup = `${tournamentName}${topPlayers}`;
+                                    } else {
+                                        // Standard team sports handling
+                                        const homeTeam = event.competitions[0].competitors.find(team => team.homeAway === 'home');
+                                        const awayTeam = event.competitions[0].competitors.find(team => team.homeAway === 'away');
+                                        
+                                        if (!homeTeam || !awayTeam) {
+                                            throw new Error('Missing team data');
+                                        }
+                                        
+                                        matchup = `${awayTeam.team.displayName} vs. ${homeTeam.team.displayName}`;
                                     }
-                                    
-                                    const matchup = `${awayTeam.team.displayName} vs. ${homeTeam.team.displayName}`;
                                     
                                     // Get time
                                     const date = new Date(event.date);
@@ -4053,6 +4096,173 @@ function exportSelectedTestCase() {
         textContent += `${entry.timestamp} - ${entry.message}\n`;
     });
     
+    // Save the errors to a file
+    function saveErrors() {
+        if (errorEntries.length === 0) {
+            showNotification('No errors to save', 'warning');
+            return;
+        }
+        
+        const content = errorEntries.map(entry => {
+            return `${entry.timestamp} ${entry.message}`;
+        }).join('\n');
+        
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `FTDI_Errors_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+        
+        showNotification('Errors saved successfully', 'success');
+    }
+
+    // Print the main log window
+    function printLog() {
+        // Create a new window for printing
+        const printWindow = window.open('', '_blank');
+        
+        // Get the current filter
+        const currentFilterValue = logFilter.value;
+        const filterLabel = logFilter.options[logFilter.selectedIndex].text;
+        
+        // Create the content to print
+        let printContent = `
+            <html>
+            <head>
+                <title>FTDI Logger - ${filterLabel} Log</title>
+                <style>
+                    body { font-family: monospace; padding: 20px; }
+                    h1 { font-size: 18px; margin-bottom: 10px; }
+                    .timestamp { color: #666; }
+                    .log-entry { margin-bottom: 5px; white-space: pre-wrap; }
+                    .error { color: #e74c3c; }
+                    .warning { color: #f39c12; }
+                    .info { color: #3498db; }
+                    .success { color: #2ecc71; }
+                    .footer { margin-top: 20px; font-size: 12px; color: #999; }
+                </style>
+            </head>
+            <body>
+                <h1>FTDI Logger - ${filterLabel} Log (${new Date().toLocaleString()})</h1>
+                <div class="log-content">
+        `;
+        
+        // Add the log entries
+        const visibleEntries = logEntries.filter(entry => {
+            if (currentFilterValue === 'full') return true;
+            return entry.message.toLowerCase().includes(currentFilterValue.toLowerCase());
+        });
+        
+        visibleEntries.forEach(entry => {
+            const colorClass = applyColorCoding(entry.message);
+            printContent += `<div class="log-entry ${colorClass}">
+                <span class="timestamp">${entry.timestamp}</span> ${entry.message}
+            </div>`;
+        });
+        
+        // Close the HTML structure
+        printContent += `
+                </div>
+                <div class="footer">
+                    Generated by FTDI Logger on ${new Date().toLocaleString()}
+                </div>
+            </body>
+            </html>
+        `;
+        
+        // Write to the new window and print
+        printWindow.document.open();
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        
+        // Wait for content to load before printing
+        printWindow.onload = function() {
+            printWindow.print();
+            // Don't close the window automatically to allow the user to cancel or adjust print settings
+        };
+    }
+
+    // Print the errors window
+    function printErrors() {
+        if (errorEntries.length === 0) {
+            showNotification('No errors to print', 'warning');
+            return;
+        }
+        
+        // Create a new window for printing
+        const printWindow = window.open('', '_blank');
+        
+        // Create the content to print
+        let printContent = `
+            <html>
+            <head>
+                <title>FTDI Logger - Errors, Exceptions and Warnings</title>
+                <style>
+                    body { font-family: monospace; padding: 20px; }
+                    h1 { font-size: 18px; margin-bottom: 10px; }
+                    .timestamp { color: #666; }
+                    .log-entry { margin-bottom: 5px; white-space: pre-wrap; }
+                    .error { color: #e74c3c; }
+                    .warning { color: #f39c12; }
+                    .exception { color: #9b59b6; }
+                    .unexpected { color: #e67e22; }
+                    .connection { color: #3498db; }
+                    .footer { margin-top: 20px; font-size: 12px; color: #999; }
+                    .summary { margin: 15px 0; padding: 10px; background: #f8f8f8; border-radius: 4px; }
+                </style>
+            </head>
+            <body>
+                <h1>FTDI Logger - Errors, Exceptions and Warnings (${new Date().toLocaleString()})</h1>
+                <div class="summary">
+                    <strong>Summary:</strong><br>
+                    Errors: ${errorCounts.error}<br>
+                    Failures: ${errorCounts.failure}<br>
+                    Warnings: ${errorCounts.warning}<br>
+                    Exceptions: ${errorCounts.exception}<br>
+                    Unexpected: ${errorCounts.unexpected}<br>
+                    Connection Issues: ${errorCounts.connection}
+                </div>
+                <div class="log-content">
+        `;
+        
+        // Add the error entries
+        errorEntries.forEach(entry => {
+            const colorClass = applyColorCoding(entry.message);
+            printContent += `<div class="log-entry ${colorClass}">
+                <span class="timestamp">${entry.timestamp}</span> ${entry.message}
+            </div>`;
+        });
+        
+        // Close the HTML structure
+        printContent += `
+                </div>
+                <div class="footer">
+                    Generated by FTDI Logger on ${new Date().toLocaleString()}
+                </div>
+            </body>
+            </html>
+        `;
+        
+        // Write to the new window and print
+        printWindow.document.open();
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        
+        // Wait for content to load before printing
+        printWindow.onload = function() {
+            printWindow.print();
+            // Don't close the window automatically to allow the user to cancel or adjust print settings
+        };
+    }
+
     // Create a filename for the export
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `test-case-${testCaseNumber}-${timestamp}.txt`;
