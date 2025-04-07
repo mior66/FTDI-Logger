@@ -514,10 +514,12 @@ io.on('connection', (socket) => {
           
           // Function to check if a line is complete (not just by newline, but also by content)
           const isCompleteLogLine = (line) => {
-            // Check if line ends with a complete ANSI color code or reset
-            // This helps prevent splitting in the middle of color codes
-            return !line.includes('[partial]') && 
-                  (!line.includes('[0') || line.endsWith('m'));
+            // Check for ESP32 log patterns
+            return line.trim().length > 0 && 
+                  (line.trim().startsWith('I (') || 
+                   line.trim().startsWith('E (') || 
+                   line.trim().startsWith('W (') ||
+                   line.trim().startsWith('.[0;'));
           };
           
           currentPort.on('data', (buffer) => {
@@ -534,13 +536,12 @@ io.on('connection', (socket) => {
               partialLineTimer = null;
             }
             
-            // More sophisticated line splitting that respects ANSI color codes
-            // First split by definite line endings
-            const potentialLines = dataBuffer.split(/\r\n|\r|\n/);
+            // Split by newlines while preserving the exact format
+            const lines = dataBuffer.split(/\r\n|\r|\n/);
             
-            // Process all complete lines except the last one (which might be incomplete)
-            const completeLines = potentialLines.slice(0, -1);
-            let remainingBuffer = potentialLines[potentialLines.length - 1] || '';
+            // Process all lines except the last one (which might be incomplete)
+            const completeLines = lines.slice(0, -1);
+            dataBuffer = lines[lines.length - 1] || '';
             
             // Send complete lines to all connected clients immediately
             for (const line of completeLines) {
@@ -550,30 +551,26 @@ io.on('connection', (socket) => {
               }
             }
             
-            // Check if the remaining buffer looks like a complete line despite not ending with newline
-            // This helps with lines that have ANSI color codes or other special sequences
-            if (remainingBuffer.trim().length > 0 && isCompleteLogLine(remainingBuffer)) {
-              io.volatile.emit('serial-data', { timestamp: new Date().toISOString(), data: remainingBuffer });
-              remainingBuffer = '';
-            }
-            
-            // Update the data buffer with any remaining content
-            dataBuffer = remainingBuffer;
-            
-            // If we still have data in the buffer, set a timer to send it as partial
-            // This ensures partial lines don't get stuck in the buffer
+            // If the buffer contains a complete line (based on ESP32 log patterns),
+            // send it and clear the buffer
             if (dataBuffer.trim().length > 0) {
-              partialLineTimer = setTimeout(() => {
-                if (dataBuffer.trim().length > 0) {
-                  // Only mark as partial if it's actually incomplete
-                  const partialMarker = isCompleteLogLine(dataBuffer) ? '' : ' [partial]';
-                  io.volatile.emit('serial-data', { 
-                    timestamp: new Date().toISOString(), 
-                    data: dataBuffer + partialMarker
-                  });
-                  dataBuffer = '';
-                }
-              }, 200);  // Increased timeout for partial lines to allow more time for completion
+              // Check if this is a complete ESP32 log line
+              if (isCompleteLogLine(dataBuffer)) {
+                io.volatile.emit('serial-data', { timestamp: new Date().toISOString(), data: dataBuffer });
+                dataBuffer = '';
+              } else {
+                // Set a timer to send partial data if no more data arrives soon
+                partialLineTimer = setTimeout(() => {
+                  if (dataBuffer.trim().length > 0) {
+                    // Don't add a partial marker to avoid interfering with the log format
+                    io.volatile.emit('serial-data', { 
+                      timestamp: new Date().toISOString(), 
+                      data: dataBuffer
+                    });
+                    dataBuffer = '';
+                  }
+                }, 50); // Very short timeout to quickly process partial lines
+              }
             }
           });
           

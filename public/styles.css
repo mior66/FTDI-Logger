@@ -1368,6 +1368,20 @@ button.primary:hover {
     color: #666;
 }
 
+/* Highlighted team styles */
+.highlighted-team {
+    background-color: rgba(255, 215, 0, 0.2);
+    border-radius: 4px;
+    padding: 8px 12px !important;
+    margin: 4px 0;
+    border-left: 3px solid #FFD700;
+    transition: background-color 0.3s ease;
+}
+
+.highlighted-team:hover {
+    background-color: rgba(255, 215, 0, 0.3);
+}
+
 /* Loading indicator */
 .loading-indicator {
     display: flex;

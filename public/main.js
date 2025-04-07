@@ -325,6 +325,24 @@ function init() {
         fetchSportsData(sportsContainer);
     }
     
+    // Teams to highlight in the sports events window
+    const teamsToHighlight = [
+        'Boston Bruins',
+        'Toronto Maple Leafs',
+        'Montreal Canadians',
+        'New York Yankees',
+        'Los Angelas Dodgers',
+        'Toronto Raptors',
+        'Los Angelas Lakers',
+        'Toronto Blue Jays',
+        'Edmonton Oilers'
+    ];
+    
+    // Function to check if a matchup contains any of the teams to highlight
+    function shouldHighlightTeam(matchup) {
+        return teamsToHighlight.some(team => matchup.includes(team));
+    }
+    
     // Function to fetch real sports data from API
     function fetchSportsData(container) {
         // Clear any existing content
@@ -460,6 +478,11 @@ function init() {
                                     const teamsSpan = document.createElement('span');
                                     teamsSpan.className = 'event-teams';
                                     teamsSpan.textContent = matchup;
+                                    
+                                    // Check if this matchup contains any of the teams to highlight
+                                    if (shouldHighlightTeam(matchup)) {
+                                        eventItem.classList.add('highlighted-team');
+                                    }
                                     
                                     const timeSpan = document.createElement('span');
                                     timeSpan.className = 'event-time';
