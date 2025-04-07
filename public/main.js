@@ -56,7 +56,7 @@ const clearErrorsButton = document.getElementById('clear-errors');
 const saveErrorsButton = document.getElementById('save-errors');
 const autoscrollCheckbox = document.getElementById('autoscroll');
 const errorAutoscrollCheckbox = document.getElementById('error-autoscroll');
-const timestampCheckbox = document.getElementById('timestamp');
+// Timestamp is always enabled - removed checkbox
 const logWindow = document.getElementById('log-window');
 const errorWindow = document.getElementById('error-window');
 const hiddenLogWindow = document.getElementById('hidden-log-window');
@@ -86,16 +86,19 @@ let testLogEntries = {}; // Store test log entries by test case ID
 // Array to store custom filter patterns
 let customFilterPatterns = [];
 
+// Map to track which filter hid which log entries
+let filterToHiddenEntriesMap = new Map();
+
 // Helper function to check if a message should be hidden
 function shouldHideMessage(message) {
     // Check custom filter patterns
     for (const pattern of customFilterPatterns) {
         if (message.includes(pattern)) {
-            return true;
+            return pattern; // Return the pattern that matched
         }
     }
     
-    return false;
+    return false; // No pattern matched
 }
 
 // Error count tracking
@@ -724,11 +727,8 @@ function init() {
     testPassButton.addEventListener('click', addTestPassLog);
     testFailButton.addEventListener('click', addTestFailLog);
     
-    // Set up timestamp checkbox with debounced handler for better performance
-    timestampCheckbox.addEventListener('change', function() {
-        renderVisibleLogEntries();
-        updateHiddenLogWindow(); // Also update hidden log window when timestamp preference changes
-    });
+    // Timestamp checkbox removed - timestamps are always enabled
+    // No need for event listener as timestamps are now always shown
     
     // Set up clear hidden log button
     clearHiddenLogButton.addEventListener('click', function() {
@@ -1038,6 +1038,24 @@ function addLogEntry(timestamp, message) {
     
     const entry = { timestamp, message };
     const entryIndex = logEntries.length;
+    
+    // Check if this message should be hidden based on custom filters
+    const matchedPattern = shouldHideMessage(message);
+    if (matchedPattern) {
+        // Add to the hidden entries array
+        hiddenEntries.push(entry);
+        
+        // Also track which filter hid this entry
+        if (!filterToHiddenEntriesMap.has(matchedPattern)) {
+            filterToHiddenEntriesMap.set(matchedPattern, []);
+        }
+        filterToHiddenEntriesMap.get(matchedPattern).push(entry);
+        
+        updateHiddenLogWindow();
+        return;
+    }
+    
+    // Add to the main log entries array if not filtered
     logEntries.push(entry);
     
     // Process the entry immediately without waiting for the next render cycle
@@ -1260,7 +1278,7 @@ function createLogEntryElement(entry, index) {
     logEntry.dataset.logIndex = index;
     
     // Only add timestamp if the timestamp checkbox is checked
-    if (timestampCheckbox.checked && entry.timestamp) {
+    if (entry.timestamp) {
         const timestampElement = document.createElement('span');
         timestampElement.className = 'log-timestamp';
         timestampElement.textContent = formatTimestamp(entry.timestamp);
@@ -1290,25 +1308,57 @@ function createLogEntryElement(entry, index) {
 
 // Reapply the filter to existing logs
 function reapplyFilterToExistingLogs() {
-    // Create temporary arrays to hold filtered and non-filtered entries
-    let filteredLogEntries = [];
-    let newHiddenEntries = [];
+    // First, restore all hidden entries back to the main log entries array
+    // to ensure we're starting with the complete set of logs
+    let allEntries = [...logEntries];
     
-    // Go through all existing log entries
-    for (let i = 0; i < logEntries.length; i++) {
-        const entry = logEntries[i];
-        
-        // Check if this entry should be hidden
-        if (entry.message && shouldHideMessage(entry.message)) {
-            newHiddenEntries.push(entry);
-        } else {
-            filteredLogEntries.push(entry);
+    // Add back any entries that were hidden by filters
+    for (const [pattern, entries] of filterToHiddenEntriesMap.entries()) {
+        // Only add back entries from filters that still exist
+        if (customFilterPatterns.includes(pattern)) {
+            // Keep these entries in the map for this pattern
+            continue;
         }
+        // Filter was removed, so add these entries back to the main log
+        allEntries = [...allEntries, ...entries];
+        // Remove this pattern from the map
+        filterToHiddenEntriesMap.delete(pattern);
     }
     
-    // Update the arrays
-    logEntries = filteredLogEntries;
-    hiddenEntries = [...hiddenEntries, ...newHiddenEntries];
+    // Sort all entries by timestamp to maintain chronological order
+    allEntries.sort((a, b) => {
+        return new Date(a.timestamp) - new Date(b.timestamp);
+    });
+    
+    // Reset the main log entries
+    logEntries = allEntries;
+    hiddenEntries = [];
+    
+    // Now reapply all current filters
+    for (const pattern of customFilterPatterns) {
+        let entriesToKeep = [];
+        let entriesToHide = [];
+        
+        // Check each entry against this specific pattern
+        for (let i = 0; i < logEntries.length; i++) {
+            const entry = logEntries[i];
+            
+            if (entry.message && entry.message.includes(pattern)) {
+                entriesToHide.push(entry);
+            } else {
+                entriesToKeep.push(entry);
+            }
+        }
+        
+        // Update the main log entries to only keep non-matching entries
+        logEntries = entriesToKeep;
+        
+        // Store the hidden entries for this pattern
+        filterToHiddenEntriesMap.set(pattern, entriesToHide);
+        
+        // Add these hidden entries to the overall hidden entries array
+        hiddenEntries = [...hiddenEntries, ...entriesToHide];
+    }
     
     // Re-render the logs
     renderVisibleLogEntries(logFilter.value);
@@ -1336,7 +1386,7 @@ function updateHiddenLogWindow() {
         hiddenEntry.className = 'log-entry';
         
         // Create timestamp element if needed
-        if (timestampCheckbox.checked && entry.timestamp) {
+        if (entry.timestamp) {
             const timestampElement = document.createElement('span');
             timestampElement.className = 'log-timestamp';
             timestampElement.textContent = formatTimestamp(entry.timestamp);
