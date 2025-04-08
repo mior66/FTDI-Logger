@@ -113,7 +113,7 @@ header {
 }
 
 /* Lunch Idea Button, Work Tasks Button, Bug List Button, and Sports Button */
-.lunch-button, .work-tasks-button, .bug-list-button, .sports-button {
+.lunch-button, .work-tasks-button, .bug-list-button, .sports-button, .dark-mode-button {
     margin-left: 3px; /* Even smaller margin between buttons */
     margin-right: 3px;
     font-size: 0.9em;
@@ -145,6 +145,10 @@ header {
     background-color: #9C27B0;
 }
 
+.dark-mode-button {
+    background-color: #424242;
+}
+
 .lunch-button:hover {
     background-color: #45a049;
 }
@@ -161,7 +165,11 @@ header {
     background-color: #7B1FA2;
 }
 
-.lightbulb, .tasks-icon, .bug-icon, .sports-icon {
+.dark-mode-button:hover {
+    background-color: #303030;
+}
+
+.lightbulb, .tasks-icon, .bug-icon, .sports-icon, .dark-mode-icon {
     margin-left: 5px;
     font-size: 1.1em;
 }
