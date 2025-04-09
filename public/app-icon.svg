@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024px" height="1024px" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" rx="200" ry="200" fill="#2b5797"/>
+  <g transform="translate(112, 112) scale(0.78)">
+    <rect x="100" y="200" width="824" height="624" rx="40" ry="40" fill="#1e1e1e" stroke="#444" stroke-width="10"/>
+    <rect x="140" y="240" width="744" height="400" rx="10" ry="10" fill="#121212" stroke="#555" stroke-width="5"/>
+    
+    <!-- Terminal-like text -->
+    <text x="170" y="290" font-family="monospace" font-size="24" fill="#00ff00">$ FTDI Logger v1.0</text>
+    <text x="170" y="330" font-family="monospace" font-size="24" fill="#00ff00">$ Connecting to device...</text>
+    <text x="170" y="370" font-family="monospace" font-size="24" fill="#00ff00">$ Device found: FTDI USB Serial</text>
+    <text x="170" y="410" font-family="monospace" font-size="24" fill="#00ff00">$ Baud rate: 115200</text>
+    <text x="170" y="450" font-family="monospace" font-size="24" fill="#00ff00">$ Monitoring data...</text>
+    <text x="170" y="490" font-family="monospace" font-size="24" fill="#00ff00">$ [INFO] System initialized</text>
+    <text x="170" y="530" font-family="monospace" font-size="24" fill="#00ff00">$ [DATA] Temperature: 22.5°C</text>
+    <text x="170" y="570" font-family="monospace" font-size="24" fill="#00ff00">$ [DATA] Humidity: 45%</text>
+    
+    <!-- Control panel -->
+    <rect x="140" y="660" width="744" height="120" rx="10" ry="10" fill="#333" stroke="#555" stroke-width="5"/>
+    
+    <!-- Buttons -->
+    <rect x="170" y="690" width="120" height="60" rx="10" ry="10" fill="#007acc" stroke="#0099ff" stroke-width="3"/>
+    <text x="195" y="725" font-family="Arial" font-size="20" fill="white" font-weight="bold">Connect</text>
+    
+    <rect x="310" y="690" width="120" height="60" rx="10" ry="10" fill="#555" stroke="#777" stroke-width="3"/>
+    <text x="325" y="725" font-family="Arial" font-size="20" fill="white" font-weight="bold">Disconnect</text>
+    
+    <rect x="450" y="690" width="120" height="60" rx="10" ry="10" fill="#2e7d32" stroke="#4caf50" stroke-width="3"/>
+    <text x="485" y="725" font-family="Arial" font-size="20" fill="white" font-weight="bold">Save</text>
+    
+    <rect x="590" y="690" width="120" height="60" rx="10" ry="10" fill="#c62828" stroke="#ef5350" stroke-width="3"/>
+    <text x="625" y="725" font-family="Arial" font-size="20" fill="white" font-weight="bold">Clear</text>
+    
+    <!-- USB Cable -->
+    <path d="M512 100 L512 180" stroke="#888" stroke-width="20" stroke-linecap="round"/>
+    <rect x="482" y="80" width="60" height="40" rx="5" ry="5" fill="#888"/>
+    <rect x="492" y="40" width="40" height="40" fill="#666"/>
+    
+    <!-- USB Symbol -->
+    <circle cx="512" cy="140" r="30" fill="#007acc"/>
+    <path d="M512 120 L512 160 M502 130 L522 130 M502 150 L522 150" stroke="white" stroke-width="5" stroke-linecap="round"/>
+  </g>
+</svg>
