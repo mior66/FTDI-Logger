@@ -4802,8 +4802,63 @@ function sendThermostatCommand(command) {
 
 // Check for thermostat mode and setpoint information in log messages
 function checkForThermostatInfo(message) {
-    // Check for heating setpoint updates
-    if (message.includes('Matter app_events: Heating Setpoint Updated:')) {
+    // Check for the new hvac_controller update_hvac_state format
+    // Example: "12:46:43.297 [0;32mI (198632) hvac_controller: update_hvac_state: time: 197 temp: 2273, mode: 0, hsp: 2300[0m"
+    if (message.includes('hvac_controller: update_hvac_state:')) {
+        try {
+            // Extract mode and heating setpoint values
+            const modeMatch = message.match(/mode: (\d+)/);
+            const hspMatch = message.match(/hsp: (\d+)/);
+            
+            if (modeMatch && modeMatch[1]) {
+                const modeValue = parseInt(modeMatch[1]);
+                
+                // Update the thermostat mode display based on the mode value
+                switch (modeValue) {
+                    case 0:
+                        thermostatMode.textContent = 'Off';
+                        thermostatMode.className = 'status-value off';
+                        break;
+                    case 3:
+                        thermostatMode.textContent = 'Cool';
+                        thermostatMode.className = 'status-value cool';
+                        break;
+                    case 4:
+                        thermostatMode.textContent = 'Heat';
+                        thermostatMode.className = 'status-value heat';
+                        break;
+                    case 5:
+                        thermostatMode.textContent = 'ENERG';
+                        thermostatMode.className = 'status-value heat';
+                        break;
+                    case 7:
+                        thermostatMode.textContent = 'Fan';
+                        thermostatMode.className = 'status-value off';
+                        break;
+                    default:
+                        thermostatMode.textContent = `Mode ${modeValue}`;
+                        thermostatMode.className = 'status-value';
+                }
+                
+                console.log(`Detected system mode from hvac_controller: ${thermostatMode.textContent}`);
+            }
+            
+            if (hspMatch && hspMatch[1]) {
+                const hspValue = parseInt(hspMatch[1]);
+                // Convert from hundredths of a degree to whole degrees (e.g., 2300 -> 23.0)
+                const setpoint = (hspValue / 100).toFixed(1);
+                
+                // Update the setpoint display
+                thermostatSetpoint.textContent = `${setpoint}°C`;
+                
+                console.log(`Detected heating setpoint from hvac_controller: ${setpoint}°C`);
+            }
+        } catch (error) {
+            console.error('Error parsing hvac_controller update:', error);
+        }
+    }
+    // Check for heating setpoint updates (legacy format)
+    else if (message.includes('Matter app_events: Heating Setpoint Updated:')) {
         try {
             // Extract the setpoint value
             const setpointMatch = message.match(/Heating Setpoint Updated: (\d+\.\d+)/);
@@ -4826,7 +4881,7 @@ function checkForThermostatInfo(message) {
         }
     }
     
-    // Check for cooling setpoint updates
+    // Check for cooling setpoint updates (legacy format)
     else if (message.includes('Matter app_events: Cooling Setpoint Updated:')) {
         try {
             // Extract the setpoint value
@@ -4846,7 +4901,7 @@ function checkForThermostatInfo(message) {
         }
     }
     
-    // Check for Mode Updated events
+    // Check for Mode Updated events (legacy format)
     else if (message.includes('Matter app_events: Mode Updated:')) {
         try {
             // Extract the mode value
@@ -4894,7 +4949,7 @@ function checkForThermostatInfo(message) {
         }
     }
     
-    // Check for system mode from thermostat_endpoint
+    // Check for system mode from thermostat_endpoint (legacy format)
     else if (message.includes('thermostat_endpoint: System Mode:')) {
         const modeMatch = message.match(/System Mode: (\d+)/);
         if (modeMatch && modeMatch[1]) {
