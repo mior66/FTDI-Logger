@@ -49,6 +49,11 @@ app.get('/test-plan', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'test-plan-viewer.html'));
 });
 
+// Route for the MYSA Logger page
+app.get('/mysa-logger', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'mysa-logger.html'));
+});
+
 // Route to proxy sports data requests
 app.get('/api/sports/:league', async (req, res) => {
   try {

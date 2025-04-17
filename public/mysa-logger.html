@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LV FTDI Logger</title>
+    <title>MYSA FTDI Logger</title>
     <link rel="stylesheet" href="styles.css?v=20250402">
     <link rel="stylesheet" href="print-styles.css?v=20250407">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -15,12 +15,12 @@
         </div>
         <header>
             <div class="header-left">
-                <h1>LV FTDI Logger</h1>
+                <h1>MYSA FTDI Logger</h1>
                 <p class="subtitle">A sleek, real-time serial monitor for FTDI devices</p>
                 <div class="button-container">
                     <!-- Switch Logger button on its own row -->
                     <div class="button-row switch-row">
-                        <div class="button-cell switch-cell"><a href="/mysa-logger" class="test-plan-link switch-logger-link" target="_blank">Switch to MYSA Logger</a></div>
+                        <div class="button-cell switch-cell"><a href="/" class="test-plan-link switch-logger-link" target="_blank">Switch to LV Logger</a></div>
                     </div>
                     
                     <!-- 2x2 grid of other buttons -->
@@ -30,7 +30,7 @@
                     </div>
                     <div class="button-row">
                         <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/13ChFbZGavVREYhuHa2vPmY_SQCH5IuecG_Nw2LbL3t4/edit?gid=1763151684#gid=1763151684" class="test-plan-link config-codes-link" target="_blank">Config Codes</a></div>
-                        <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/16xdQXvDj7JombdTCfBGR5toxyyYe4nk-kpPSfwiy6ic/edit?gid=589161712#gid=589161712" class="test-plan-link open-plan-link" target="_blank">Open Test Plan</a></div>
+                        <div class="button-cell"><a href="https://empoweredhomes.atlassian.net/issues/?filter=10480" class="test-plan-link open-plan-link" target="_blank">Open Test Plan</a></div>
                     </div>
                 </div>
                 
@@ -59,7 +59,7 @@
             </div>
             <div class="header-right">
                 <div class="env-data-container">
-                    <h3>Temperature and Humidity of LV</h3>
+                    <h3>Temperature and Humidity of MYSA</h3>
                     <div class="chart-container">
                         <canvas id="env-chart"></canvas>
                     </div>
@@ -96,15 +96,13 @@
                     <div class="button-group">
                         <button id="lunch-idea-button" class="primary lunch-button">Lunch Idea <span class="lightbulb">💡</span></button>
                         <button id="work-tasks-button" class="primary work-tasks-button">Work Tasks <span class="tasks-icon">📋</span></button>
-                        <button id="bug-list-button" class="primary bug-list-button">Bug List <span class="bug-icon">🐞</span></button>
+                        <a href="https://empoweredhomes.atlassian.net/issues/?filter=10571" target="_blank" id="bug-list-button" class="primary bug-list-button">Bug List <span class="bug-icon">🐞</span></a>
                         <button id="todays-sports-button" class="primary sports-button">Today's Sports <span class="sports-icon">🏆</span></button>
                     </div>
                 </div>
             </div>
             
             <div id="connection-status">Not connected</div>
-            
-            <!-- Command Input Section Removed -->
         </div>
         
         <!-- Current Test Case Display Box -->
@@ -124,7 +122,7 @@
         <div class="logs-wrapper">
             <div class="log-container">
                 <div class="log-header">
-                    <h2>LV Device Logging</h2>
+                    <h2>MYSA Device Logging</h2>
                     <div class="filter-container">
                         <select id="log-filter">
                             <option value="full">Full</option>
@@ -230,28 +228,6 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Test Plan Section -->
-        <div id="test-plan" class="test-plan-container">
-            <div class="test-plan-header">
-                <h2>LV Test Plan</h2>
-                <div class="test-plan-controls">
-                    <button id="refresh-test-plan" class="small-button">Refresh Test Plan</button>
-                </div>
-            </div>
-            
-            <div class="test-plan-content">
-                <div class="test-plan-tabs" id="test-plan-tabs">
-                    <!-- Sheet tabs will be added here dynamically -->
-                </div>
-                <div class="test-plan-table-container" id="test-plan-table-container">
-                    <!-- Table will be added here dynamically -->
-                    <div class="test-plan-placeholder">Upload a test plan Excel file to view its contents</div>
-                </div>
-            </div>
-        </div>
-        
-        <div id="notification" class="hidden"></div>
     </div>
     
     <!-- Work Tasks Overlay -->
@@ -259,70 +235,89 @@
         <div class="tasks-window">
             <div class="tasks-header">
                 <h2>Work Tasks</h2>
-                <button id="tasks-close" class="tasks-close">&times;</button>
+                <button id="close-tasks" class="close-button">&times;</button>
             </div>
             <div class="tasks-content">
-                <textarea id="tasks-textarea" class="tasks-textarea" placeholder="Enter your work tasks here..."></textarea>
-            </div>
-            <div class="tasks-footer">
-                <button id="tasks-save" class="tasks-save">Save Tasks</button>
-                <button id="tasks-export" class="tasks-export">Export to TXT</button>
+                <div class="add-task-form">
+                    <input type="text" id="new-task-input" placeholder="Add a new task...">
+                    <button id="add-task-button">Add Task</button>
+                </div>
+                <div class="tasks-list" id="tasks-list">
+                    <!-- Tasks will be added here dynamically -->
+                </div>
             </div>
         </div>
     </div>
     
     <!-- Bug List Overlay -->
-    <div id="bug-list-overlay" class="tasks-overlay">
-        <div class="tasks-window bug-list-window">
+    <div id="bug-overlay" class="tasks-overlay">
+        <div class="tasks-window bug-window">
             <div class="tasks-header">
-                <h2>Real-Time LV Bug List</h2>
-                <button id="bug-list-close" class="tasks-close">&times;</button>
+                <h2>Bug List</h2>
+                <button id="close-bugs" class="close-button">&times;</button>
             </div>
-            <div class="tasks-content bug-list-content">
-                <div class="bug-list-loading">Loading bug list...</div>
-                <div class="bug-list-error" style="display: none;">Error loading bug list. Please try again.</div>
-                <div class="bug-list-container" style="display: none;">
-                    <div class="bug-list-filters">
-                        <label for="reporter-filter">Reporter:</label>
-                        <select id="reporter-filter" class="reporter-filter">
-                            <option value="adam">Adam Mior</option>
-                            <option value="all">All</option>
-                            <option value="currentuser">Current User</option>
-                        </select>
-                    </div>
-                    <div class="bug-list-summary">
-                        <div class="bug-count-total">Total Bugs: <span id="bug-count-total">0</span></div>
-                        <div class="bug-count-by-priority">
-                            <span class="priority-highest">Highest: <span id="bug-count-highest">0</span></span>
-                            <span class="priority-high">High: <span id="bug-count-high">0</span></span>
-                            <span class="priority-medium">Medium: <span id="bug-count-medium">0</span></span>
-                            <span class="priority-low">Low: <span id="bug-count-low">0</span></span>
-                        </div>
-                    </div>
-                    <table class="bug-list-table">
-                        <thead>
-                            <tr>
-                                <th class="sortable" data-sort="key">Key <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-sort="reporter">Reporter <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-sort="summary">Summary <span class="sort-icon">↕</span></th>
-                                <th class="sortable" data-sort="priority">Risk Profile <span class="sort-icon">↕</span></th>
-                            </tr>
-                        </thead>
-                        <tbody id="bug-list-tbody">
-                            <!-- Bug list items will be inserted here -->
-                        </tbody>
-                    </table>
+            <div class="tasks-content">
+                <div class="add-task-form">
+                    <input type="text" id="new-bug-input" placeholder="Add a new bug...">
+                    <button id="add-bug-button">Add Bug</button>
                 </div>
-            </div>
-            <div class="tasks-footer">
-                <button id="bug-list-refresh" class="tasks-save">Refresh</button>
+                <div class="tasks-list" id="bugs-list">
+                    <!-- Bugs will be added here dynamically -->
+                </div>
             </div>
         </div>
     </div>
-
+    
+    <!-- Sports Overlay -->
+    <div id="sports-overlay" class="tasks-overlay">
+        <div class="tasks-window sports-window">
+            <div class="tasks-header">
+                <h2>Today's Sports</h2>
+                <button id="close-sports" class="close-button">&times;</button>
+            </div>
+            <div class="sports-content">
+                <div class="sports-tabs">
+                    <button class="sports-tab active" data-league="nba">NBA</button>
+                    <button class="sports-tab" data-league="nhl">NHL</button>
+                    <button class="sports-tab" data-league="mlb">MLB</button>
+                    <button class="sports-tab" data-league="nfl">NFL</button>
+                    <button class="sports-tab" data-league="golf">Golf</button>
+                    <button class="sports-tab" data-league="wnba">WNBA</button>
+                    <button class="sports-tab" data-league="mls">MLS</button>
+                </div>
+                <div class="sports-data" id="sports-data">
+                    <div class="loading-sports">Loading sports data...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification -->
+    <div id="notification" class="notification">
+        <div class="notification-content">
+            <span id="notification-message"></span>
+            <button id="close-notification" class="close-notification">&times;</button>
+        </div>
+    </div>
+    
+    <!-- Refresh Test Plan Button -->
+    <button id="refresh-test-plan" class="refresh-button" title="Refresh Test Plan">
+        <span class="refresh-icon">🔄</span>
+    </button>
+    
+    <div id="test-plan" class="test-plan">
+        <h2>MYSA Test Plan</h2>
+        <div id="test-plan-tabs" class="test-plan-tabs">
+            <!-- Tabs will be added here dynamically -->
+        </div>
+        <div id="test-plan-table-container" class="test-plan-table-container">
+            <!-- Table will be added here dynamically -->
+        </div>
+    </div>
+    
     <script src="/socket.io/socket.io.js"></script>
     <script src="quotes.js"></script>
-    <script src="print-functions.js"></script>
     <script src="main.js"></script>
+    <script src="print-functions.js"></script>
 </body>
 </html>

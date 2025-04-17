@@ -276,8 +276,14 @@ function init() {
     
     // Function to open the Jira page directly
     function openJiraPage() {
-        // Direct link to the actual Jira page
-        window.open('https://empoweredhomes.atlassian.net/jira/software/c/projects/LV/issues/?jql=project%20%3D%20%22LV%22%20AND%20reporter%20%3D%2062726ff1106b60006f583820%20ORDER%20BY%20created%20DESC', '_blank');
+        // Check if we're on the MYSA Logger page
+        if (window.location.pathname.includes('mysa-logger')) {
+            // MYSA Jira filter
+            window.open('https://empoweredhomes.atlassian.net/issues/?filter=10571', '_blank');
+        } else {
+            // LV Jira filter
+            window.open('https://empoweredhomes.atlassian.net/jira/software/c/projects/LV/issues/?jql=project%20%3D%20%22LV%22%20AND%20reporter%20%3D%2062726ff1106b60006f583820%20ORDER%20BY%20created%20DESC', '_blank');
+        }
     }
     
     // Function to show today's sports events
@@ -4640,7 +4646,10 @@ function initializeEnvChart() {
                     max: 100,
                     ticks: {
                         stepSize: 5,
-                        color: 'rgba(255, 255, 255, 0.7)'
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        font: {
+                            size: 13
+                        }
                     },
                     grid: {
                         color: 'rgba(255, 255, 255, 0.1)'
@@ -4654,7 +4663,10 @@ function initializeEnvChart() {
                         color: 'rgba(255, 255, 255, 0.7)',
                         maxRotation: 0,
                         autoSkip: true,
-                        maxTicksLimit: 5
+                        maxTicksLimit: 5,
+                        font: {
+                            size: 13
+                        }
                     }
                 }
             },
@@ -4665,7 +4677,10 @@ function initializeEnvChart() {
                     labels: {
                         color: 'rgba(255, 255, 255, 0.7)',
                         boxWidth: 12,
-                        padding: 10
+                        padding: 10,
+                        font: {
+                            size: 14
+                        }
                     }
                 },
                 tooltip: {
