@@ -1384,49 +1384,66 @@ function updateHiddenLogWindow() {
     // Create a document fragment for batch DOM operations
     const fragment = document.createDocumentFragment();
     
-    // Only show the last 50 hidden entries to avoid performance issues
-    const startIndex = Math.max(0, hiddenEntries.length - 50);
+    // Create a header with total count
+    const totalCountHeader = document.createElement('div');
+    totalCountHeader.className = 'hidden-count-header';
+    totalCountHeader.innerHTML = `<strong>Total Hidden Entries: ${hiddenEntries.length}</strong>`;
+    fragment.appendChild(totalCountHeader);
     
-    // Render the hidden entries
-    for (let i = startIndex; i < hiddenEntries.length; i++) {
-        const entry = hiddenEntries[i];
-        const hiddenEntry = document.createElement('div');
-        hiddenEntry.className = 'log-entry';
-        
-        // Create timestamp element if needed
-        if (entry.timestamp) {
-            const timestampElement = document.createElement('span');
-            timestampElement.className = 'log-timestamp';
-            timestampElement.textContent = formatTimestamp(entry.timestamp);
-            hiddenEntry.appendChild(timestampElement);
-        }
-        
-        // Create message element
-        const messageElement = document.createElement('span');
-        messageElement.className = 'log-message';
-        
-        // Handle special characters and control codes
-        let formattedMessage = entry.message
-            .replace(/\r\n|\r|\n/g, '<br>')
-            .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
-            .replace(/ /g, '&nbsp;');
-        
-        // Apply color coding
-        formattedMessage = applyColorCoding(formattedMessage);
-        messageElement.innerHTML = formattedMessage;
-        
-        // Add message element to the hidden entry
-        hiddenEntry.appendChild(messageElement);
-        
-        // Add to fragment
-        fragment.appendChild(hiddenEntry);
+    // Group entries by the filter pattern that hid them
+    if (filterToHiddenEntriesMap.size > 0) {
+        // For each filter pattern, show one example with count
+        filterToHiddenEntriesMap.forEach((entries, pattern) => {
+            if (entries.length === 0) return;
+            
+            // Create a container for this pattern group
+            const patternGroup = document.createElement('div');
+            patternGroup.className = 'hidden-pattern-group';
+            
+            // Create header with pattern and count
+            const patternHeader = document.createElement('div');
+            patternHeader.className = 'hidden-pattern-header';
+            patternHeader.innerHTML = `<strong>Pattern: "${pattern}"</strong> <span class="hidden-count">(${entries.length} occurrences)</span>`;
+            patternGroup.appendChild(patternHeader);
+            
+            // Show just one example of this pattern
+            const exampleEntry = entries[entries.length - 1]; // Use the most recent example
+            const exampleDiv = document.createElement('div');
+            exampleDiv.className = 'hidden-example log-entry';
+            
+            // Create timestamp element if needed
+            if (exampleEntry.timestamp) {
+                const timestampElement = document.createElement('span');
+                timestampElement.className = 'log-timestamp';
+                timestampElement.textContent = formatTimestamp(exampleEntry.timestamp);
+                exampleDiv.appendChild(timestampElement);
+            }
+            
+            // Create message element for the example
+            const messageElement = document.createElement('span');
+            messageElement.className = 'log-message';
+            
+            // Handle special characters and control codes
+            let formattedMessage = exampleEntry.message
+                .replace(/\r\n|\r|\n/g, '<br>')
+                .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+                .replace(/ /g, '&nbsp;');
+            
+            // Apply color coding
+            formattedMessage = applyColorCoding(formattedMessage);
+            messageElement.innerHTML = formattedMessage;
+            
+            // Add message element to the example entry
+            exampleDiv.appendChild(messageElement);
+            patternGroup.appendChild(exampleDiv);
+            
+            // Add the pattern group to the fragment
+            fragment.appendChild(patternGroup);
+        });
     }
     
     // Add all entries to the DOM in a single operation
     hiddenLogWindow.appendChild(fragment);
-    
-    // Auto-scroll the hidden log window
-    hiddenLogWindow.scrollTop = hiddenLogWindow.scrollHeight;
 }
 
 // Current filter selection
@@ -1455,60 +1472,38 @@ function renderVisibleLogEntries(filter) {
         // Show all logs
         filteredEntries = [...logEntries];
     } else if (currentFilter === 'setpoint') {
-        // Filter for entries containing 'Setpoint Updated' and include context
-        const targetPhrase = 'Setpoint Updated';
-        const menuMarker = 'Entering menu: Setpoint Menu';
-        const contextAfter = 2;  // Show 2 logs after
+        // Filter for entries containing 'update_hvac_state' or 'out of range. min'
+        const targetPhrases = ['update_hvac_state', 'out of range. min'];
         
-        console.log('Starting setpoint filtering for "Setpoint Updated" with context...');
+        console.log('Starting setpoint filtering for target phrases:', targetPhrases);
         
-        // Find all entries containing the target phrase and include context
+        // Find all entries containing any of the target phrases - EXACT MATCHES ONLY
         let setpointEntries = [];
-        let addedIndices = new Set(); // Track which entries we've already added
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
             
-            // Check if this entry contains the target phrase
-            if (entry.message && entry.message.includes(targetPhrase)) {
-                console.log('Found "Setpoint Updated" at index:', i, 'with message:', entry.message);
-                
-                // Find the most recent 'Entering menu: Setpoint Menu' entry
-                let menuEntryIndex = -1;
-                for (let j = i - 1; j >= 0; j--) {
-                    if (logEntries[j].message && logEntries[j].message.includes(menuMarker)) {
-                        menuEntryIndex = j;
-                        break;
-                    }
+            // Skip if no message
+            if (!entry.message) continue;
+            
+            // Check if this entry contains any of the target phrases (case insensitive)
+            const lowerMessage = entry.message.toLowerCase();
+            let matchFound = false;
+            let matchedPhrase = '';
+            
+            for (const phrase of targetPhrases) {
+                if (lowerMessage.includes(phrase.toLowerCase())) {
+                    matchFound = true;
+                    matchedPhrase = phrase;
+                    break;
                 }
+            }
+            
+            if (matchFound) {
+                console.log(`Found "${matchedPhrase}" at index:`, i, 'with message:', entry.message);
                 
-                // Add all entries from menu marker to the target entry
-                if (menuEntryIndex !== -1) {
-                    console.log('Found menu marker at index:', menuEntryIndex, 'with message:', logEntries[menuEntryIndex].message);
-                    for (let j = menuEntryIndex; j < i; j++) {
-                        if (!addedIndices.has(j)) {
-                            setpointEntries.push(logEntries[j]);
-                            addedIndices.add(j);
-                        }
-                    }
-                } else {
-                    console.log('No menu marker found before "Setpoint Updated" at index:', i);
-                }
-                
-                // Add the target entry
-                if (!addedIndices.has(i)) {
-                    setpointEntries.push(entry);
-                    addedIndices.add(i);
-                }
-                
-                // Add entries after (context)
-                const endIdx = Math.min(logEntries.length - 1, i + contextAfter);
-                for (let j = i + 1; j <= endIdx; j++) {
-                    if (!addedIndices.has(j)) {
-                        setpointEntries.push(logEntries[j]);
-                        addedIndices.add(j);
-                    }
-                }
+                // Add ONLY the matching entry - no context
+                setpointEntries.push(entry);
             }
         }
         
@@ -1517,34 +1512,18 @@ function renderVisibleLogEntries(filter) {
         console.log('First few setpoint entries:', filteredEntries.slice(0, 5).map(e => e.message));
         console.log('Last few setpoint entries:', filteredEntries.slice(-5).map(e => e.message));
     } else if (currentFilter === 'mode') {
-        // Filter for entries between specific markers
-        const startMarker = 'app_menu_controller: Entering menu: Mode Menu';
-        const endMarker = 'persistence: Successfully wrote 180 bytes to flash';
+        // Filter for entries containing 'update_hvac_state'
+        const targetPhrase = 'update_hvac_state';
         
-        // Find all entries between the start and end markers
+        // Find all entries containing the target phrase
         let modeEntries = [];
-        let inModeSection = false;
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
             
-            // Check if this is the start marker
-            if (entry.message && entry.message.includes(startMarker)) {
-                inModeSection = true;
+            // Check if this entry contains the target phrase
+            if (entry.message && entry.message.toLowerCase().includes(targetPhrase.toLowerCase())) {
                 modeEntries.push(entry);
-                console.log('Found mode start marker at index:', i, 'with message:', entry.message);
-                continue;
-            }
-            
-            // If we're in the section, add the entry
-            if (inModeSection) {
-                modeEntries.push(entry);
-                
-                // Check if this is the end marker
-                if (entry.message && entry.message.includes(endMarker)) {
-                    console.log('Found mode end marker at index:', i, 'with message:', entry.message);
-                    inModeSection = false;
-                }
             }
         }
         
@@ -1637,32 +1616,22 @@ function renderVisibleLogEntries(filter) {
         console.log('First few boot entries:', filteredEntries.slice(0, 5).map(e => e.message));
         console.log('Last few boot entries:', filteredEntries.slice(-5).map(e => e.message));
     } else if (currentFilter === 'options') {
-        // Filter for entries containing 'preferences_helpers' with 3 lines before and 9 lines after
+        // Filter for entries containing 'preferences_helpers' - EXACT MATCHES ONLY
         const targetMarker = 'preferences_helpers';
-        console.log('Starting options filtering...');
+        console.log('Starting options filtering for exact matches of:', targetMarker);
         
-        // Find all entries containing the target marker and include context
+        // Find all entries containing the target marker - NO CONTEXT
         let optionsEntries = [];
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
             
-            // Check if this entry contains the target marker
-            if (entry.message && entry.message.includes(targetMarker)) {
+            // Check if this entry contains the target marker (case insensitive)
+            if (entry.message && entry.message.toLowerCase().includes(targetMarker.toLowerCase())) {
                 console.log('Found options marker at index:', i, 'with message:', entry.message);
                 
-                // Add 3 lines before if available
-                for (let j = Math.max(0, i - 3); j < i; j++) {
-                    optionsEntries.push(logEntries[j]);
-                }
-                
-                // Add the current line
+                // Add ONLY the matching entry - no context
                 optionsEntries.push(entry);
-                
-                // Add 9 lines after if available
-                for (let j = i + 1; j <= Math.min(logEntries.length - 1, i + 9); j++) {
-                    optionsEntries.push(logEntries[j]);
-                }
             }
         }
         
