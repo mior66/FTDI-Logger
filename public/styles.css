@@ -113,7 +113,7 @@ header {
 }
 
 /* Lunch Idea Button, Work Tasks Button, Bug List Button, and Sports Button */
-.lunch-button, .work-tasks-button, .bug-list-button, .sports-button, .dark-mode-button {
+.lunch-button, .work-tasks-button, .bug-list-button, .sports-button {
     margin-left: 3px; /* Even smaller margin between buttons */
     margin-right: 3px;
     font-size: 0.9em;
@@ -165,11 +165,7 @@ header {
     background-color: #7B1FA2;
 }
 
-.dark-mode-button:hover {
-    background-color: #303030;
-}
-
-.lightbulb, .tasks-icon, .bug-icon, .sports-icon, .dark-mode-icon {
+.lightbulb, .tasks-icon, .bug-icon, .sports-icon {
     margin-left: 5px;
     font-size: 1.1em;
 }

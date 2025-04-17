@@ -150,13 +150,7 @@ function init() {
         printErrorsButton.addEventListener('click', printErrors);
     }
     
-    // Set up dark mode button event listener
-    const darkModeButton = document.getElementById('dark-mode-button');
-    if (darkModeButton) {
-        darkModeButton.addEventListener('click', function() {
-            showNotification('Feature Coming Soon', 'info');
-        });
-    }
+    // Dark mode feature removed
     
     // Set up hidden filter input event listeners
     const addHiddenFilterButton = document.getElementById('add-hidden-filter');
