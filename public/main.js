@@ -1532,51 +1532,54 @@ function renderVisibleLogEntries(filter) {
         console.log('First few mode entries:', filteredEntries.slice(0, 5).map(e => e.message));
         console.log('Last few mode entries:', filteredEntries.slice(-5).map(e => e.message));
     } else if (currentFilter === 'temp') {
-        // Filter for entries between telemetry JSON markers
-        const startMarker = 'telemetry-sender: JSON: {';
-        const endMarker = '}';
+        // Filter for entries containing specific temperature-related keywords
+        const targetPhrases = [
+            'rawTemperature',
+            'coreTemperature',
+            'probeTemperature',
+            'stageOneHeatOnTime',
+            'stageTwoCoolOnTime',
+            'hvacState',
+            'roomTemperature',
+            'humidity'
+        ];
         
-        console.log('Starting telemetry JSON filtering...');
+        console.log('Starting temperature data filtering for keywords:', targetPhrases);
         
-        // Find all entries between the start and end markers
-        let telemetryEntries = [];
-        let inTelemetrySection = false;
-        let openBraces = 0;
+        // Find all entries containing any of the target phrases
+        let tempEntries = [];
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
-            const message = entry.message || '';
             
-            // Check if this is the start marker
-            if (message.includes(startMarker)) {
-                inTelemetrySection = true;
-                openBraces = 1; // Count the opening brace in the start marker
-                telemetryEntries.push(entry);
-                console.log('Found telemetry JSON start at index:', i, 'with message:', message);
-                continue;
+            // Skip if no message
+            if (!entry.message) continue;
+            
+            // Check if this entry contains any of the target phrases (case insensitive)
+            const lowerMessage = entry.message.toLowerCase();
+            let matchFound = false;
+            let matchedPhrase = '';
+            
+            for (const phrase of targetPhrases) {
+                if (lowerMessage.includes(phrase.toLowerCase())) {
+                    matchFound = true;
+                    matchedPhrase = phrase;
+                    break;
+                }
             }
             
-            // If we're in a telemetry section, add the entry
-            if (inTelemetrySection) {
-                telemetryEntries.push(entry);
+            if (matchFound) {
+                console.log(`Found "${matchedPhrase}" at index:`, i, 'with message:', entry.message);
                 
-                // Count braces to handle nested JSON structures
-                const openBracesInLine = (message.match(/\{/g) || []).length;
-                const closeBracesInLine = (message.match(/\}/g) || []).length;
-                openBraces += openBracesInLine - closeBracesInLine;
-                
-                // If we've reached the end (balanced braces), end the section
-                if (openBraces <= 0) {
-                    console.log('Found telemetry JSON end at index:', i, 'with message:', message);
-                    inTelemetrySection = false;
-                }
+                // Add ONLY the matching entry - no context
+                tempEntries.push(entry);
             }
         }
         
-        filteredEntries = telemetryEntries;
-        console.log('Telemetry JSON entries:', filteredEntries.length);
-        console.log('First few telemetry entries:', filteredEntries.slice(0, 5).map(e => e.message));
-        console.log('Last few telemetry entries:', filteredEntries.slice(-5).map(e => e.message));
+        filteredEntries = tempEntries;
+        console.log('Temperature filtered entries:', filteredEntries.length);
+        console.log('First few temperature entries:', filteredEntries.slice(0, 5).map(e => e.message));
+        console.log('Last few temperature entries:', filteredEntries.slice(-5).map(e => e.message));
     } else if (currentFilter === 'boot') {
         // Filter for entries between specific markers for boot-related logs
         const startMarker = 'ESP-ROM:esp32s3';
