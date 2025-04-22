@@ -4554,25 +4554,46 @@ function updateHumidityData(humidity) {
 function addDataPoint(type, value) {
     const now = new Date();
     const timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const isMysa = window.location.pathname.includes('mysa-logger');
     
-    // If this is a new time point, add it to the labels
-    if (timeLabels.length === 0 || timeLabels[timeLabels.length - 1] !== timeLabel) {
+    // For MYSA page with setpoint data, always add a new data point
+    if (isMysa && type === 'setpoint') {
+        // Always add a new time label and data point for setpoints
+        // Use just the time without seconds to avoid the 12:01 PM:02 format
         timeLabels.push(timeLabel);
-        temperatureData.push(type === 'temperature' ? value : null);
-        humidityData.push(type === 'humidity' ? value : null);
+        temperatureData.push(value);
         
         // Limit the number of data points
         if (timeLabels.length > MAX_DATA_POINTS) {
             timeLabels.shift();
             temperatureData.shift();
-            humidityData.shift();
+        }
+    } 
+    // For other pages or data types, use the original logic
+    else if (timeLabels.length === 0 || timeLabels[timeLabels.length - 1] !== timeLabel) {
+        // If this is a new time point, add it to the labels
+        timeLabels.push(timeLabel);
+        
+        if (!isMysa) {
+            // For other pages, maintain original functionality
+            temperatureData.push(type === 'temperature' ? value : null);
+            humidityData.push(type === 'humidity' ? value : null);
+            
+            // Limit the number of data points
+            if (timeLabels.length > MAX_DATA_POINTS) {
+                timeLabels.shift();
+                temperatureData.shift();
+                humidityData.shift();
+            }
         }
     } else {
-        // Update the latest data point
-        if (type === 'temperature') {
-            temperatureData[temperatureData.length - 1] = value;
-        } else if (type === 'humidity') {
-            humidityData[humidityData.length - 1] = value;
+        // Update the latest data point (only for non-MYSA pages)
+        if (!isMysa) {
+            if (type === 'temperature') {
+                temperatureData[temperatureData.length - 1] = value;
+            } else if (type === 'humidity') {
+                humidityData[humidityData.length - 1] = value;
+            }
         }
     }
     
@@ -4580,11 +4601,11 @@ function addDataPoint(type, value) {
     if (envChart) {
         // Filter out null values
         const validTempData = temperatureData.filter(val => val !== null);
-        const validHumidityData = humidityData.filter(val => val !== null);
+        const validHumidityData = isMysa ? [] : humidityData.filter(val => val !== null);
         
         // Only adjust if we have data
         if (validTempData.length > 0 || validHumidityData.length > 0) {
-            // Find min and max values for both datasets
+            // Find min and max values for datasets
             const allValues = [...validTempData, ...validHumidityData];
             if (allValues.length > 0) {
                 const minValue = Math.floor(Math.min(...allValues) / 5) * 5;
@@ -4609,43 +4630,74 @@ function addDataPoint(type, value) {
 
 // Initialize the environment data chart
 function initializeEnvChart() {
-    const ctx = document.getElementById('env-chart').getContext('2d');
+    const ctx = document.getElementById('env-chart');
+    if (!ctx) return; // Exit if chart element doesn't exist
     
+    // Reset data arrays
+    timeLabels = [];
+    temperatureData = [];
+    humidityData = [];
+    
+    // Check if we're on the MYSA logger page
+    const isMysa = window.location.pathname.includes('mysa-logger');
+    
+    // Configure datasets based on page type
+    let datasets = [];
+    
+    if (isMysa) {
+        // For MYSA page, only track setpoint values
+        datasets = [
+            {
+                label: ' ', // Empty label to remove the 'Setpoint' text from the legend
+                data: temperatureData,
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 2
+            }
+        ];
+    } else {
+        // For other pages, maintain original functionality
+        datasets = [
+            {
+                label: 'Temp °',
+                data: temperatureData,
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 2
+            },
+            {
+                label: 'Humidity %',
+                data: humidityData,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 2
+            }
+        ];
+    }
+    
+    // Create the chart
     envChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: timeLabels,
-            datasets: [
-                {
-                    label: 'Temp °',
-                    data: temperatureData,
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    pointRadius: 2
-                },
-                {
-                    label: 'Humidity %',
-                    data: humidityData,
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    pointRadius: 2
-                }
-            ]
+            datasets: datasets
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
                 y: {
-                    beginAtZero: false,
-                    min: 0,
-                    max: 100,
+                    beginAtZero: isMysa ? true : false,
+                    min: isMysa ? 0 : undefined,
+                    max: isMysa ? 40 : undefined,
                     ticks: {
-                        stepSize: 5,
+                        stepSize: isMysa ? 5 : undefined,
                         color: 'rgba(255, 255, 255, 0.7)',
                         font: {
                             size: 13
@@ -4653,6 +4705,10 @@ function initializeEnvChart() {
                     },
                     grid: {
                         color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    title: {
+                        display: true,
+                        text: isMysa ? 'Setpoint (Celsius°)' : 'Value'
                     }
                 },
                 x: {
@@ -4661,17 +4717,19 @@ function initializeEnvChart() {
                     },
                     ticks: {
                         color: 'rgba(255, 255, 255, 0.7)',
-                        maxRotation: 0,
-                        autoSkip: true,
-                        maxTicksLimit: 5,
                         font: {
                             size: 13
                         }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Time'
                     }
                 }
             },
             plugins: {
                 legend: {
+                    display: isMysa ? false : true,
                     position: 'left',
                     align: 'start',
                     labels: {
@@ -4784,8 +4842,8 @@ function sendThermostatCommand(command) {
 // Check for thermostat mode and setpoint information in log messages
 function checkForThermostatInfo(message) {
     // Check for MYSA setpoint log format
-    // Example: "INFO  |       17620 |     setpoint | pending - celsius:9.000000 fahrenheit:48.200000 src:0 issued:0 applied:0 units:0 id:6324325334918405061"
-    if (message.includes('setpoint | pending - celsius:')) {
+    // Example: "INFO  |       17620 |     setpoint | current - celsius:9.000000 fahrenheit:48.200000 src:0 issued:0 applied:0 units:0 id:6324325334918405061"
+    if (message.includes('setpoint | current - celsius:')) {
         try {
             // Extract the celsius setpoint value
             const setpointMatch = message.match(/celsius:(\d+\.\d+)/);
@@ -4797,6 +4855,11 @@ function checkForThermostatInfo(message) {
                 
                 // Update the setpoint display
                 thermostatSetpoint.textContent = `${roundedSetpoint}°C`;
+                
+                // Add setpoint data to the chart if we're on the MYSA page
+                if (window.location.pathname.includes('mysa-logger')) {
+                    addDataPoint('setpoint', roundedSetpoint);
+                }
                 
                 console.log(`Detected MYSA setpoint update: ${roundedSetpoint}°C (from ${setpoint}°C)`);
             }
@@ -4853,6 +4916,11 @@ function checkForThermostatInfo(message) {
                 // Update the setpoint display
                 thermostatSetpoint.textContent = `${setpoint}°C`;
                 
+                // Add setpoint data to the chart if we're on the MYSA page
+                if (window.location.pathname.includes('mysa-logger')) {
+                    addDataPoint('setpoint', parseFloat(setpoint));
+                }
+                
                 console.log(`Detected heating setpoint from hvac_controller: ${setpoint}°C`);
             }
         } catch (error) {
@@ -4876,6 +4944,11 @@ function checkForThermostatInfo(message) {
                 // Always update the setpoint
                 thermostatSetpoint.textContent = `${setpoint}°C`;
                 
+                // Add setpoint data to the chart if we're on the MYSA page
+                if (window.location.pathname.includes('mysa-logger')) {
+                    addDataPoint('setpoint', setpoint);
+                }
+                
                 console.log(`Detected heating setpoint update: ${setpoint}°C, Mode: ${thermostatMode.textContent}`);
             }
         } catch (error) {
@@ -4895,6 +4968,11 @@ function checkForThermostatInfo(message) {
                 thermostatMode.textContent = 'Cool';
                 thermostatMode.className = 'status-value cool';
                 thermostatSetpoint.textContent = `${setpoint}°C`;
+                
+                // Add setpoint data to the chart if we're on the MYSA page
+                if (window.location.pathname.includes('mysa-logger')) {
+                    addDataPoint('setpoint', setpoint);
+                }
                 
                 console.log(`Detected cooling mode with setpoint: ${setpoint}°C`);
             }
@@ -5030,10 +5108,28 @@ function checkForAppVersion(message) {
     }
 }
 
-// Check for temperature unit information in log messages
+// Check for DID information in log messages (MYSA page) or temperature unit (LV page)
 function checkForTemperatureUnit(message) {
-    // Check for temperature unit information
-    if (message.includes('preferences_helpers: set_preferences_temperature_unit:')) {
+    // Check for MYSA DID information
+    // Example: "10:59:55.262 INFO  |          40 |  device info | hwid: ac67b27202d0 - Sample of DID line which is ac67b27202d0"
+    if (message.includes('device info | hwid:')) {
+        try {
+            // Extract the DID value
+            const didMatch = message.match(/hwid:\s+([a-zA-Z0-9]+)/);
+            if (didMatch && didMatch[1]) {
+                const did = didMatch[1];
+                
+                // Update the DID display
+                tempUnit.textContent = did;
+                
+                console.log(`Detected MYSA DID: ${did}`);
+            }
+        } catch (error) {
+            console.error('Error parsing MYSA DID:', error);
+        }
+    }
+    // Check for LV temperature unit information (legacy format)
+    else if (message.includes('preferences_helpers: set_preferences_temperature_unit:')) {
         try {
             // Extract the temperature unit value
             const unitMatch = message.match(/preferences_helpers: set_preferences_temperature_unit:\s+(\d+)/);
@@ -5055,27 +5151,50 @@ function checkForTemperatureUnit(message) {
     }
 }
 
-// Check for language information in log messages
+// Check for Device Type information in log messages (MYSA page) or language (LV page)
 function checkForLanguage(message) {
-    // Check for language information
-    if (message.includes('preferences_helpers: set_preferences_language:')) {
+    // Check for MYSA Device Type information
+    // Example: "10:59:55.246 INFO  |          40 |  device info | ctrl: BB-V2-0 pwr: Not Available - Device Type is BB-V2-0"
+    if (message.includes('device info | ctrl:')) {
+        try {
+            // Extract the Device Type value
+            const deviceTypeMatch = message.match(/ctrl:\s+([\w-]+)/);
+            if (deviceTypeMatch && deviceTypeMatch[1]) {
+                const deviceType = deviceTypeMatch[1];
+                
+                // Update the Device Type display
+                language.textContent = deviceType;
+                
+                console.log(`Detected MYSA Device Type: ${deviceType}`);
+            }
+        } catch (error) {
+            console.error('Error parsing MYSA Device Type:', error);
+        }
+    }
+    // Check for LV language information (legacy format)
+    else if (message.includes('preferences_helpers: set_preferences_language:')) {
         try {
             // Extract the language value
             const langMatch = message.match(/preferences_helpers: set_preferences_language:\s+(\d+)/);
             if (langMatch && langMatch[1]) {
                 const langValue = parseInt(langMatch[1]);
                 
-                // Update the language display (1 = French, 0 = English)
-                if (langValue === 1) {
-                    language.textContent = 'F';
-                    console.log('Language set to French');
-                } else if (langValue === 0) {
-                    language.textContent = 'E';
-                    console.log('Language set to English');
+                // Update the language display based on the language value
+                switch (langValue) {
+                    case 0:
+                        language.textContent = 'EN';
+                        break;
+                    case 1:
+                        language.textContent = 'FR';
+                        break;
+                    default:
+                        language.textContent = `Lang ${langValue}`;
                 }
+                
+                console.log(`Detected language: ${language.textContent}`);
             }
         } catch (error) {
-            console.error('Error parsing language setting:', error);
+            console.error('Error parsing language:', error);
         }
     }
 }
