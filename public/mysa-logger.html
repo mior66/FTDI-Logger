@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MYSA FTDI Logger</title>
+    <link rel="stylesheet" href="styles.css?v=20250402">
+    <link rel="stylesheet" href="print-styles.css?v=20250407">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div id="quote-container" class="quote-container">
+            <p id="quote-text" class="quote-text"></p>
+        </div>
+        <header>
+            <div class="header-left">
+                <h1>MYSA FTDI Logger</h1>
+                <p class="subtitle">A sleek, real-time serial monitor for FTDI devices</p>
+                <div class="button-container">
+                    <!-- Switch Logger button on its own row -->
+                    <div class="button-row switch-row">
+                        <div class="button-cell switch-cell"><a href="/" class="test-plan-link switch-logger-link" target="_blank">Switch to LV Logger</a></div>
+                    </div>
+                    
+                    <!-- 2x2 grid of other buttons -->
+                    <div class="button-row">
+                        <div class="button-cell"><a href="#test-plan" class="test-plan-link">Select Test Case</a></div>
+                        <div class="button-cell"><a href="https://csp.mysa.cloud/" class="test-plan-link mysa-hq-link" target="_blank">CSP Check</a></div>
+                    </div>
+                    <div class="button-row">
+                        <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/13ChFbZGavVREYhuHa2vPmY_SQCH5IuecG_Nw2LbL3t4/edit?gid=1763151684#gid=1763151684" class="test-plan-link config-codes-link" target="_blank">Config Codes</a></div>
+                        <div class="button-cell"><a href="https://empoweredhomes.atlassian.net/issues/?filter=10480" class="test-plan-link open-plan-link" target="_blank">Open Test Plan</a></div>
+                    </div>
+                </div>
+                
+                <!-- Move Today's News button to be by Today's Sports -->
+                <script>
+                    // We'll add the Today's News button next to Today's Sports in JavaScript
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const sportsButton = document.getElementById('todays-sports-button');
+                        if (sportsButton && sportsButton.parentNode) {
+                            // Create a button that matches the style of the sports button
+                            const newsButton = document.createElement('button');
+                            newsButton.className = 'primary news-button';
+                            newsButton.style.marginLeft = '5px'; // Reduced spacing
+                            newsButton.innerHTML = "Today's News <span class=\"news-icon\">📰</span>";
+                            
+                            // Add click event to open CNN in a new tab
+                            newsButton.addEventListener('click', function() {
+                                window.open('https://www.cnn.com', '_blank');
+                            });
+                            
+                            // Insert after the sports button
+                            sportsButton.parentNode.insertBefore(newsButton, sportsButton.nextSibling);
+                        }
+                    });
+                </script>
+            </div>
+            <div class="header-right">
+                <div class="env-data-container">
+                    <h3>Temperature and Humidity of MYSA</h3>
+                    <div class="chart-container">
+                        <canvas id="env-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="connection-panel">
+            <div class="form-group">
+                <label for="port-select">Serial Port:</label>
+                <select id="port-select">
+                    <option value="">-- Select Port --</option>
+                </select>
+            </div>
+            
+
+            <div class="form-group">
+                <button id="connect-button" class="primary">Connect</button>
+                <button id="disconnect-button" disabled>Disconnect</button>
+                <button id="test-start-button" style="background-color: #FF8C00; color: white;" disabled>Start</button>
+                <button id="test-pass-button" style="background-color: #2e7d32; color: white;" disabled>Pass</button>
+                <button id="test-fail-button" style="background-color: #c62828; color: white;" disabled>Fail</button>
+                <div class="thermostat-status-inline">
+                    <span class="status-label">Mode:</span>
+                    <span id="thermostat-mode" class="status-value">Unknown</span>
+                    <span class="status-label">Setpoint:</span>
+                    <span id="thermostat-setpoint" class="status-value">--°C</span>
+                    <span class="status-label">App:</span>
+                    <span id="app-version" class="status-value">--</span>
+                    <span class="status-label">Temp:</span>
+                    <span id="temp-unit" class="status-value">--</span>
+                    <span class="status-label">Lang:</span>
+                    <span id="language" class="status-value">--</span>
+                    <div class="button-group">
+                        <button id="lunch-idea-button" class="primary lunch-button">Lunch Idea <span class="lightbulb">💡</span></button>
+                        <button id="work-tasks-button" class="primary work-tasks-button">Work Tasks <span class="tasks-icon">📋</span></button>
+                        <a href="https://empoweredhomes.atlassian.net/issues/?filter=10571" target="_blank" id="bug-list-button" class="primary bug-list-button">Bug List <span class="bug-icon">🐞</span></a>
+                        <button id="todays-sports-button" class="primary sports-button">Today's Sports <span class="sports-icon">🏆</span></button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="connection-status">Not connected</div>
+        </div>
+        
+        <!-- Current Test Case Display Box -->
+        <div class="selected-test-case-panel">
+            <div class="test-case-header">
+                <h3>Current Test Case</h3>
+                <div class="test-case-controls">
+                    <button id="export-selected-test-case" class="small-button export-button">Export</button>
+                    <button id="clear-selected-test-case" class="small-button">Clear</button>
+                </div>
+            </div>
+            <div id="selected-test-case-display">
+                <div class="test-case-placeholder">No test case selected. Select a test case from the Test Plan below.</div>
+            </div>
+        </div>
+        
+        <div class="logs-wrapper">
+            <div class="log-container">
+                <div class="log-header">
+                    <h2>MYSA Device Logging</h2>
+                    <div class="filter-container">
+                        <select id="log-filter">
+                            <option value="full">Full</option>
+                            <option value="app">App</option>
+                            <option value="boot">Boot</option>
+                            <option value="connection">Connection</option>
+                            <option value="mode">Mode</option>
+                            <option value="mqtt">MQTT</option>
+                            <option value="options">Options</option>
+                            <option value="setpoint">Setpoint</option>
+                            <option value="telemetry">Telemetry</option>
+                            <option value="temp">Temp</option>
+                            <option value="wifi">Wifi</option>
+                        </select>
+                    </div>
+                    <div class="controls-group">
+                        <div class="log-controls">
+                            <button id="clear-log">Clear Log</button>
+                            <button id="save-log">Save Log</button>
+                            <button id="print-log" class="print-button" title="Print Log"><i class="print-icon">🖨️</i></button>
+                        </div>
+                        <div class="right-controls">
+                            <div class="autoscroll-container">
+                                <input type="checkbox" id="autoscroll" checked>
+                                <label for="autoscroll" style="font-size: 12px;">Auto-scroll</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="log-window"></div>
+                <div class="hidden-log-container">
+                    <div class="hidden-log-header">
+                        <h3>Hidden:</h3>
+                        <div class="hidden-log-controls">
+                            <button id="clear-hidden-log">Clear Hidden</button>
+                            <button id="save-hidden-log">Save Log</button>
+                        </div>
+                    </div>
+                    <div class="hidden-filter-input">
+                        <input type="text" id="hidden-filter-text" placeholder="Enter text to filter from logs">
+                        <button id="add-hidden-filter">Add Filter</button>
+                    </div>
+                    <div id="hidden-log-window"></div>
+                    <div class="parsed-line-types">
+                        <h4>Active Filter Patterns:</h4>
+                        <div id="parsed-line-types-list"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="error-container">
+                <div class="log-header">
+                    <h2>Errors, Exceptions and Warnings</h2>
+                    <div class="controls-group">
+                        <div class="log-controls">
+                            <button id="clear-errors">Clear Errors</button>
+                            <button id="save-errors">Save Errors</button>
+                            <button id="print-errors" class="print-button" title="Print Errors"><i class="print-icon">🖨️</i></button>
+                        </div>
+                        <div class="autoscroll-container">
+                            <input type="checkbox" id="error-autoscroll" checked>
+                            <label for="error-autoscroll" style="font-size: 12px;">Auto-scroll</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="error-window"></div>
+                
+                <!-- Color Legend inside error container -->
+                <div class="color-legend">
+                    <h3>Color Legend (# of Occurrences)</h3>
+                    <div class="legend-items">
+                        <div class="legend-item clickable active" data-error-type="error">
+                            <div class="color-sample error-sample"></div>
+                            <span>Error</span>
+                            <span class="error-count" id="error-count">0</span>
+                        </div>
+                        <div class="legend-item clickable active" data-error-type="failure">
+                            <div class="color-sample failure-sample"></div>
+                            <span>Fail</span>
+                            <span class="error-count" id="failure-count">0</span>
+                        </div>
+                        <div class="legend-item clickable active" data-error-type="warning">
+                            <div class="color-sample warning-sample"></div>
+                            <span>Warning</span>
+                            <span class="error-count" id="warning-count">0</span>
+                        </div>
+                        <div class="legend-item clickable active" data-error-type="unexpected">
+                            <div class="color-sample unexpected-sample"></div>
+                            <span>Unexpected</span>
+                            <span class="error-count" id="unexpected-count">0</span>
+                        </div>
+                        <div class="legend-item clickable active" data-error-type="exception">
+                            <div class="color-sample exception-sample"></div>
+                            <span>Exception</span>
+                            <span class="error-count" id="exception-count">0</span>
+                        </div>
+                        <div class="legend-item clickable active" data-error-type="connection">
+                            <div class="color-sample connection-sample"></div>
+                            <span>Connection # > 7</span>
+                            <span class="error-count" id="connection-count">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Work Tasks Overlay -->
+    <div id="tasks-overlay" class="tasks-overlay">
+        <div class="tasks-window">
+            <div class="tasks-header">
+                <h2>Work Tasks</h2>
+                <button id="close-tasks" class="close-button">&times;</button>
+            </div>
+            <div class="tasks-content">
+                <div class="add-task-form">
+                    <input type="text" id="new-task-input" placeholder="Add a new task...">
+                    <button id="add-task-button">Add Task</button>
+                </div>
+                <div class="tasks-list" id="tasks-list">
+                    <!-- Tasks will be added here dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bug List Overlay -->
+    <div id="bug-overlay" class="tasks-overlay">
+        <div class="tasks-window bug-window">
+            <div class="tasks-header">
+                <h2>Bug List</h2>
+                <button id="close-bugs" class="close-button">&times;</button>
+            </div>
+            <div class="tasks-content">
+                <div class="add-task-form">
+                    <input type="text" id="new-bug-input" placeholder="Add a new bug...">
+                    <button id="add-bug-button">Add Bug</button>
+                </div>
+                <div class="tasks-list" id="bugs-list">
+                    <!-- Bugs will be added here dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sports Overlay -->
+    <div id="sports-overlay" class="tasks-overlay">
+        <div class="tasks-window sports-window">
+            <div class="tasks-header">
+                <h2>Today's Sports</h2>
+                <button id="close-sports" class="close-button">&times;</button>
+            </div>
+            <div class="sports-content">
+                <div class="sports-tabs">
+                    <button class="sports-tab active" data-league="nba">NBA</button>
+                    <button class="sports-tab" data-league="nhl">NHL</button>
+                    <button class="sports-tab" data-league="mlb">MLB</button>
+                    <button class="sports-tab" data-league="nfl">NFL</button>
+                    <button class="sports-tab" data-league="golf">Golf</button>
+                    <button class="sports-tab" data-league="wnba">WNBA</button>
+                    <button class="sports-tab" data-league="mls">MLS</button>
+                </div>
+                <div class="sports-data" id="sports-data">
+                    <div class="loading-sports">Loading sports data...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification -->
+    <div id="notification" class="notification">
+        <div class="notification-content">
+            <span id="notification-message"></span>
+            <button id="close-notification" class="close-notification">&times;</button>
+        </div>
+    </div>
+    
+    <!-- Refresh Test Plan Button -->
+    <button id="refresh-test-plan" class="refresh-button" title="Refresh Test Plan">
+        <span class="refresh-icon">🔄</span>
+    </button>
+    
+    <div id="test-plan" class="test-plan">
+        <h2>MYSA Test Plan</h2>
+        <div id="test-plan-tabs" class="test-plan-tabs">
+            <!-- Tabs will be added here dynamically -->
+        </div>
+        <div id="test-plan-table-container" class="test-plan-table-container">
+            <!-- Table will be added here dynamically -->
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="quotes.js"></script>
+    <script src="main.js"></script>
+    <script src="print-functions.js"></script>
+</body>
+</html>
