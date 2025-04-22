@@ -1,6 +1,6 @@
-# Adam's FTDI Logger
+# Adam's FTDI Logger 2
 
-A sleek, web-based application that listens to FTDI chips on USB ports and displays the logging in a real-time interface. This tool is designed to capture and display serial data from FTDI devices in a modern, user-friendly web interface, similar to CoolTerm but with web-based accessibility.
+A sleek, web-based application that listens to FTDI chips on USB ports and displays the logging in a real-time interface. This tool is designed to capture and display serial data from FTDI devices in a modern, user-friendly web interface, similar to CoolTerm but with web-based accessibility. This version includes enhanced support for both LV and MYSA device logging formats.
 
 ## Features
 
@@ -15,6 +15,12 @@ A sleek, web-based application that listens to FTDI chips on USB ports and displ
 - Clear log functionality
 - Responsive design for desktop and mobile devices
 - Proper handling of special characters and control codes
+- Advanced log filtering system with multiple preset and custom filters
+- Dual-mode support for both LV and MYSA device logging
+- Intelligent parsing of device-specific log formats:
+  - LV: hvac_controller format for mode and setpoint
+  - MYSA: setpoint detection from "celsius:X.X" format
+  - MYSA: app version detection from "Booted, Version: X.X.X.X" format
 
 ## Technical Details
 
@@ -34,8 +40,8 @@ A sleek, web-based application that listens to FTDI chips on USB ports and displ
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/ftdi-logger.git
-   cd ftdi-logger
+   git clone https://github.com/yourusername/FTDI-Logger2.git
+   cd FTDI-Logger2
    ```
 
 2. Install dependencies:
