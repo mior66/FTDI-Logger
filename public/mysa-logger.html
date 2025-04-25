@@ -23,9 +23,8 @@
                         <div class="button-cell switch-cell"><a href="/" class="test-plan-link switch-logger-link" target="_blank">Switch to LV Logger</a></div>
                     </div>
                     
-                    <!-- 2x2 grid of other buttons -->
+                    <!-- 1x2 grid of buttons -->
                     <div class="button-row">
-                        <div class="button-cell"><a href="#test-plan" class="test-plan-link">Select Test Case</a></div>
                         <div class="button-cell"><a href="https://csp.mysa.cloud/" class="test-plan-link mysa-hq-link" target="_blank">CSP Check</a></div>
                     </div>
                     <div class="button-row">
@@ -59,7 +58,7 @@
             </div>
             <div class="header-right">
                 <div class="env-data-container">
-                    <h3>Setpoint (Celsius°) of MYSA</h3>
+                    <h3>Setpoint°/Temperature°/Humidity%</h3>
                     <div class="chart-container">
                         <canvas id="env-chart"></canvas>
                     </div>
@@ -82,21 +81,33 @@
                 <button id="test-start-button" style="background-color: #FF8C00; color: white;" disabled>Start</button>
                 <button id="test-pass-button" style="background-color: #2e7d32; color: white;" disabled>Pass</button>
                 <button id="test-fail-button" style="background-color: #c62828; color: white;" disabled>Fail</button>
+                <span style="margin-left: 16px;"></span>
+                <div class="divider-graphic">
+                    <svg width="750" height="20" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="10" cy="10" r="4" fill="none" stroke="#2e7d32" stroke-width="1.5"/>
+                        <circle cx="25" cy="10" r="3" fill="none" stroke="#2e7d32" stroke-width="1.5"/>
+                        <circle cx="40" cy="10" r="2" fill="none" stroke="#2e7d32" stroke-width="1.5"/>
+                        <path d="M50 10 H740" stroke="#2e7d32" stroke-width="1.5" stroke-dasharray="5,5"/>
+                        <circle cx="740" cy="10" r="2" fill="none" stroke="#2e7d32" stroke-width="1.5"/>
+                    </svg>
+                </div>
                 <div class="thermostat-status-inline">
                     <span class="status-label">Mode:</span>
                     <span id="thermostat-mode" class="status-value">Unknown</span>
                     <span class="status-label">Setpoint:</span>
-                    <span id="thermostat-setpoint" class="status-value">--°C</span>
+                    <span id="thermostat-setpoint" class="status-value">--</span>
                     <span class="status-label">App:</span>
                     <span id="app-version" class="status-value">--</span>
-                    <span class="status-label">DID:</span>
+                    <span class="status-label">FloorTemp:</span>
+                    <span id="floor-temp" class="status-value">--</span>
+                    <span class="status-label">TempFormat:</span>
                     <span id="temp-unit" class="status-value">--</span>
                     <span class="status-label">Device Type:</span>
                     <span id="language" class="status-value">--</span>
                     <div class="button-group">
-                        <button id="lunch-idea-button" class="primary lunch-button">Lunch Idea <span class="lightbulb">💡</span></button>
+                        <button id="lunch-idea-button" class="primary lunch-button">Lunch Idea's <span class="lightbulb">💡</span></button>
                         <button id="work-tasks-button" class="primary work-tasks-button">Work Tasks <span class="tasks-icon">📋</span></button>
-                        <a href="https://empoweredhomes.atlassian.net/issues/?filter=10571" target="_blank" id="bug-list-button" class="primary bug-list-button">Bug List <span class="bug-icon">🐞</span></a>
+                        <a href="https://empoweredhomes.atlassian.net/issues/?filter=10571" target="_blank" id="bug-list-button" class="primary bug-list-button">Bug List - Mysa <span class="bug-icon">🐞</span></a>
                         <button id="todays-sports-button" class="primary sports-button">Today's Sports <span class="sports-icon">🏆</span></button>
                     </div>
                 </div>
@@ -105,19 +116,7 @@
             <div id="connection-status">Not connected</div>
         </div>
         
-        <!-- Current Test Case Display Box -->
-        <div class="selected-test-case-panel">
-            <div class="test-case-header">
-                <h3>Current Test Case</h3>
-                <div class="test-case-controls">
-                    <button id="export-selected-test-case" class="small-button export-button">Export</button>
-                    <button id="clear-selected-test-case" class="small-button">Clear</button>
-                </div>
-            </div>
-            <div id="selected-test-case-display">
-                <div class="test-case-placeholder">No test case selected. Select a test case from the Test Plan below.</div>
-            </div>
-        </div>
+        <!-- Current Test Case Display Box removed -->
         
         <div class="logs-wrapper">
             <div class="log-container">
@@ -300,24 +299,16 @@
         </div>
     </div>
     
-    <!-- Refresh Test Plan Button -->
-    <button id="refresh-test-plan" class="refresh-button" title="Refresh Test Plan">
-        <span class="refresh-icon">🔄</span>
-    </button>
-    
-    <div id="test-plan" class="test-plan">
-        <h2>MYSA Test Plan</h2>
-        <div id="test-plan-tabs" class="test-plan-tabs">
-            <!-- Tabs will be added here dynamically -->
-        </div>
-        <div id="test-plan-table-container" class="test-plan-table-container">
-            <!-- Table will be added here dynamically -->
-        </div>
-    </div>
+    <!-- MYSA Test Plan section removed -->
     
     <script src="/socket.io/socket.io.js"></script>
     <script src="quotes.js"></script>
     <script src="main.js"></script>
     <script src="print-functions.js"></script>
+    
+    <!-- Footer -->
+    <div class="footer">
+        <span>Project created by Adam Mior</span>
+    </div>
 </body>
 </html>

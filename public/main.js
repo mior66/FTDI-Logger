@@ -8,7 +8,10 @@ let errorToLogMap = new Map();
 let envChart = null;
 let temperatureData = [];
 let humidityData = [];
+let setpointData = [];
 let timeLabels = [];
+// Set to track processed setpoint messages to prevent duplicate plotting
+let processedSetpointMessages = new Set();
 const MAX_DATA_POINTS = 20; // Maximum number of data points to display on the chart
 const MAX_VISIBLE_LOG_ENTRIES = 500; // Reduced from 1000 to 500 for better performance
 const LOG_BATCH_RENDER_SIZE = 50; // Number of logs to render in a batch for better performance
@@ -61,6 +64,7 @@ const logWindow = document.getElementById('log-window');
 const errorWindow = document.getElementById('error-window');
 const hiddenLogWindow = document.getElementById('hidden-log-window');
 const connectionStatus = document.getElementById('connection-status');
+const statusValue = document.getElementById('status-value');
 const notification = document.getElementById('notification');
 const quoteText = document.getElementById('quote-text');
 
@@ -128,6 +132,11 @@ function init() {
     // Initialize environment data chart
     initializeEnvChart();
     
+    // Directly add event listener for clear chart button
+    document.getElementById('clear-chart-button').onclick = function() {
+        clearChart();
+    };
+    
     // Set up event listeners
     connectButton.addEventListener('click', connectToPort);
     disconnectButton.addEventListener('click', disconnectFromPort);
@@ -137,6 +146,8 @@ function init() {
     clearErrorsButton.addEventListener('click', clearErrors);
     saveErrorsButton.addEventListener('click', saveErrors);
     clearSelectedTestCaseButton.addEventListener('click', clearSelectedTestCase);
+    
+    // Clear chart button event listener is now handled directly with onclick
     
     // Set up print buttons
     const printLogButton = document.getElementById('print-log');
@@ -183,6 +194,12 @@ function init() {
     // Set up refresh test plan button event listener
     const refreshTestPlanButton = document.getElementById('refresh-test-plan');
     refreshTestPlanButton.addEventListener('click', loadTestPlanData);
+    
+    // Set up manual test button event listener
+    const manualTestButton = document.getElementById('manual-test-button');
+    if (manualTestButton) {
+        manualTestButton.addEventListener('click', createManualTestCase);
+    }
     
     // Set up lunch idea button event listener
     const lunchIdeaButton = document.getElementById('lunch-idea-button');
@@ -834,7 +851,15 @@ function setupSocketListeners() {
             checkForThermostatInfo(data.data);
             checkForAppVersion(data.data);
             checkForTemperatureUnit(data.data);
+            checkForUILock(data.data);
+            checkForDeviceID(data.data);
+            checkForDeviceSerial(data.data);
+            checkForDeviceType(data.data);
+            checkForSetpointLimits(data.data);
+            checkForBrightnessValues(data.data);
+            checkForTimezone(data.data);
             checkForLanguage(data.data);
+            checkForCoexistRomVersion(data.data);
         });
         
         // If there are more logs to process, schedule the next batch
@@ -999,8 +1024,13 @@ function updateConnectionStatus(status) {
     isConnected = status.connected;
     
     if (isConnected) {
+        // Update both connection status elements
         connectionStatus.textContent = 'Connected';
+        statusValue.textContent = 'Connected';
+        
         connectionStatus.className = 'connected';
+        statusValue.className = 'connected';
+        
         connectButton.disabled = true;
         disconnectButton.disabled = false;
         portSelect.disabled = true;
@@ -1009,8 +1039,13 @@ function updateConnectionStatus(status) {
         
         showNotification('Connected successfully', 'success');
     } else {
+        // Update both connection status elements
         connectionStatus.textContent = 'Not connected';
+        statusValue.textContent = 'Not connected';
+        
         connectionStatus.className = 'disconnected';
+        statusValue.className = 'disconnected';
+        
         connectButton.disabled = false;
         disconnectButton.disabled = true;
         portSelect.disabled = false;
@@ -1111,7 +1146,16 @@ function addLogEntry(timestamp, message) {
     checkForThermostatInfo(message);
     checkForAppVersion(message);
     checkForTemperatureUnit(message);
+    checkForUILock(message);
+    checkForDeviceID(message);
+    checkForDeviceSerial(message);
+    checkForDeviceType(message);
+    checkForSetpointLimits(message);
+    checkForBrightnessValues(message);
+    checkForTimezone(message);
     checkForLanguage(message);
+    checkForCoexistRomVersion(message);
+    checkForFloorTemp(message);
     
     // Check if the message contains error-related keywords
     const lowerCaseMessage = message.toLowerCase();
@@ -1474,8 +1518,10 @@ function renderVisibleLogEntries(filter) {
     } else if (currentFilter === 'setpoint') {
         // Filter for entries containing 'update_hvac_state' or 'out of range. min'
         const targetPhrases = ['update_hvac_state', 'out of range. min'];
+        // Additional criteria: Look for 'setpoint |' lines
+        const setpointMarker = 'setpoint |';
         
-        console.log('Starting setpoint filtering for target phrases:', targetPhrases);
+        console.log('Starting setpoint filtering for target phrases:', targetPhrases, 'and', setpointMarker);
         
         // Find all entries containing any of the target phrases - EXACT MATCHES ONLY
         let setpointEntries = [];
@@ -1504,6 +1550,16 @@ function renderVisibleLogEntries(filter) {
                 
                 // Add ONLY the matching entry - no context
                 setpointEntries.push(entry);
+            }
+            
+            // Additional criteria: Check if this entry contains 'setpoint |'
+            if (entry.message.includes(setpointMarker)) {
+                console.log('Found setpoint | marker at index:', i, 'with message:', entry.message);
+                
+                // Add only if not already added
+                if (!setpointEntries.includes(entry)) {
+                    setpointEntries.push(entry);
+                }
             }
         }
         
@@ -1614,6 +1670,49 @@ function renderVisibleLogEntries(filter) {
             }
         }
         
+        // Additional criteria: Look for lines like "Booted, Version:" and show that line plus lines after it
+        // until we reach 15 lines or encounter "Brownout" or "WIFI |" text
+        for (let i = 0; i < logEntries.length; i++) {
+            const entry = logEntries[i];
+            
+            // Check if this entry contains "Booted, Version:"
+            if (entry.message && entry.message.includes('Booted, Version:')) {
+                console.log('Found Booted Version line at index:', i, 'with message:', entry.message);
+                
+                // Add this entry if not already added
+                if (!bootEntries.includes(entry)) {
+                    bootEntries.push(entry);
+                }
+                
+                // Add lines after until we reach 15 lines or encounter a stop condition
+                let linesAdded = 1; // Start at 1 because we already added the Booted line
+                
+                for (let j = 1; j <= 15 && i + j < logEntries.length && linesAdded < 15; j++) {
+                    const nextEntry = logEntries[i + j];
+                    
+                    // Check if this is a stop condition ("Brownout" or "WIFI |")
+                    if (nextEntry.message && (nextEntry.message.includes('Brownout') || nextEntry.message.includes('WIFI |'))) {
+                        // Add this final entry if not already added
+                        if (!bootEntries.includes(nextEntry)) {
+                            bootEntries.push(nextEntry);
+                            console.log('Found stop condition at index:', i + j, 'with message:', nextEntry.message);
+                        }
+                        // Stop adding more entries
+                        break;
+                    }
+                    
+                    // Otherwise add this entry if not already added
+                    if (!bootEntries.includes(nextEntry)) {
+                        bootEntries.push(nextEntry);
+                        linesAdded++;
+                    }
+                }
+            }
+        }
+        
+        // Sort the entries by timestamp to maintain chronological order
+        bootEntries.sort((a, b) => a.timestamp - b.timestamp);
+        
         filteredEntries = bootEntries;
         console.log('Boot filtered entries:', filteredEntries.length);
         console.log('First few boot entries:', filteredEntries.slice(0, 5).map(e => e.message));
@@ -1621,20 +1720,36 @@ function renderVisibleLogEntries(filter) {
     } else if (currentFilter === 'options') {
         // Filter for entries containing 'preferences_helpers' - EXACT MATCHES ONLY
         const targetMarker = 'preferences_helpers';
-        console.log('Starting options filtering for exact matches of:', targetMarker);
+        // Additional criteria: Look for 'settings |' lines
+        const settingsMarker = 'settings |';
         
-        // Find all entries containing the target marker - NO CONTEXT
+        console.log('Starting options filtering for exact matches of:', targetMarker, 'and', settingsMarker);
+        
+        // Find all entries containing the target markers - NO CONTEXT
         let optionsEntries = [];
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
             
-            // Check if this entry contains the target marker (case insensitive)
-            if (entry.message && entry.message.toLowerCase().includes(targetMarker.toLowerCase())) {
-                console.log('Found options marker at index:', i, 'with message:', entry.message);
+            // Skip if no message
+            if (!entry.message) continue;
+            
+            // Check if this entry contains the original target marker (case insensitive)
+            if (entry.message.toLowerCase().includes(targetMarker.toLowerCase())) {
+                console.log('Found preferences_helpers marker at index:', i, 'with message:', entry.message);
                 
                 // Add ONLY the matching entry - no context
                 optionsEntries.push(entry);
+            }
+            
+            // Additional criteria: Check if this entry contains 'settings |'
+            if (entry.message.includes(settingsMarker)) {
+                console.log('Found settings | marker at index:', i, 'with message:', entry.message);
+                
+                // Add only if not already added
+                if (!optionsEntries.includes(entry)) {
+                    optionsEntries.push(entry);
+                }
             }
         }
         
@@ -1708,7 +1823,10 @@ function renderVisibleLogEntries(filter) {
     } else if (currentFilter === 'wifi') {
         // Filter for entries containing 'Wifi' or 'WiFi' or 'WIFI'
         const targetText = 'wifi';
-        console.log('Starting Wifi text filtering...');
+        // Additional criteria: Look for 'WIFI |' lines
+        const wifiMarker = 'WIFI |';
+        
+        console.log('Starting Wifi text filtering for', targetText, 'and', wifiMarker);
         
         // Find all entries containing the target text
         let wifiEntries = [];
@@ -1716,9 +1834,22 @@ function renderVisibleLogEntries(filter) {
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
             
+            // Skip if no message
+            if (!entry.message) continue;
+            
             // Check if this entry contains the target text (case insensitive)
-            if (entry.message && entry.message.toLowerCase().includes(targetText.toLowerCase())) {
+            if (entry.message.toLowerCase().includes(targetText.toLowerCase())) {
                 wifiEntries.push(entry);
+            }
+            
+            // Additional criteria: Check if this entry contains 'WIFI |'
+            if (entry.message.includes(wifiMarker)) {
+                console.log('Found WIFI | marker at index:', i, 'with message:', entry.message);
+                
+                // Add only if not already added
+                if (!wifiEntries.includes(entry)) {
+                    wifiEntries.push(entry);
+                }
             }
         }
         
@@ -1727,18 +1858,22 @@ function renderVisibleLogEntries(filter) {
         console.log('First few Wifi text entries:', filteredEntries.slice(0, 5).map(e => e.message));
         console.log('Last few Wifi text entries:', filteredEntries.slice(-5).map(e => e.message));
     } else if (currentFilter === 'app') {
-        // Filter for entries containing 'App'
-        const targetText = 'app';
-        console.log('Starting App text filtering...');
+        // Filter for entries containing the exact word 'app' only
+        console.log('Starting App text filtering for exact word matches only...');
         
-        // Find all entries containing the target text
+        // Find all entries containing the exact word 'app'
         let appEntries = [];
         
         for (let i = 0; i < logEntries.length; i++) {
             const entry = logEntries[i];
             
-            // Check if this entry contains the target text (case insensitive)
-            if (entry.message && entry.message.toLowerCase().includes(targetText.toLowerCase())) {
+            // Skip if no message
+            if (!entry.message) continue;
+            
+            // Match only the exact word 'app' with word boundaries
+            // This prevents matching words like 'Applied', 'Application', etc.
+            if (entry.message.match(/\bapp\b/i)) {
+                console.log('Found exact word "app" at index:', i, 'with message:', entry.message);
                 appEntries.push(entry);
             }
         }
@@ -3518,19 +3653,53 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices, targetElemen
     });
     
     notesContent.appendChild(notesTextarea);
-    notesContainer.appendChild(notesToggle);
-    notesContainer.appendChild(notesContent);
-    contentContainer.appendChild(notesContainer);
 }
 
 // Clear the selected test case panel
 function clearSelectedTestCase() {
     currentlyDisplayedTestCase = null;
-    selectedTestCaseDisplay.innerHTML = '<div class="test-case-placeholder">No test case selected. Select a test case from the Test Plan below.</div>';
-    updateTestActionButtonsState();
-    exportSelectedTestCaseButton.disabled = true;
+    selectedTestCaseDisplay.innerHTML = '<div class="test-case-placeholder">No test selected. Select a test case from the Test Plan below or add one manually.</div>';
     
-    // Don't clear the notes - they'll persist for when the user selects the test case again
+    // Disable test action buttons
+    testStartButton.disabled = true;
+    testPassButton.disabled = true;
+    testFailButton.disabled = true;
+    exportSelectedTestCaseButton.disabled = true;
+}
+
+// Create a manual test case input
+function createManualTestCase() {
+    const manualTestCaseId = `manual-test-${Date.now()}`;
+    currentlyDisplayedTestCase = manualTestCaseId;
+    
+    // Initialize test log entries for this test case
+    if (!testLogEntries[manualTestCaseId]) {
+        testLogEntries[manualTestCaseId] = {};
+    }
+    
+    // Create the manual test case display
+    selectedTestCaseDisplay.innerHTML = '';
+    
+    // Create the header
+    const header = document.createElement('h3');
+    header.textContent = 'Manual Test Case';
+    selectedTestCaseDisplay.appendChild(header);
+    
+    // Create the text box for the manual test case description
+    const textBox = document.createElement('textarea');
+    textBox.className = 'manual-test-description';
+    textBox.placeholder = 'Enter test case description here...';
+    textBox.rows = 5;
+    
+    // Save the description when it changes
+    textBox.addEventListener('input', function() {
+        testLogEntries[manualTestCaseId].description = this.value;
+    });
+    
+    selectedTestCaseDisplay.appendChild(textBox);
+    
+    // Update button states
+    updateTestActionButtonsState();
 }
 
 // Select all test cases in a tab
@@ -3927,7 +4096,7 @@ function selectAllTestCasesInTab(sheetName, displayName) {
 // Export the selected test case with all logs between start and pass/fail timestamps
 function exportSelectedTestCase() {
     if (!currentlyDisplayedTestCase) {
-        showNotification('No test case selected', 'error');
+        showNotification('No test selected', 'error');
         return;
     }
     
@@ -3938,9 +4107,8 @@ function exportSelectedTestCase() {
         return;
     }
     
-    // Get the test case data
-    const testCaseNumber = currentlyDisplayedTestCase.split('-test-')[1];
-    const sheetName = currentlyDisplayedTestCase.split('-test-')[0];
+    // Check if this is a manual test case
+    const isManualTest = currentlyDisplayedTestCase.startsWith('manual-test-');
     
     // Create a text content for the export
     let textContent = '';
@@ -3948,8 +4116,20 @@ function exportSelectedTestCase() {
     // Add test case header information
     textContent += `TEST CASE REPORT\n`;
     textContent += `=================\n\n`;
-    textContent += `Test Case: ${testCaseNumber}\n`;
-    textContent += `Sheet: ${sheetName}\n`;
+    
+    if (isManualTest) {
+        textContent += `Manual Test Case\n`;
+        if (testLogs.description) {
+            textContent += `Description: ${testLogs.description}\n`;
+        }
+    } else {
+        // Get the test case data for non-manual test cases
+        const testCaseNumber = currentlyDisplayedTestCase.split('-test-')[1];
+        const sheetName = currentlyDisplayedTestCase.split('-test-')[0];
+        textContent += `Test Case: ${testCaseNumber}\n`;
+        textContent += `Sheet: ${sheetName}\n`;
+    }
+    
     textContent += `Date: ${new Date().toLocaleString()}\n\n`;
     
     // Add test result information
@@ -3960,8 +4140,12 @@ function exportSelectedTestCase() {
     textContent += `TEST CASE DETAILS:\n`;
     textContent += `------------------\n\n`;
     
-    const table = selectedTestCaseDisplay.querySelector('table');
-    if (table) {
+    // For manual test cases, we don't have a table
+    if (isManualTest) {
+        textContent += `Manual test case with user-provided description\n\n`;
+    } else {
+        const table = selectedTestCaseDisplay.querySelector('table');
+        if (table) {
         // Get headers
         const headers = [];
         const headerRow = table.querySelector('thead tr');
@@ -4013,19 +4197,20 @@ function exportSelectedTestCase() {
             textContent += formattedRow + '\n';
         });
     }
+    }
     
     // Add test log information
     textContent += `\nCURRENT TEST LOGS:\n`;
     textContent += `-----------\n\n`;
     
     // Add start log
-    textContent += `START: ${testLogs.start.timestamp} - ${testLogs.start.message}\n\n`;
+    textContent += `START: ${testLogs.start.timestamp} - ${testLogs.start.text}\n\n`;
     
     // Add result log if available
     if (testLogs.pass) {
-        textContent += `PASS: ${testLogs.pass.timestamp} - ${testLogs.pass.message}\n\n`;
+        textContent += `PASS: ${testLogs.pass.timestamp} - ${testLogs.pass.text}\n\n`;
     } else if (testLogs.fail) {
-        textContent += `FAIL: ${testLogs.fail.timestamp} - ${testLogs.fail.message}\n\n`;
+        textContent += `FAIL: ${testLogs.fail.timestamp} - ${testLogs.fail.text}\n\n`;
     }
     
     // Add notes if they exist
@@ -4295,7 +4480,14 @@ function exportSelectedTestCase() {
 
     // Create a filename for the export
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `test-case-${testCaseNumber}-${timestamp}.txt`;
+    let filename;
+    
+    if (isManualTest) {
+        filename = `manual-test-case-${timestamp}.txt`;
+    } else {
+        const testCaseNumber = currentlyDisplayedTestCase.split('-test-')[1];
+        filename = `test-case-${testCaseNumber}-${timestamp}.txt`;
+    }
     
     // Create a text file and download it
     const blob = new Blob([textContent], { type: 'text/plain' });
@@ -4496,7 +4688,7 @@ function updateTestLogDisplay() {
     }
 }
 
-// Check for temperature and humidity data in log messages
+// Check for temperature, humidity, and setpoint data in log messages
 function checkForEnvironmentData(message) {
     // Check for temperature data
     const temperatureMatch = message.match(/"roomTemperature":\s*\[(\d+(?:,\d+)*)\]/i);
@@ -4515,6 +4707,63 @@ function checkForEnvironmentData(message) {
         if (humidityValues.length > 0) {
             const avgHumidity = calculateAverage(humidityValues);
             updateHumidityData(avgHumidity);
+        }
+    }
+    
+    // Check for setpoint data in format "setpoint | current - celsius:28.000000"
+    if (message.includes("setpoint | current")) {
+        // Create a unique key for this message to prevent duplicate processing
+        // Extract timestamp and message ID if available
+        const timestampMatch = message.match(/^([\d:.]+)/);
+        const idMatch = message.match(/id:([\d]+)/);
+        const messageKey = (timestampMatch ? timestampMatch[1] : '') + 
+                          (idMatch ? idMatch[1] : '') + 
+                          'setpoint';
+        
+        // Only process if we haven't seen this message before
+        if (!processedSetpointMessages.has(messageKey)) {
+            // Mark as processed
+            processedSetpointMessages.add(messageKey);
+            
+            // Extract the Celsius value
+            const setpointMatch = message.match(/celsius:(\d+\.\d+)/);
+            if (setpointMatch && setpointMatch[1]) {
+                const setpointValue = parseFloat(setpointMatch[1]);
+                if (!isNaN(setpointValue)) {
+                    const roundedSetpoint = Math.round(setpointValue); // Round to whole number
+                    console.log(`Found setpoint: ${roundedSetpoint}°C (message key: ${messageKey})`);
+                    
+                    // Update the setpoint data
+                    const currentSetpointElement = document.getElementById('current-setpoint');
+                    if (currentSetpointElement) {
+                        currentSetpointElement.textContent = `${roundedSetpoint}°C`;
+                    }
+                    
+                    // Add to chart
+                    const now = new Date();
+                    // Format time as 12-hour with AM/PM (e.g., "12:01 PM")
+                    const timeLabel = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                    timeLabels.push(timeLabel);
+                    setpointData.push(roundedSetpoint);
+                    
+                    // Add null values for other datasets to maintain alignment
+                    temperatureData.push(null);
+                    humidityData.push(null);
+                    
+                    // Limit data points
+                    if (timeLabels.length > MAX_DATA_POINTS) {
+                        timeLabels.shift();
+                        setpointData.shift();
+                        temperatureData.shift();
+                        humidityData.shift();
+                    }
+                    
+                    // Update chart
+                    if (envChart) {
+                        envChart.update();
+                    }
+                }
+            }
         }
     }
 }
@@ -4550,40 +4799,72 @@ function updateHumidityData(humidity) {
     addDataPoint('humidity', humidity);
 }
 
+// Update setpoint data and display
+function updateSetpointData(setpoint) {
+    // Update the current setpoint display if it exists
+    const currentSetpointElement = document.getElementById('current-setpoint');
+    if (currentSetpointElement) {
+        currentSetpointElement.textContent = `${setpoint}°C`;
+    }
+    
+    // Add data to the chart
+    addDataPoint('setpoint', setpoint);
+}
+
 // Add a data point to the chart
 function addDataPoint(type, value) {
     const now = new Date();
-    const timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // Format time as 12-hour with AM/PM (e.g., "12:01 PM")
+    const timeLabel = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     const isMysa = window.location.pathname.includes('mysa-logger');
     
-    // For MYSA page with setpoint data, always add a new data point
-    if (isMysa && type === 'setpoint') {
+    // For setpoint data, always add a new data point
+    if (type === 'setpoint') {
         // Always add a new time label and data point for setpoints
-        // Use just the time without seconds to avoid the 12:01 PM:02 format
-        timeLabels.push(timeLabel);
-        temperatureData.push(value);
-        
-        // Limit the number of data points
-        if (timeLabels.length > MAX_DATA_POINTS) {
-            timeLabels.shift();
-            temperatureData.shift();
-        }
-    } 
-    // For other pages or data types, use the original logic
-    else if (timeLabels.length === 0 || timeLabels[timeLabels.length - 1] !== timeLabel) {
-        // If this is a new time point, add it to the labels
         timeLabels.push(timeLabel);
         
-        if (!isMysa) {
-            // For other pages, maintain original functionality
-            temperatureData.push(type === 'temperature' ? value : null);
-            humidityData.push(type === 'humidity' ? value : null);
+        // For setpoint data, we need to update the appropriate array
+        if (isMysa) {
+            // For MYSA page, update temperatureData (used for setpoint)
+            temperatureData.push(value);
+            
+            // Limit the number of data points
+            if (timeLabels.length > MAX_DATA_POINTS) {
+                timeLabels.shift();
+                temperatureData.shift();
+            }
+        } else {
+            // For non-MYSA pages, update setpointData
+            temperatureData.push(null);
+            humidityData.push(null);
+            setpointData.push(value);
             
             // Limit the number of data points
             if (timeLabels.length > MAX_DATA_POINTS) {
                 timeLabels.shift();
                 temperatureData.shift();
                 humidityData.shift();
+                setpointData.shift();
+            }
+        }
+    } 
+    // For other data types, use the original logic
+    else if (timeLabels.length === 0 || timeLabels[timeLabels.length - 1] !== timeLabel) {
+        // If this is a new time point, add it to the labels
+        timeLabels.push(timeLabel);
+        
+        if (!isMysa) {
+            // For non-MYSA pages, maintain original functionality
+            temperatureData.push(type === 'temperature' ? value : null);
+            humidityData.push(type === 'humidity' ? value : null);
+            setpointData.push(null); // Add null for setpoint
+            
+            // Limit the number of data points
+            if (timeLabels.length > MAX_DATA_POINTS) {
+                timeLabels.shift();
+                temperatureData.shift();
+                humidityData.shift();
+                setpointData.shift();
             }
         }
     } else {
@@ -4633,11 +4914,15 @@ function initializeEnvChart() {
     const ctx = document.getElementById('env-chart');
     if (!ctx) return; // Exit if chart element doesn't exist
     
-    // Reset data arrays
+    // Reset global chart data arrays
     timeLabels = [];
     temperatureData = [];
     humidityData = [];
+    setpointData = [];
     
+    // Clear the processed setpoint messages set
+    processedSetpointMessages.clear(); 
+
     // Check if we're on the MYSA logger page
     const isMysa = window.location.pathname.includes('mysa-logger');
     
@@ -4658,7 +4943,7 @@ function initializeEnvChart() {
             }
         ];
     } else {
-        // For other pages, maintain original functionality
+        // For other pages, maintain original functionality and add setpoint
         datasets = [
             {
                 label: 'Temp °',
@@ -4677,6 +4962,15 @@ function initializeEnvChart() {
                 borderWidth: 2,
                 tension: 0.3,
                 pointRadius: 2
+            },
+            {
+                label: 'Setpoint °',
+                data: setpointData,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 2
             }
         ];
     }
@@ -4691,39 +4985,86 @@ function initializeEnvChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 13 }
+                }
+            },
+            // We'll use the grid borders instead of a chart border
+            layout: {
+                padding: {
+                    left: 2,  // Just enough to move off the Y-axis
+                    right: 0  // No padding needed on the right
+                }
+            },
             scales: {
                 y: {
-                    beginAtZero: isMysa ? true : false,
-                    min: isMysa ? 0 : undefined,
-                    max: isMysa ? 40 : undefined,
+                    border: {
+                        display: true,
+                        color: '#000000',
+                        width: 2
+                    },
+                    beginAtZero: true, // Always start at zero
+                    min: 0, // Set minimum to 0
+                    max: 40, // Set maximum to 40
                     ticks: {
-                        stepSize: isMysa ? 5 : undefined,
+                        stepSize: 10, // Use steps of 10 (0, 10, 20, 30, 40)
                         color: 'rgba(255, 255, 255, 0.7)',
                         font: {
                             size: 13
                         }
                     },
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
+                        color: 'rgba(0, 0, 0, 0.1)',  // Darker grid lines
+                        borderColor: '#000000',        // Black border color for the y-axis
+                        borderWidth: 2,               // Thicker border width
+                        drawBorder: true,             // Enable border drawing
+                        drawOnChartArea: true         // Draw grid lines on chart area
                     },
                     title: {
-                        display: true,
-                        text: isMysa ? 'Setpoint (Celsius°)' : 'Value'
+                        display: false // Hide the Y-axis title
                     }
                 },
                 x: {
+                    border: {
+                        display: true,
+                        color: '#000000',
+                        width: 2
+                    },
+                    offset: false,  // No offset to keep it simple
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
+                        color: 'rgba(0, 0, 0, 0.1)',  // Darker grid lines
+                        borderColor: '#000000',        // Black border color for the x-axis
+                        borderWidth: 2,               // Increased border width to match Y-axis
+                        drawBorder: true,             // Enable border drawing
+                        drawOnChartArea: true         // Draw grid lines on chart area
                     },
                     ticks: {
                         color: 'rgba(255, 255, 255, 0.7)',
                         font: {
                             size: 13
+                        },
+                        padding: 5, // Reduced padding to move labels closer to the chart
+                        callback: function(value, index, values) {
+                            // Just return the label as is since toLocaleTimeString already formats it
+                            // The label already includes AM/PM from toLocaleTimeString
+                            return timeLabels[index] || '';
                         }
                     },
                     title: {
                         display: true,
-                        text: 'Time'
+                        text: 'Time of Event',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        padding: {
+                            top: 2,
+                            bottom: 0
+                        },
+                        color: 'rgba(255, 255, 255, 1)' // Make text white
                     }
                 }
             },
@@ -4746,10 +5087,12 @@ function initializeEnvChart() {
                         label: function(context) {
                             let label = context.dataset.label || '';
                             if (label) {
-                                if (label.includes('Temp')) {
+                                if (label.includes('Temp') && !label.includes('Setpoint')) {
                                     return `Temp = ${parseFloat(context.raw).toFixed(2)} °`;
                                 } else if (label.includes('Humidity')) {
                                     return `Humidity = ${context.raw}%`;
+                                } else if (label.includes('Setpoint')) {
+                                    return `Setpoint = ${parseFloat(context.raw).toFixed(0)} °`;
                                 }
                             }
                             return label;
@@ -4783,59 +5126,56 @@ function sendCommand(commandText) {
 
 // Send a thermostat command to change temperature (function kept for compatibility)
 function sendThermostatCommand(command) {
-    if (!isConnected) {
-        showNotification('Not connected to a device', 'error');
-        return;
-    }
-    // This function is kept for compatibility but the UI buttons have been removed
+    console.log('Thermostat command functionality removed');
+    showNotification('Thermostat command functionality removed', 'info');
+}
+
+// Function to clear the chart data
+function clearChart() {
+    console.log('Clear chart button clicked');
     
-    if (command === 'set temp 29') {
-        showNotification('Setting temperature to 29°C...', 'success');
+    try {
+        // Reset global data arrays
+        timeLabels = [];
+        temperatureData = [];
+        humidityData = [];
+        setpointData = [];
         
-        // Send the command to the server
-        socket.emit('send-command', { command: 'set temp 29' });
+        // Clear the processed setpoint messages set to allow new setpoints to be processed
+        processedSetpointMessages.clear();
         
-        // Add the command to the log with the exact sequence that will be sent
-        const timestamp = new Date().toISOString();
-        addLogEntry(timestamp, `> Setting thermostat to 29°C`);
-        addLogEntry(timestamp, `> Sending complete command sequence:`);
-        addLogEntry(timestamp, `  1. app_menu_controller: Entering menu: Ambient Menu`);
-        addLogEntry(timestamp, `  2. persistence_task: Triggering save notification for event: 1`);
-        addLogEntry(timestamp, `  3. persistence_task: Processing save notification`);
-        addLogEntry(timestamp, `  4. connection_manager: Both WiFi and MQTT credentials are ready`);
-        addLogEntry(timestamp, `  5. connection_manager: Requested BLE shutdown through controller`);
-        addLogEntry(timestamp, `  6. thermostat_endpoint: Current Occupied Heating Setpoint: 2800`);
-        addLogEntry(timestamp, `  7. thermostat_endpoint: Occupied Heating Setpoint: 2900`);
-        addLogEntry(timestamp, `  8. Matter app_events: Heating Setpoint Updated: 29.000000`);
+        // Update the chart if it exists
+        if (envChart) {
+            console.log('Clearing chart data...');
+            
+            // Clear all datasets directly
+            envChart.data.labels = [];
+            
+            // Clear each dataset's data array
+            envChart.data.datasets.forEach(dataset => {
+                dataset.data = [];
+            });
+            
+            // Ensure the chart data arrays are properly linked to the global arrays
+            envChart.data.labels = timeLabels;
+            for (let i = 0; i < envChart.data.datasets.length; i++) {
+                if (i === 0 && envChart.data.datasets[i]) envChart.data.datasets[i].data = temperatureData;
+                if (i === 1 && envChart.data.datasets[i]) envChart.data.datasets[i].data = humidityData;
+                if (i === 2 && envChart.data.datasets[i]) envChart.data.datasets[i].data = setpointData;
+            }
+            
+            // Update the chart to reflect the changes
+            envChart.update();
+            console.log('Chart updated with empty data');
+        } else {
+            console.log('Chart not initialized yet');
+        }
         
-        return;
-    } else if (command === 'set temp 28') {
-        showNotification('Setting temperature to 28°C...', 'success');
-        
-        // Send the command to the server
-        socket.emit('send-command', { command: 'set temp 28' });
-        
-        // Add the command to the log with the exact sequence that will be sent
-        const timestamp = new Date().toISOString();
-        addLogEntry(timestamp, `> Setting thermostat to 28°C`);
-        addLogEntry(timestamp, `> Sending complete command sequence:`);
-        addLogEntry(timestamp, `  1. app_menu_controller: Entering menu: Ambient Menu`);
-        addLogEntry(timestamp, `  2. persistence_task: Triggering save notification for event: 1`);
-        addLogEntry(timestamp, `  3. persistence_task: Processing save notification`);
-        addLogEntry(timestamp, `  4. connection_manager: Both WiFi and MQTT credentials are ready`);
-        addLogEntry(timestamp, `  5. connection_manager: Requested BLE shutdown through controller`);
-        addLogEntry(timestamp, `  6. thermostat_endpoint: Current Occupied Heating Setpoint: 2900`);
-        addLogEntry(timestamp, `  7. thermostat_endpoint: Occupied Heating Setpoint: 2800`);
-        addLogEntry(timestamp, `  8. Matter app_events: Heating Setpoint Updated: 28.000000`);
-        
-        return;
-    } else {
-        // For any other command, send as is
-        socket.emit('send-command', { command });
-        
-        // Add the command to the log
-        const timestamp = new Date().toISOString();
-        addLogEntry(timestamp, `> ${command}`);
+        console.log('Chart data cleared - ready for new data points');
+        showNotification('Chart cleared - ready for new data', 'success');
+    } catch (error) {
+        console.error('Error clearing chart:', error);
+        showNotification('Error clearing chart: ' + error.message, 'error');
     }
 }
 
@@ -5108,28 +5448,10 @@ function checkForAppVersion(message) {
     }
 }
 
-// Check for DID information in log messages (MYSA page) or temperature unit (LV page)
+// Check for temperature unit information in log messages
 function checkForTemperatureUnit(message) {
-    // Check for MYSA DID information
-    // Example: "10:59:55.262 INFO  |          40 |  device info | hwid: ac67b27202d0 - Sample of DID line which is ac67b27202d0"
-    if (message.includes('device info | hwid:')) {
-        try {
-            // Extract the DID value
-            const didMatch = message.match(/hwid:\s+([a-zA-Z0-9]+)/);
-            if (didMatch && didMatch[1]) {
-                const did = didMatch[1];
-                
-                // Update the DID display
-                tempUnit.textContent = did;
-                
-                console.log(`Detected MYSA DID: ${did}`);
-            }
-        } catch (error) {
-            console.error('Error parsing MYSA DID:', error);
-        }
-    }
-    // Check for LV temperature unit information (legacy format)
-    else if (message.includes('preferences_helpers: set_preferences_temperature_unit:')) {
+    // Check for temperature unit information in the original format
+    if (message.includes('preferences_helpers: set_preferences_temperature_unit:')) {
         try {
             // Extract the temperature unit value
             const unitMatch = message.match(/preferences_helpers: set_preferences_temperature_unit:\s+(\d+)/);
@@ -5149,10 +5471,250 @@ function checkForTemperatureUnit(message) {
             console.error('Error parsing temperature unit:', error);
         }
     }
+    
+    // Check for the new temperature unit format
+    if (message.includes('settings | temperature units: celsius')) {
+        try {
+            tempUnit.textContent = 'C';
+            console.log('Temperature unit set to Celsius (new format)');
+        } catch (error) {
+            console.error('Error setting temperature unit from new format:', error);
+        }
+    }
+    
+    // Check for Fahrenheit in the new format
+    if (message.includes('settings | temperature units: fahrenheit')) {
+        try {
+            tempUnit.textContent = 'F';
+            console.log('Temperature unit set to Fahrenheit (new format)');
+        } catch (error) {
+            console.error('Error setting temperature unit from new format:', error);
+        }
+    }
+}
+
+// Check for UI lock status in log messages
+function checkForUILock(message) {
+    // Check for UI lock information
+    if (message.includes('settings | ui locked:')) {
+        try {
+            // Extract the lock value (0 or 1)
+            const lockMatch = message.match(/settings \| ui locked:\s+(\d+)/);
+            if (lockMatch && lockMatch[1]) {
+                const lockValue = parseInt(lockMatch[1]);
+                const uiLock = document.getElementById('ui-lock');
+                
+                // Update the UI lock display (1 = Yes, 0 = No)
+                if (lockValue === 1) {
+                    uiLock.textContent = 'Yes';
+                    console.log('UI Lock set to Yes');
+                } else if (lockValue === 0) {
+                    uiLock.textContent = 'No';
+                    console.log('UI Lock set to No');
+                }
+            }
+        } catch (error) {
+            console.error('Error parsing UI lock status:', error);
+        }
+    }
 }
 
 // Check for Device Type information in log messages (MYSA page) or language (LV page)
-function checkForLanguage(message) {
+// Check for device ID in log messages
+function checkForDeviceID(message) {
+    // Example 1: " device info | accessory name: Mysa-7202d0"
+    if (message.includes('device info | accessory name:')) {
+        try {
+            // Extract the Device ID value
+            const deviceIDMatch = message.match(/accessory name:\s+([\w-]+)/);
+            if (deviceIDMatch && deviceIDMatch[1]) {
+                const deviceID = deviceIDMatch[1];
+                
+                // Update the Device ID display
+                const deviceIDElement = document.getElementById('device-id');
+                if (deviceIDElement) {
+                    deviceIDElement.textContent = deviceID;
+                }
+                
+                console.log(`Detected Device ID from accessory name: ${deviceID}`);
+            }
+        } catch (error) {
+            console.error('Error parsing Device ID from accessory name:', error);
+        }
+    }
+    
+    // Example 2: "11:28:07.860INFO  |          40 |  device info | hwid: ac67b27202d0"
+    if (message.includes('device info | hwid:')) {
+        try {
+            // Extract the Device ID value from hwid
+            const deviceIDMatch = message.match(/hwid:\s+([\w]+)/);
+            if (deviceIDMatch && deviceIDMatch[1]) {
+                const deviceID = deviceIDMatch[1];
+                
+                // Update the Device ID display
+                const deviceIDElement = document.getElementById('device-id');
+                if (deviceIDElement) {
+                    deviceIDElement.textContent = deviceID;
+                }
+                
+                console.log(`Detected Device ID from hwid: ${deviceID}`);
+            }
+        } catch (error) {
+            console.error('Error parsing Device ID from hwid:', error);
+        }
+    }
+}
+
+// Check for coexist rom version in log messages and update DID field
+function checkForCoexistRomVersion(message) {
+    if (message.includes('coexist: coexist rom version')) {
+        const versionMatch = message.match(/coexist: coexist rom version ([a-f0-9]+)/);
+        if (versionMatch && versionMatch[1]) {
+            const romVersion = versionMatch[1];
+            const deviceIDElement = document.getElementById('device-id');
+            if (deviceIDElement) {
+                deviceIDElement.textContent = romVersion;
+            } else {
+                const tempUnitElement = document.getElementById('temp-unit');
+                if (tempUnitElement) {
+                    tempUnitElement.textContent = romVersion;
+                }
+            }
+            console.log(`Detected coexist rom version: ${romVersion}`);
+        }
+    }
+}
+
+// Check for device serial number in log messages
+function checkForDeviceSerial(message) {
+    // Example: "device info | serial: HQ12TVNUAZ"
+    if (message.includes('device info | serial:')) {
+        try {
+            // Extract the serial number value
+            const serialMatch = message.match(/serial:\s+([\w]+)/);
+            if (serialMatch && serialMatch[1]) {
+                const serialNumber = serialMatch[1];
+                
+                // Update the serial number display
+                const serialElement = document.getElementById('device-serial');
+                if (serialElement) {
+                    serialElement.textContent = serialNumber;
+                }
+                
+                console.log(`Detected Device Serial: ${serialNumber}`);
+            }
+        } catch (error) {
+            console.error('Error parsing device serial number:', error);
+        }
+    }
+}
+
+// Check for minimum and maximum setpoint values in log messages
+function checkForSetpointLimits(message) {
+    // Example: "settings | min setpoint: 5.000000 max_setpoint: 30.000000"
+    if (message.includes('settings | min setpoint:')) {
+        try {
+            // Extract the min and max setpoint values
+            const minSetpointMatch = message.match(/min setpoint:\s+(\d+\.\d+)/);
+            const maxSetpointMatch = message.match(/max_setpoint:\s+(\d+\.\d+)/);
+            
+            // Update the min setpoint display
+            if (minSetpointMatch && minSetpointMatch[1]) {
+                const minSetpoint = parseFloat(minSetpointMatch[1]);
+                const minSetpointElement = document.getElementById('min-setpoint');
+                if (minSetpointElement) {
+                    minSetpointElement.textContent = `${minSetpoint}°`;
+                }
+                console.log(`Detected Min Setpoint: ${minSetpoint}°`);
+            }
+            
+            // Update the max setpoint display
+            if (maxSetpointMatch && maxSetpointMatch[1]) {
+                const maxSetpoint = parseFloat(maxSetpointMatch[1]);
+                const maxSetpointElement = document.getElementById('max-setpoint');
+                if (maxSetpointElement) {
+                    maxSetpointElement.textContent = `${maxSetpoint}°`;
+                }
+                console.log(`Detected Max Setpoint: ${maxSetpoint}°`);
+            }
+        } catch (error) {
+            console.error('Error parsing setpoint limits:', error);
+        }
+    }
+}
+
+// Check for active and inactive brightness values in log messages
+function checkForBrightnessValues(message) {
+    // Example: "settings | active brightness: 100 inactive brightness: 50"
+    if (message.includes('settings | active brightness:')) {
+        try {
+            // Extract the active and inactive brightness values
+            const activeBrightnessMatch = message.match(/active brightness:\s+(\d+)/);
+            const inactiveBrightnessMatch = message.match(/inactive brightness:\s+(\d+)/);
+            
+            // Update the active brightness display
+            if (activeBrightnessMatch && activeBrightnessMatch[1]) {
+                const activeBrightness = parseInt(activeBrightnessMatch[1]);
+                const activeBrightnessElement = document.getElementById('ambient-brightness');
+                if (activeBrightnessElement) {
+                    activeBrightnessElement.textContent = `${activeBrightness}%`;
+                }
+                console.log(`Detected Active Brightness: ${activeBrightness}%`);
+            }
+            
+            // Update the inactive brightness display
+            if (inactiveBrightnessMatch && inactiveBrightnessMatch[1]) {
+                const inactiveBrightness = parseInt(inactiveBrightnessMatch[1]);
+                const inactiveBrightnessElement = document.getElementById('indicator-brightness');
+                if (inactiveBrightnessElement) {
+                    inactiveBrightnessElement.textContent = `${inactiveBrightness}%`;
+                }
+                console.log(`Detected Inactive Brightness: ${inactiveBrightness}%`);
+            }
+        } catch (error) {
+            console.error('Error parsing brightness values:', error);
+        }
+    }
+}
+
+// Check for timezone information in log messages
+function checkForTimezone(message) {
+    // Example: "settings | timezone NST3:30NDT,M3.2.0,M11.1.0"
+    if (message.includes('settings | timezone')) {
+        try {
+            // Extract the timezone information
+            const timezoneMatch = message.match(/timezone\s+([^,]+)/);
+            if (timezoneMatch && timezoneMatch[1]) {
+                const timezoneInfo = timezoneMatch[1];
+                
+                // Parse the timezone string to extract the offset
+                // Format is typically like: NST3:30NDT
+                const offsetMatch = timezoneInfo.match(/([A-Z]+)(\d+):(\d+)([A-Z]+)/);
+                if (offsetMatch) {
+                    const hours = offsetMatch[2];
+                    const minutes = offsetMatch[3];
+                    const tzName = offsetMatch[4];
+                    
+                    // Format the timezone display
+                    const formattedTimezone = `${hours}:${minutes} ${tzName}`;
+                    
+                    // Update the timezone display
+                    const timezoneElement = document.getElementById('timezone');
+                    if (timezoneElement) {
+                        timezoneElement.textContent = formattedTimezone;
+                    }
+                    
+                    console.log(`Detected Timezone: ${formattedTimezone}`);
+                }
+            }
+        } catch (error) {
+            console.error('Error parsing timezone information:', error);
+        }
+    }
+}
+
+// Check for device type information in log messages
+function checkForDeviceType(message) {
     // Check for MYSA Device Type information
     // Example: "10:59:55.246 INFO  |          40 |  device info | ctrl: BB-V2-0 pwr: Not Available - Device Type is BB-V2-0"
     if (message.includes('device info | ctrl:')) {
@@ -5163,7 +5725,10 @@ function checkForLanguage(message) {
                 const deviceType = deviceTypeMatch[1];
                 
                 // Update the Device Type display
-                language.textContent = deviceType;
+                const deviceTypeElement = document.getElementById('device-type');
+                if (deviceTypeElement) {
+                    deviceTypeElement.textContent = deviceType;
+                }
                 
                 console.log(`Detected MYSA Device Type: ${deviceType}`);
             }
@@ -5171,8 +5736,25 @@ function checkForLanguage(message) {
             console.error('Error parsing MYSA Device Type:', error);
         }
     }
+}
+
+// Check for language information in log messages
+function checkForLanguage(message) {
+    // Check for ESP32-S3 chip (LV device)
+    if (message.includes('ESP-ROM:esp32s3')) {
+        // Update the device type field based on which page we're on
+        const deviceTypeElement = document.getElementById('device-type');
+        if (deviceTypeElement) {
+            deviceTypeElement.textContent = 'LV';
+        } else if (language) {
+            language.textContent = 'LV';
+        }
+        console.log('Detected ESP32-S3 chip, setting Device Type to LV');
+        return;
+    }
+    
     // Check for LV language information (legacy format)
-    else if (message.includes('preferences_helpers: set_preferences_language:')) {
+    if (message.includes('preferences_helpers: set_preferences_language:')) {
         try {
             // Extract the language value
             const langMatch = message.match(/preferences_helpers: set_preferences_language:\s+(\d+)/);
@@ -5243,6 +5825,34 @@ function removeCustomFilter(pattern) {
         reapplyFilterToExistingLogs();
         
         showNotification(`Removed filter pattern: "${pattern}"`, 'success');
+    }
+}
+
+// Check for floor temperature information in log messages
+function checkForFloorTemp(message) {
+    // Check for floor temperature information
+    // Example: "settings | max floor temp: 28.000000"
+    if (message.includes('settings | max floor temp:')) {
+        try {
+            // Extract the floor temperature value
+            const floorTempMatch = message.match(/max floor temp:\s+([\d.]+)/);
+            if (floorTempMatch && floorTempMatch[1]) {
+                const floorTemp = parseFloat(floorTempMatch[1]);
+                
+                // Format the floor temperature value (remove trailing zeros if it's a whole number)
+                const formattedFloorTemp = Number.isInteger(floorTemp) ? floorTemp.toString() : floorTemp.toString();
+                
+                // Update the floor temperature display
+                const floorTempElement = document.getElementById('floor-temp');
+                if (floorTempElement) {
+                    floorTempElement.textContent = `${formattedFloorTemp}°C`;
+                }
+                
+                console.log(`Detected Floor Temperature: ${formattedFloorTemp}°C`);
+            }
+        } catch (error) {
+            console.error('Error parsing floor temperature:', error);
+        }
     }
 }
 

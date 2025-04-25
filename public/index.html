@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LV FTDI Logger</title>
+    <title>FTDI Logger</title>
     <link rel="stylesheet" href="styles.css?v=20250402">
     <link rel="stylesheet" href="print-styles.css?v=20250407">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -15,51 +15,35 @@
         </div>
         <header>
             <div class="header-left">
-                <h1>LV FTDI Logger</h1>
+                <h1>FTDI Logger</h1>
                 <p class="subtitle">A sleek, real-time serial monitor for FTDI devices</p>
                 <div class="button-container">
-                    <!-- Switch Logger button on its own row -->
-                    <div class="button-row switch-row">
-                        <div class="button-cell switch-cell"><a href="/mysa-logger" class="test-plan-link switch-logger-link" target="_blank">Switch to MYSA Logger</a></div>
-                    </div>
                     
-                    <!-- 2x2 grid of other buttons -->
+                    <!-- 2x3 grid of buttons with consistent width -->
                     <div class="button-row">
-                        <div class="button-cell"><a href="#test-plan" class="test-plan-link">Select Test Case</a></div>
-                        <div class="button-cell"><a href="https://csp.mysa.cloud/" class="test-plan-link mysa-hq-link" target="_blank">CSP Check</a></div>
+                        <div class="button-cell"><a href="https://csp.mysa.cloud/" class="test-plan-link mysa-hq-link" target="_blank">CSP PROD</a></div>
+                        <div class="button-cell"><a href="https://csp.mysa-dev.cloud/" class="test-plan-link mysa-hq-link" target="_blank">CSP DEV</a></div>
                     </div>
                     <div class="button-row">
+                        <div class="button-cell"><a href="https://empoweredhomes.atlassian.net/issues/?filter=10480" class="test-plan-link open-plan-link" target="_blank">Open Test Plan MYSA</a></div>
+                        <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/16xdQXvDj7JombdTCfBGR5toxyyYe4nk-kpPSfwiy6ic/edit?gid=589161712#gid=589161712" class="test-plan-link open-plan-link" target="_blank">Open Test Plan LV</a></div>
+                    </div>
+                    <div class="button-row">
+                        <div class="button-cell"><a href="https://release.zenhq.com/login" class="test-plan-link open-plan-link" target="_blank">MYSA HQ</a></div>
                         <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/13ChFbZGavVREYhuHa2vPmY_SQCH5IuecG_Nw2LbL3t4/edit?gid=1763151684#gid=1763151684" class="test-plan-link config-codes-link" target="_blank">Config Codes</a></div>
-                        <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/16xdQXvDj7JombdTCfBGR5toxyyYe4nk-kpPSfwiy6ic/edit?gid=589161712#gid=589161712" class="test-plan-link open-plan-link" target="_blank">Open Test Plan</a></div>
                     </div>
+                    <!-- Third row removed -->
                 </div>
                 
-                <!-- Move Today's News button to be by Today's Sports -->
-                <script>
-                    // We'll add the Today's News button next to Today's Sports in JavaScript
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const sportsButton = document.getElementById('todays-sports-button');
-                        if (sportsButton && sportsButton.parentNode) {
-                            // Create a button that matches the style of the sports button
-                            const newsButton = document.createElement('button');
-                            newsButton.className = 'primary news-button';
-                            newsButton.style.marginLeft = '5px'; // Reduced spacing
-                            newsButton.innerHTML = "Today's News <span class=\"news-icon\">📰</span>";
-                            
-                            // Add click event to open CNN in a new tab
-                            newsButton.addEventListener('click', function() {
-                                window.open('https://www.cnn.com', '_blank');
-                            });
-                            
-                            // Insert after the sports button
-                            sportsButton.parentNode.insertBefore(newsButton, sportsButton.nextSibling);
-                        }
-                    });
-                </script>
+                <!-- Button scripts are now directly in the button-group -->
             </div>
             <div class="header-right">
                 <div class="env-data-container">
-                    <h3>Temperature and Humidity of LV</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <div style="width: 100px;"></div> <!-- Spacer for left side -->
+                        <h3 style="text-align: center; flex-grow: 1;">Setpoint°/Temperature°/Humidity%</h3>
+                        <button id="clear-chart-button" class="small-button" style="width: 100px;">Clear Chart</button>
+                    </div>
                     <div class="chart-container">
                         <canvas id="env-chart"></canvas>
                     </div>
@@ -68,41 +52,94 @@
         </header>
         
         <div class="connection-panel">
-            <div class="form-group">
-                <label for="port-select">Serial Port:</label>
-                <select id="port-select">
-                    <option value="">-- Select Port --</option>
-                </select>
+            <!-- First row: Serial port controls -->
+            <div class="connection-row" style="display: flex; align-items: center; margin-bottom: 15px; width: 100%; border: 1px solid rgba(13, 92, 35, 0.3); border-radius: 4px; padding: 8px; background-color: rgba(13, 92, 35, 0.2);">
+                <div class="form-group" style="margin-right: 15px;">
+                    <label for="port-select" style="font-weight: bold;">Serial Port:</label>
+                    <select id="port-select">
+                        <option value="">-- Select Port --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button id="connect-button" class="primary">Connect</button>
+                    <button id="disconnect-button" disabled>Disconnect</button>
+                    <button id="test-start-button" style="background-color: #FF8C00; color: white;" disabled>Start</button>
+                    <button id="test-pass-button" style="background-color: #2e7d32; color: white;" disabled>Pass</button>
+                    <button id="test-fail-button" style="background-color: #c62828; color: white;" disabled>Fail</button>
+                </div>
+                <span style="margin-left: 16px;"></span>
+                <div class="divider-graphic">
+                    <svg width="750" height="20" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="10" cy="10" r="4" fill="none" stroke="#2e7d32" stroke-width="1.5"/>
+                        <circle cx="25" cy="10" r="3" fill="none" stroke="#2e7d32" stroke-width="1.5"/>
+                        <circle cx="40" cy="10" r="2" fill="none" stroke="#2e7d32" stroke-width="1.5"/>
+                        <path d="M50 10 H740" stroke="#2e7d32" stroke-width="1.5" stroke-dasharray="5,5"/>
+                        <circle cx="740" cy="10" r="2" fill="none" stroke="#2e7d32" stroke-width="1.5"/>
+                    </svg>
+                </div>
+                <div class="form-group" style="display: flex; margin-left: auto;">
+                    <button id="bug-list-button" class="primary bug-list-button" style="margin-right: 2px;">Bug List - LV <span class="bug-icon">🐞</span></button>
+                    <button id="bug-list-mysa-button" class="primary bug-list-button" style="margin-right: 2px;">Bug List - Mysa <span class="bug-icon">🐞</span></button>
+                    <button id="work-tasks-button" class="primary work-tasks-button" style="margin-right: 2px;">Work Tasks <span class="tasks-icon">📋</span></button>
+                    <button id="lunch-idea-button" class="primary lunch-button" style="margin-right: 2px;">Lunch Idea's <span class="lightbulb">💡</span></button>
+                    <button id="todays-sports-button" class="primary sports-button" style="margin-right: 2px;">Today's Sports <span class="sports-icon">🏆</span></button>
+                    <button id="todays-news-button" class="primary news-button">Today's News <span class="news-icon">📰</span></button>
+                </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.getElementById('bug-list-mysa-button').addEventListener('click', function() {
+                            window.open('https://empoweredhomes.atlassian.net/issues/?filter=10571', '_blank');
+                        });
+                        
+                        document.getElementById('todays-news-button').addEventListener('click', function() {
+                            window.open('https://www.cnn.com', '_blank');
+                        });
+                    });
+                </script>
             </div>
             
 
-            <div class="form-group">
-                <button id="connect-button" class="primary">Connect</button>
-                <button id="disconnect-button" disabled>Disconnect</button>
-                <button id="test-start-button" style="background-color: #FF8C00; color: white;" disabled>Start</button>
-                <button id="test-pass-button" style="background-color: #2e7d32; color: white;" disabled>Pass</button>
-                <button id="test-fail-button" style="background-color: #c62828; color: white;" disabled>Fail</button>
-                <div class="thermostat-status-inline">
-                    <span class="status-label">Mode:</span>
-                    <span id="thermostat-mode" class="status-value">Unknown</span>
-                    <span class="status-label">Setpoint:</span>
-                    <span id="thermostat-setpoint" class="status-value">--°C</span>
+            
+            <!-- Second row: Status fields, utility buttons, and connection status -->
+            <div class="connection-row" style="width: 100%; display: flex; align-items: center;">
+                <div class="thermostat-status-inline" style="width: 100%;">
+                    <label style="margin-right: 5px; font-weight: bold; display: inline-block; vertical-align: middle;">Settings:</label>
+                    <span class="status-label">Status:</span>
+                    <span id="status-value" class="status-value">--</span>
                     <span class="status-label">App:</span>
                     <span id="app-version" class="status-value">--</span>
-                    <span class="status-label">Temp:</span>
+                    <span class="status-label">Device Type:</span>
+                    <span id="device-type" class="status-value">--</span>
+                    <span class="status-label">DID:</span>
+                    <span id="device-id" class="status-value">--</span>
+                    <span class="status-label">Serial:</span>
+                    <span id="device-serial" class="status-value">--</span>
+                    <span class="status-label">Setpoint:</span>
+                    <span id="thermostat-setpoint" class="status-value">--</span>
+                    <span class="status-label">Mode:</span>
+                    <span id="thermostat-mode" class="status-value">--</span>
+                    <span class="status-label">ABright:</span>
+                    <span id="ambient-brightness" class="status-value">--</span>
+                    <span class="status-label">IBright:</span>
+                    <span id="indicator-brightness" class="status-value">--</span>
+                    <span class="status-label">MinSet:</span>
+                    <span id="min-setpoint" class="status-value">--</span>
+                    <span class="status-label">MaxSet:</span>
+                    <span id="max-setpoint" class="status-value">--</span>
+                    <span class="status-label">FloorTemp:</span>
+                    <span id="floor-temp" class="status-value">--</span>
+                    <span class="status-label">TempFormat:</span>
                     <span id="temp-unit" class="status-value">--</span>
-                    <span class="status-label">Lang:</span>
+                    <span class="status-label">Lock:</span>
+                    <span id="ui-lock" class="status-value">--</span>
+                    <span class="status-label">Language:</span>
                     <span id="language" class="status-value">--</span>
-                    <div class="button-group">
-                        <button id="lunch-idea-button" class="primary lunch-button">Lunch Idea <span class="lightbulb">💡</span></button>
-                        <button id="work-tasks-button" class="primary work-tasks-button">Work Tasks <span class="tasks-icon">📋</span></button>
-                        <button id="bug-list-button" class="primary bug-list-button">Bug List <span class="bug-icon">🐞</span></button>
-                        <button id="todays-sports-button" class="primary sports-button">Today's Sports <span class="sports-icon">🏆</span></button>
-                    </div>
+                    <span class="status-label">Timezone:</span>
+                    <span id="timezone" class="status-value">--</span>
                 </div>
+                <!-- Connection status moved to status fields section -->
+                <div id="connection-status" style="display: none;">Not connected</div>
             </div>
-            
-            <div id="connection-status">Not connected</div>
             
             <!-- Command Input Section Removed -->
         </div>
@@ -113,18 +150,19 @@
                 <h3>Current Test Case</h3>
                 <div class="test-case-controls">
                     <button id="export-selected-test-case" class="small-button export-button">Export</button>
+                    <button id="manual-test-button" class="small-button">Manual</button>
                     <button id="clear-selected-test-case" class="small-button">Clear</button>
                 </div>
             </div>
             <div id="selected-test-case-display">
-                <div class="test-case-placeholder">No test case selected. Select a test case from the Test Plan below.</div>
+                <div class="test-case-placeholder">No test selected. Select a test case from the Test Plan below or add one manually.</div>
             </div>
         </div>
         
         <div class="logs-wrapper">
             <div class="log-container">
                 <div class="log-header">
-                    <h2>LV Device Logging</h2>
+                    <h2>Device Logging</h2>
                     <div class="filter-container">
                         <select id="log-filter">
                             <option value="full">Full</option>
@@ -324,5 +362,10 @@
     <script src="quotes.js"></script>
     <script src="print-functions.js"></script>
     <script src="main.js"></script>
+    
+    <!-- Footer -->
+    <div class="footer">
+        <span>Project created by Adam Mior</span>
+    </div>
 </body>
 </html>
