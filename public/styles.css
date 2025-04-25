@@ -40,10 +40,26 @@ body {
 
 /* Responsive container that adapts to screen size */
 .container {
-    width: 95%;
+    width: 98%; /* Increased from 95% to use more of the screen width */
     max-width: 2400px; /* Increased from 1800px to use more space on large monitors */
     margin: 0 auto;
-    padding: 20px;
+    padding: 10px; /* Reduced from 20px to bring content closer to the edges */
+}
+
+/* Small button style for chart controls */
+.small-button {
+    padding: 4px 8px;
+    font-size: 12px;
+    background-color: #0d5c23;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.small-button:hover {
+    background-color: #0a4a1c;
 }
 
 header {
@@ -82,20 +98,25 @@ header {
 }
 
 .thermostat-status-inline {
-    display: inline-flex;
+    display: flex;
+    flex-wrap: nowrap;
     align-items: center;
-    margin-left: 15px;
-    padding: 0 10px;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 8px;
     background-color: rgba(13, 92, 35, 0.2);
     border-radius: 4px;
-    height: 38px;
+    min-height: 38px;
     border: 1px solid rgba(13, 92, 35, 0.3);
+    overflow-x: auto;
 }
 
 .status-label {
     font-size: 14px;
     color: #0a2a12;
     margin-right: 5px;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .status-value {
@@ -103,6 +124,8 @@ header {
     font-weight: bold;
     color: #0d5c23;
     margin-right: 15px;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 /* Button container */
@@ -114,6 +137,14 @@ header {
     margin-left: 0;
 }
 
+/* Left-aligned button container */
+.button-container.left-aligned {
+    border-spacing: 0 8px; /* Slightly increase vertical spacing for better separation */
+    margin-left: 0;
+    width: auto;
+    margin-top: 15px; /* Add a bit more space between subtitle and buttons */
+}
+
 .button-row {
     display: table-row;
 }
@@ -121,49 +152,135 @@ header {
 .button-cell {
     display: table-cell;
     padding-bottom: 5px;
-    width: 170px;
+    width: 200px;
+}
+
+/* Button cell in left-aligned container */
+.left-aligned .button-cell {
+    width: auto;
+    min-width: 220px; /* Slightly wider for better appearance */
+    text-align: left;
+}
+
+/* Divider graphic */
+.divider-graphic {
+    margin: 0 5px;
+    display: flex;
+    align-items: center;
+    height: 20px;
+    width: 750px;
+}
+
+.divider-graphic svg path,
+.divider-graphic svg circle {
+    transition: all 0.3s ease;
+}
+
+.divider-graphic:hover svg path {
+    stroke: #4caf50;
+    stroke-dasharray: 2,2;
+}
+
+.divider-graphic:hover svg circle {
+    stroke: #4caf50;
+}
+
+.divider-graphic:hover svg circle:nth-child(2) {
+    r: 4.5;
+}
+
+.divider-graphic:hover svg circle:nth-child(3),
+.divider-graphic:hover svg circle:nth-child(4) {
+    r: 2.5;
+}
+
+.divider-graphic:hover svg circle:nth-child(5),
+.divider-graphic:hover svg circle:nth-child(6) {
+    r: 2;
+    fill: rgba(46, 125, 50, 0.1);
+}
+
+/* Manual test case styling */
+.manual-test-description {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+}
+
+/* Footer styles */
+.footer {
+    position: relative;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #0d5c23;
+    color: #e0e0e0;
+    text-align: center;
+    padding: 8px 0;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    margin-top: 20px;
+    border-top: 2px solid #0a2a12;
+}
+
+.footer span {
+    display: inline-block;
+    position: relative;
+    font-size: 12px;
+    opacity: 0.9;
 }
 
 /* Button group container */
 .button-group {
     display: inline-flex;
-    margin-left: 10px;
+    margin-left: auto; /* Changed from 10px to auto to push to the right */
     align-items: center;
+    justify-content: flex-end; /* Added to right-justify the buttons */
 }
 
 /* Lunch Idea Button, Work Tasks Button, Bug List Button, and Sports Button */
 .lunch-button, .work-tasks-button, .bug-list-button, .sports-button {
-    font-size: 0.9em;
-    padding: 8px 12px;
+    font-size: 14px; /* Keep original font size */
+    padding: 3px 6px; /* One more touch smaller */
     min-width: 120px;
     text-align: center;
     white-space: nowrap;
-    border: none;
+    border: 1px solid;
     border-radius: 4px;
     color: white;
     cursor: pointer;
     transition: background-color 0.3s;
     display: inline-flex;
     align-items: center;
-    height: 28px;
+    line-height: normal;
     vertical-align: middle;
     margin-right: 10px;
 }
 
 .lunch-button {
     background-color: #4CAF50;
+    border-color: #45a049;
 }
 
 .work-tasks-button {
     background-color: #2196F3;
+    border-color: #0b7dda;
 }
 
 .bug-list-button {
     background-color: #0072ff; /* Blue to match other buttons */
+    border-color: #0058cc;
 }
 
 .sports-button {
     background-color: #9C27B0; /* Restore original purple color */
+    border-color: #7B1FA2;
 }
 
 .dark-mode-button {
@@ -193,13 +310,13 @@ header {
     display: inline-flex;
     align-items: center;
     border: 1px solid #0058cc;
-    font-size: 0.9em;
-    padding: 6px 12px;
+    font-size: 14px; /* Keep original font size */
+    padding: 3px 6px; /* One more touch smaller */
     border-radius: 4px;
     color: white;
     cursor: pointer;
     transition: background-color 0.3s;
-    height: 28px; /* Match the height of other buttons */
+    line-height: normal;
     vertical-align: middle;
 }
 
@@ -290,22 +407,40 @@ h1 {
     white-space: nowrap;
 }
 
+/* Test plan link in left-aligned container */
+.left-aligned .test-plan-link {
+    text-align: center;
+    padding: 12px 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    transition: all 0.25s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .test-plan-link:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 8px rgba(0, 0, 0, 0.25);
     background: linear-gradient(135deg, #0f6d2a, #0c3517);
 }
 
+/* Enhanced hover effect for left-aligned buttons */
+.left-aligned .test-plan-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(135deg, #10752e, #0d3c19);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
 /* Grid layout ensures buttons are in stacks of two */
 
 .config-codes-link {
-    background: linear-gradient(135deg, #0c3517, #0f6d2a);
+    background: linear-gradient(135deg, #1565c0, #0d47a1);
 }
 
 .config-codes-link:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 8px rgba(0, 0, 0, 0.25);
-    background: linear-gradient(135deg, #0f6d2a, #0c3517);
+    background: linear-gradient(135deg, #1976d2, #1565c0);
 }
 
 .mysa-hq-link {
@@ -479,10 +614,30 @@ button.primary:hover {
     color: #8c1414;
 }
 
+/* Status field in the status section */
+#status-value.connected,
+#status-value.disconnected {
+    display: inline-block;
+    width: auto;
+    min-width: 30px;
+    font-size: 14px;
+    margin-right: 15px;
+}
+
+#status-value.connected {
+    color: #0f6d2a;
+    font-weight: bold;
+}
+
+#status-value.disconnected {
+    color: #8c1414;
+    font-weight: bold;
+}
+
 /* Responsive logs wrapper that adapts to screen size */
 .logs-wrapper {
     display: flex;
-    gap: 20px;
+    gap: 10px; /* Reduced from 20px to bring the chart closer to the right edge */
     margin-bottom: 20px;
     width: 100%;
     min-width: 0; /* Remove fixed min-width to allow responsive behavior */
@@ -500,15 +655,15 @@ button.primary:hover {
     flex-direction: column;
 }
 
-/* Log container takes 60% of the space */
+/* Log container takes 50% of the space */
 .log-container {
-    width: 60%; /* Explicitly set width to 60% */
+    width: 50%; /* Reduced from 55% to make chart even wider */
     min-width: 400px; /* Reduced from 800px to be more responsive */
 }
 
-/* Error container takes 40% of the space */
+/* Error container takes 50% of the space */
 .error-container {
-    width: 40%; /* Explicitly set width to 40% */
+    width: 50%; /* Increased from 45% to match the log-container change */
     min-width: 350px; /* Slightly wider than original */
 }
 
