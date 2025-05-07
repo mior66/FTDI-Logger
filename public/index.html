@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="styles.css?v=20250402">
     <link rel="stylesheet" href="print-styles.css?v=20250407">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -17,6 +18,7 @@
             <div class="header-left">
                 <h1>FTDI Logger</h1>
                 <p class="subtitle">A sleek, real-time serial monitor for FTDI devices</p>
+
                 <div class="button-container left-aligned">
                     <!-- Single column of buttons aligned with header -->
                     <div class="button-row">
@@ -32,7 +34,7 @@
                         <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/16xdQXvDj7JombdTCfBGR5toxyyYe4nk-kpPSfwiy6ic/edit?gid=589161712#gid=589161712" class="test-plan-link open-plan-link" target="_blank">Open Test Plan LV</a></div>
                     </div>
                     <div class="button-row">
-                        <div class="button-cell"><a href="https://release.zenhq.com/login" class="test-plan-link open-plan-link" target="_blank">MYSA HQ</a></div>
+                        <div class="button-cell"><button id="test-tracker-button" class="test-plan-link open-plan-link" style="background-color: #0d5c23; color: white; border: 2px solid #0a2a12; cursor: pointer;">Manual Testing</button></div>
                     </div>
                     <div class="button-row">
                         <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/13ChFbZGavVREYhuHa2vPmY_SQCH5IuecG_Nw2LbL3t4/edit?gid=1763151684#gid=1763151684" class="test-plan-link config-codes-link" target="_blank">Config Codes</a></div>
@@ -51,6 +53,7 @@
                     <div class="chart-container">
                         <canvas id="env-chart"></canvas>
                     </div>
+
                 </div>
             </div>
         </header>
@@ -160,6 +163,92 @@
             </div>
             <div id="selected-test-case-display">
                 <div class="test-case-placeholder">No test selected. Select a test case from the Test Plan below or add one manually.</div>
+            </div>
+            
+            <!-- Test Tracker Panel (Hidden by default) -->
+            <div id="test-tracker-panel" style="display: none;">
+                <div class="test-tracker-header">
+                    <h3>Test Plan Tracker</h3>
+                </div>
+                
+                <div class="tracker-top-controls">
+                    <div class="device-selection">
+                        <label for="deviceType">Device Type:</label>
+                        <select id="deviceType" class="device-dropdown">
+                            <option value="" selected>--</option>
+                            <option value="LV">LV</option>
+                            <option value="BB1">BB1</option>
+                            <option value="BB2">BB2</option>
+                            <option value="BB2L">BB2L</option>
+                            <option value="INF">INF</option>
+                            <option value="AC">AC</option>
+                            <option value="BB">BB</option>
+                            <option value="Smoke">Smoke</option>
+                            <option value="Sanity">Sanity</option>
+                        </select>
+                    </div>
+                    
+                    <div class="file-upload-container">
+                        <input type="file" id="fileUpload" accept=".xlsx, .xls" />
+                        <div class="button-group">
+                            <button id="loadFile" class="small-button" style="background-color: #0d5c23; color: white; border: 1px solid #0a2a12;">Load Test Plan</button>
+                            <button id="clearData" class="small-button" style="background-color: #333; color: white; border: 1px solid #222;">Clear All</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tracker-main-content">
+                    <div class="tracker-left-panel">
+                        <div class="test-info-container">
+                            <div class="info-stack">
+                                <div class="info-field">
+                                    <label for="firmware-build">Firmware:</label>
+                                    <input type="text" id="firmware-build" class="info-input" placeholder="Enter firmware">
+                                </div>
+                                <div class="info-field">
+                                    <label for="app-version-tracker">App:</label>
+                                    <input type="text" id="app-version-tracker" class="info-input" placeholder="Enter app">
+                                </div>
+                                <div class="info-field">
+                                    <label for="phone-type">Phone:</label>
+                                    <input type="text" id="phone-type" class="info-input" placeholder="Enter phone">
+                                </div>
+                            </div>
+                            <div class="notes-field">
+                                <label for="test-notes">Notes:</label>
+                                <textarea id="test-notes" class="notes-textarea" placeholder="Enter general test notes here..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tracker-right-panel">
+                        <div class="summary-stats">
+                            <h4 style="margin-top: 0; margin-bottom: 10px; color: #0d5c23;">Test Results</h4>
+                            <div class="compact-stats">
+                                <div class="stat-row">
+                                    <span class="stat-label">Total:</span>
+                                    <span id="total-tests" class="stat-value">0</span>
+                                    <span class="stat-label" style="margin-left: 15px;">Pass:</span>
+                                    <span id="passed-tests" class="stat-value" style="color: #2e7d32;">0</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Fail:</span>
+                                    <span id="failed-tests" class="stat-value" style="color: #c62828;">0</span>
+                                    <span class="stat-label" style="margin-left: 15px;">Not Tested:</span>
+                                    <span id="not-tested-tests" class="stat-value">0</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Pass Rate:</span>
+                                    <span id="pass-rate" class="stat-value" style="font-weight: bold;">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="test-data-container" class="test-data-container">
+                    <!-- Test data will be displayed here -->
+                </div>
             </div>
         </div>
         
@@ -366,6 +455,7 @@
     <script src="quotes.js"></script>
     <script src="print-functions.js"></script>
     <script src="main.js"></script>
+    <script src="test-tracker-integration.js"></script>
     
     <!-- Footer -->
     <div class="footer">
