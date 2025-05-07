@@ -1340,6 +1340,16 @@ button.primary:hover {
     color: white;
 }
 
+/* Sub-row styling */
+.sub-row td:first-child {
+    padding-left: 20px;
+    font-style: italic;
+}
+
+.sub-row {
+    background-color: #f9f9f9;
+}
+
 /* Apply colors to selected values */
 .status-select.pass-selected {
     background-color: #2e7d32;

@@ -34,7 +34,7 @@
                         <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/16xdQXvDj7JombdTCfBGR5toxyyYe4nk-kpPSfwiy6ic/edit?gid=589161712#gid=589161712" class="test-plan-link open-plan-link" target="_blank">Open Test Plan LV</a></div>
                     </div>
                     <div class="button-row">
-                        <div class="button-cell"><button id="test-tracker-button" class="test-plan-link open-plan-link" style="background-color: #0d5c23; color: white; border: 2px solid #0a2a12; cursor: pointer;">Manual Testing</button></div>
+                        <div class="button-cell"><button id="test-tracker-button" class="test-plan-link config-codes-link" style="background: linear-gradient(135deg, #0d5c23, #0a4a1c); color: white; cursor: pointer; border: none; padding: 10px 15px;">Manual Testing</button></div>
                     </div>
                     <div class="button-row">
                         <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/13ChFbZGavVREYhuHa2vPmY_SQCH5IuecG_Nw2LbL3t4/edit?gid=1763151684#gid=1763151684" class="test-plan-link config-codes-link" target="_blank">Config Codes</a></div>
@@ -110,7 +110,7 @@
             <!-- Second row: Status fields, utility buttons, and connection status -->
             <div class="connection-row" style="width: 100%; display: flex; align-items: center;">
                 <div class="thermostat-status-inline" style="width: 100%;">
-                    <label style="margin-right: 5px; font-weight: bold; display: inline-block; vertical-align: middle;">Settings:</label>
+                    <label style="margin-right: 5px; font-weight: bold; display: inline-block; vertical-align: middle;">Automated Settings:</label>
                     <span class="status-label">Status:</span>
                     <span id="status-value" class="status-value">--</span>
                     <span class="status-label">App:</span>
@@ -154,7 +154,7 @@
         <!-- Current Test Case Display Box -->
         <div class="selected-test-case-panel">
             <div class="test-case-header">
-                <h3>Current Test Case</h3>
+                <h3>Test Case Tracking</h3>
                 <div class="test-case-controls">
                     <button id="export-selected-test-case" class="small-button export-button">Export</button>
                     <button id="manual-test-button" class="small-button">Manual</button>
@@ -190,59 +190,53 @@
                     
                     <div class="file-upload-container">
                         <input type="file" id="fileUpload" accept=".xlsx, .xls" />
+                        <span style="margin: 0 10px;"></span>
                         <div class="button-group">
                             <button id="loadFile" class="small-button" style="background-color: #0d5c23; color: white; border: 1px solid #0a2a12;">Load Test Plan</button>
                             <button id="clearData" class="small-button" style="background-color: #333; color: white; border: 1px solid #222;">Clear All</button>
                         </div>
                     </div>
-                </div>
-                
-                <div class="tracker-main-content">
-                    <div class="tracker-left-panel">
-                        <div class="test-info-container">
-                            <div class="info-stack">
-                                <div class="info-field">
-                                    <label for="firmware-build">Firmware:</label>
-                                    <input type="text" id="firmware-build" class="info-input" placeholder="Enter firmware">
-                                </div>
-                                <div class="info-field">
-                                    <label for="app-version-tracker">App:</label>
-                                    <input type="text" id="app-version-tracker" class="info-input" placeholder="Enter app">
-                                </div>
-                                <div class="info-field">
-                                    <label for="phone-type">Phone:</label>
-                                    <input type="text" id="phone-type" class="info-input" placeholder="Enter phone">
-                                </div>
+                    
+                    <div class="summary-stats" style="margin-left: 15px; margin-bottom: 0;">
+                        <div class="compact-stats">
+                            <div class="stat-row">
+                                <span class="stat-label">Total:</span>
+                                <span id="total-tests" class="stat-value">0</span>
+                                <span class="stat-label" style="margin-left: 15px;">Pass:</span>
+                                <span id="passed-tests" class="stat-value" style="color: #2e7d32;">0</span>
                             </div>
-                            <div class="notes-field">
-                                <label for="test-notes">Notes:</label>
-                                <textarea id="test-notes" class="notes-textarea" placeholder="Enter general test notes here..."></textarea>
+                            <div class="stat-row">
+                                <span class="stat-label">Fail:</span>
+                                <span id="failed-tests" class="stat-value" style="color: #c62828;">0</span>
+                                <span class="stat-label" style="margin-left: 15px;">Not Tested:</span>
+                                <span id="not-tested-tests" class="stat-value">0</span>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="tracker-right-panel">
-                        <div class="summary-stats">
-                            <h4 style="margin-top: 0; margin-bottom: 10px; color: #0d5c23;">Test Results</h4>
-                            <div class="compact-stats">
-                                <div class="stat-row">
-                                    <span class="stat-label">Total:</span>
-                                    <span id="total-tests" class="stat-value">0</span>
-                                    <span class="stat-label" style="margin-left: 15px;">Pass:</span>
-                                    <span id="passed-tests" class="stat-value" style="color: #2e7d32;">0</span>
-                                </div>
-                                <div class="stat-row">
-                                    <span class="stat-label">Fail:</span>
-                                    <span id="failed-tests" class="stat-value" style="color: #c62828;">0</span>
-                                    <span class="stat-label" style="margin-left: 15px;">Not Tested:</span>
-                                    <span id="not-tested-tests" class="stat-value">0</span>
-                                </div>
-                                <div class="stat-row">
-                                    <span class="stat-label">Pass Rate:</span>
-                                    <span id="pass-rate" class="stat-value" style="font-weight: bold;">0%</span>
-                                </div>
-                            </div>
+                </div>
+                
+                <div class="test-info-container" style="margin-top: 15px;">
+                    <div class="info-row" style="display: flex; gap: 15px; margin-bottom: 10px;">
+                        <div class="info-field" style="flex: 1;">
+                            <label for="firmware-build">Firmware:</label>
+                            <input type="text" id="firmware-build" class="info-input" placeholder="Enter firmware">
                         </div>
+                        <div class="info-field" style="flex: 1;">
+                            <label for="app-version-tracker">App:</label>
+                            <input type="text" id="app-version-tracker" class="info-input" placeholder="Enter app">
+                        </div>
+                        <div class="info-field" style="flex: 1;">
+                            <label for="phone-type">Phone:</label>
+                            <input type="text" id="phone-type" class="info-input" placeholder="Enter phone">
+                        </div>
+                    </div>
+                    <div class="notes-field">
+                        <label for="test-notes">Notes:</label>
+                        <textarea id="test-notes" class="notes-textarea" placeholder="Enter general test notes here..."></textarea>
+                    </div>
+                    <div class="pass-rate-container" style="margin-top: 10px; text-align: right;">
+                        <span class="stat-label">Pass Rate:</span>
+                        <span id="pass-rate" class="stat-value" style="font-weight: bold;">0%</span>
                     </div>
                 </div>
                 

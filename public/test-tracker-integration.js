@@ -170,13 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filteredTestCases = [];
         
         try {
-            // Special handling for LV - process by sheets and tabs
-            if (deviceType === 'LV') {
-                processLVTestPlan(workbook);
-                return;
-            }
-            
-            // For other device types, process the first sheet with label filtering
+            // Process the first sheet with label filtering for all device types
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -189,13 +183,23 @@ document.addEventListener('DOMContentLoaded', function() {
             // Find column indices
             const issueKeyIndex = headerRow.findIndex(header => 
                 header && (String(header).includes('Issue Key') || String(header).includes('Key') || 
-                String(header).includes('Issue')));
+                String(header).includes('Issue') || String(header).includes('Test #')));
             const summaryIndex = headerRow.findIndex(header => 
                 header && String(header).includes('Summary'));
             const descriptionIndex = headerRow.findIndex(header => 
                 header && String(header).includes('Description'));
+            
+            // Find Zen V1 and Mysa LV columns for LV test plans
+            const zenV1Index = headerRow.findIndex(header => 
+                header && String(header).includes('Zen V1'));
+            const mysaLVIndex = headerRow.findIndex(header => 
+                header && String(header).includes('Mysa LV'));
+            
+            // Find and exclude Build column
+            const buildIndex = headerRow.findIndex(header => 
+                header && String(header).includes('Build'));
                 
-            console.log('Column indices:', { issueKeyIndex, summaryIndex, descriptionIndex });
+            console.log('Column indices:', { issueKeyIndex, summaryIndex, descriptionIndex, zenV1Index, mysaLVIndex, buildIndex });
             
             // Find all label columns
             const labelIndices = [];
@@ -215,72 +219,73 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Define hasMatchingLabel at the correct scope
                 let hasMatchingLabel = false;
                 
-                // Special handling for LV - include all test cases regardless of labels
-                if (deviceType === 'LV') {
-                    hasMatchingLabel = true;
-                } else {
-                    // For other device types, check if any label column matches the requirements
-                    for (const labelIndex of labelIndices) {
-                        const labelValue = row[labelIndex];
-                        if (labelValue) {
-                            const labelStr = String(labelValue);
-                            const labels = labelStr.split(',').map(l => l.trim());
-                            
-                            // Apply device-specific label filtering
-                            switch(deviceType) {
-                                case 'BB1':
-                                    // BB1 - The label must be BB1 or BB
-                                    if (labels.includes('BB1') || labels.includes('BB')) {
-                                        hasMatchingLabel = true;
-                                    }
-                                    break;
-                                case 'BB2':
-                                    // BB2 - The label must be BB or BB2
-                                    if (labels.includes('BB2') || labels.includes('BB')) {
-                                        hasMatchingLabel = true;
-                                    }
-                                    break;
-                                case 'BB2L':
-                                    // BB2L - The label must be BB or BB2L
-                                    if (labels.includes('BB2L') || labels.includes('BB')) {
-                                        hasMatchingLabel = true;
-                                    }
-                                    break;
-                                case 'INF':
-                                    // INF - The label must be INF
-                                    if (labels.includes('INF')) {
-                                        hasMatchingLabel = true;
-                                    }
-                                    break;
-                                case 'AC':
-                                    // AC - The label must be AC
-                                    if (labels.includes('AC')) {
-                                        hasMatchingLabel = true;
-                                    }
-                                    break;
-                                case 'BB':
-                                    // BB - The label can be BB, BB1, BB2, or BB2L
-                                    if (labels.includes('BB') || labels.includes('BB1') || 
-                                        labels.includes('BB2') || labels.includes('BB2L')) {
-                                        hasMatchingLabel = true;
-                                    }
-                                    break;
-                                case 'Smoke':
-                                    // Smoke - The label must include 'smoke' (case insensitive)
-                                    if (labels.some(label => label.toLowerCase().includes('smoke'))) {
-                                        hasMatchingLabel = true;
-                                    }
-                                    break;
-                                case 'Sanity':
-                                    // Sanity - The label must include 'sanity' (case insensitive)
-                                    if (labels.some(label => label.toLowerCase().includes('sanity'))) {
-                                        hasMatchingLabel = true;
-                                    }
-                                    break;
-                            }
-                            
-                            if (hasMatchingLabel) break;
+                // Check if any label column matches the requirements
+                for (const labelIndex of labelIndices) {
+                    const labelValue = row[labelIndex];
+                    if (labelValue) {
+                        const labelStr = String(labelValue);
+                        const labels = labelStr.split(',').map(l => l.trim());
+                        
+                        // Apply device-specific label filtering
+                        switch(deviceType) {
+                            case 'LV':
+                                // LV - The label must include 'LV' (case insensitive)
+                                if (labels.some(label => label.toUpperCase().includes('LV'))) {
+                                    hasMatchingLabel = true;
+                                }
+                                break;
+                            case 'BB1':
+                                // BB1 - The label must be BB1 or BB
+                                if (labels.includes('BB1') || labels.includes('BB')) {
+                                    hasMatchingLabel = true;
+                                }
+                                break;
+                            case 'BB2':
+                                // BB2 - The label must be BB or BB2
+                                if (labels.includes('BB2') || labels.includes('BB')) {
+                                    hasMatchingLabel = true;
+                                }
+                                break;
+                            case 'BB2L':
+                                // BB2L - The label must be BB or BB2L
+                                if (labels.includes('BB2L') || labels.includes('BB')) {
+                                    hasMatchingLabel = true;
+                                }
+                                break;
+                            case 'INF':
+                                // INF - The label must be INF
+                                if (labels.includes('INF')) {
+                                    hasMatchingLabel = true;
+                                }
+                                break;
+                            case 'AC':
+                                // AC - The label must be AC
+                                if (labels.includes('AC')) {
+                                    hasMatchingLabel = true;
+                                }
+                                break;
+                            case 'BB':
+                                // BB - The label can be BB, BB1, BB2, or BB2L
+                                if (labels.includes('BB') || labels.includes('BB1') || 
+                                    labels.includes('BB2') || labels.includes('BB2L')) {
+                                    hasMatchingLabel = true;
+                                }
+                                break;
+                            case 'Smoke':
+                                // Smoke - The label must include 'smoke' (case insensitive)
+                                if (labels.some(label => label.toLowerCase().includes('smoke'))) {
+                                    hasMatchingLabel = true;
+                                }
+                                break;
+                            case 'Sanity':
+                                // Sanity - The label must include 'sanity' (case insensitive)
+                                if (labels.some(label => label.toLowerCase().includes('sanity'))) {
+                                    hasMatchingLabel = true;
+                                }
+                                break;
                         }
+                        
+                        if (hasMatchingLabel) break;
                     }
                 }
                 
@@ -293,13 +298,28 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                     
+                    // Check if this is a sub-row
+                    let isSubRow = false;
+                    let testNumStr = '';
+                    
+                    if (issueKeyIndex >= 0 && row[issueKeyIndex]) {
+                        testNumStr = String(row[issueKeyIndex]);
+                        // Sub-row if test number starts with dash or space-dash
+                        if (testNumStr.startsWith('-') || testNumStr.startsWith(' -') || testNumStr.includes('Wait')) {
+                            isSubRow = true;
+                        }
+                    }
+                    
                     // Add to filtered test cases
                     filteredTestCases.push({
                         issueKey: issueKeyIndex >= 0 ? row[issueKeyIndex] : 'N/A',
                         summary: summaryIndex >= 0 ? row[summaryIndex] : 'N/A',
                         description: descriptionIndex >= 0 ? row[descriptionIndex] : 'N/A',
+                        zenV1: zenV1Index >= 0 ? row[zenV1Index] : '',
+                        mysaLV: mysaLVIndex >= 0 ? row[mysaLVIndex] : '',
                         labels: labels.join(', '),
-                        status: 'not-tested' // Default status
+                        status: 'not-tested', // Default status
+                        isSubRow: isSubRow // Flag to identify sub-rows
                     });
                 }
             }
@@ -374,8 +394,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 // Add active class to clicked tab
                 this.classList.add('active');
-                // Display the selected sheet
-                displayLVSheet(workbook, this.dataset.sheetName);
+                // Display a specific sheet for LV test plan
+                displayLVSheet(this.dataset.sheetName, workbook.Sheets[this.dataset.sheetName]);
             });
             
             tabsContainer.appendChild(tab);
@@ -384,137 +404,108 @@ document.addEventListener('DOMContentLoaded', function() {
         // Display the first sheet by default
         if (filteredSheets.length > 0) {
             document.querySelector('.tab').classList.add('active');
-            displayLVSheet(workbook, filteredSheets[0]);
+            displayLVSheet(filteredSheets[0], workbook.Sheets[filteredSheets[0]]);
         }
     }
     
-    // Display a specific sheet for LV test plan
-    function displayLVSheet(workbook, sheetName) {
-        const worksheet = workbook.Sheets[sheetName];
+    function displayLVSheet(sheetName, worksheet) {
+        // Convert worksheet to JSON
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
         
-        // Find the header row (first non-empty row)
-        let headerRowIndex = 0;
-        while (headerRowIndex < jsonData.length && 
-               (!jsonData[headerRowIndex] || jsonData[headerRowIndex].length === 0)) {
-            headerRowIndex++;
+        // Find the header row
+        let headerRowIndex = -1;
+        for (let i = 0; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            if (row && row.some(cell => cell && cell.toString().toLowerCase().includes('test #'))) {
+                headerRowIndex = i;
+                break;
+            }
         }
         
-        if (headerRowIndex >= jsonData.length) {
-            document.getElementById('test-content-container').innerHTML = '<p>No data in this sheet</p>';
+        if (headerRowIndex === -1) {
+            document.getElementById('test-content-container').innerHTML = '<p>Error: Header row not found in sheet</p>';
             return;
         }
         
-        // Get the headers
+        // Extract headers
         const headers = jsonData[headerRowIndex];
         
-        // Find the Test # column index
-        const testNumColumnIndex = headers.findIndex(header => 
-            header && header.toString().toLowerCase().includes('test #'));
-            
-        // Find the Pass/Fail column index
-        const passFailColumnIndex = headers.findIndex(header => 
-            header && header.toString().toLowerCase().includes('pass/fail'));
+        // Find important column indices
+        let testNumColumnIndex = -1;
+        let passFailColumnIndex = -1;
+        let buildColumnIndex = -1;
+        let generalNotesColumnIndex = -1;
+        
+        headers.forEach((header, index) => {
+            if (!header) return;
+            const headerText = header.toString().toLowerCase();
+            if (headerText.includes('test #')) {
+                testNumColumnIndex = index;
+            } else if (headerText.includes('pass/fail')) {
+                passFailColumnIndex = index;
+            } else if (headerText.includes('build')) {
+                buildColumnIndex = index;
+            } else if (headerText.includes('general note') || headerText.includes('bugs')) {
+                generalNotesColumnIndex = index;
+            }
+        });
         
         if (testNumColumnIndex === -1) {
-            document.getElementById('test-content-container').innerHTML = '<p>Cannot find Test # column in this sheet</p>';
+            document.getElementById('test-content-container').innerHTML = '<p>Error: Test # column not found in sheet</p>';
             return;
         }
         
-        // Create table
+        // Known section headers in LV test plans
+        const knownSectionHeaders = [
+            'Heat Mode', 'Cool Mode', 'Fan Mode', 'Auto Mode',
+            'Pairing', 'Configuration', 'General', 'Misc',
+            'Automated Testing', 'Manual Testing'
+        ];
+        
+        // Create the table
         let tableHTML = '<table class="test-table">';
         
-        // Create table header
+        // Add header row
         tableHTML += '<thead><tr>';
-        headers.forEach(header => {
-            if (header) {
-                tableHTML += `<th>${header}</th>`;
+        headers.forEach((header, index) => {
+            // Skip the Build column and General Notes column
+            if (index === buildColumnIndex || index === generalNotesColumnIndex) {
+                return;
             }
+            tableHTML += `<th>${header !== undefined ? header : ''}</th>`;
         });
-        // Add a column for Pass/Fail if it doesn't exist
+        
+        // Add a Pass/Fail column if not present
         if (passFailColumnIndex === -1) {
             tableHTML += '<th>Pass/Fail</th>';
         }
-        tableHTML += '</tr></thead>';
         
-        // Create table body
+        tableHTML += '</tr></thead>';
         tableHTML += '<tbody>';
         
-        // Track current section for styling
-        let currentSection = '';
-        let rowCount = 0;
+        let failedTests = 0;
+        let notTestedTests = 0;
         
-        // Process data rows (skip header row)
-        for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
-            const rowData = jsonData[i];
-            if (!rowData || rowData.length === 0) continue;
-            
-            // Get the test number (if any)
-            const testNum = rowData[testNumColumnIndex];
-            if (!testNum) continue;
-            
-            const testNumStr = testNum.toString().trim();
-            
-            // Check if it's a section header
-            let isSectionHeader = false;
-            for (let header of knownSectionHeaders) {
-                if (testNumStr.includes(header)) {
-                    isSectionHeader = true;
-                    currentSection = header;
-                    break;
-                }
+        allSelects.forEach(select => {
+            if (select.value === 'pass') {
+                passedTests++;
+            } else if (select.value === 'fail') {
+                failedTests++;
+            } else {
+                notTestedTests++;
             }
-            
-            if (isSectionHeader) {
-                // Add section header row
-                tableHTML += `<tr class="section-header"><td colspan="${headers.length + (passFailColumnIndex === -1 ? 1 : 0)}">${testNumStr}</td></tr>`;
-                continue;
-            }
-            
-            // Regular test row
-            rowCount++;
-            const rowClass = rowCount % 2 === 0 ? 'even-row' : 'odd-row';
-            tableHTML += `<tr class="${rowClass}" data-test-num="${testNumStr}">`;
-            
-            // Add each cell
-            rowData.forEach((cell, cellIndex) => {
-                if (cellIndex < headers.length) {
-                    tableHTML += `<td>${cell !== undefined ? cell : ''}</td>`;
-                }
-            });
-            
-            // Add Pass/Fail dropdown if needed
-            if (passFailColumnIndex === -1) {
-                tableHTML += '<td><select class="status-select" onchange="updateTestStatus(this)">';
-                tableHTML += '<option value="not-tested" selected>Not Tested</option>';
-                tableHTML += '<option value="pass">Pass</option>';
-                tableHTML += '<option value="fail">Fail</option>';
-                tableHTML += '</select></td>';
-            }
-            
-            tableHTML += '</tr>';
-        }
-        
-        tableHTML += '</tbody></table>';
-        
-        // Display the table
-        document.getElementById('test-content-container').innerHTML = tableHTML;
-        
-        // Add event listeners for status changes
-        document.querySelectorAll('.status-select').forEach(select => {
-            select.addEventListener('change', function() {
-                // Apply color styling based on selection
-                this.className = 'status-select';
-                if (this.value === 'pass') {
-                    this.classList.add('pass-selected');
-                } else if (this.value === 'fail') {
-                    this.classList.add('fail-selected');
-                }
-                
-                // Update summary stats
-                updateSummaryStats();
-            });
         });
+        
+        // Calculate pass rate (only considering tested items)
+        const testedTotal = passedTests + failedTests;
+        const passRate = testedTotal > 0 ? Math.round((passedTests / testedTotal) * 100) : 0;
+        
+        // Update the summary stats
+        document.getElementById('total-tests').textContent = totalTests;
+        document.getElementById('passed-tests').textContent = passedTests;
+        document.getElementById('failed-tests').textContent = failedTests;
+        document.getElementById('not-tested-tests').textContent = notTestedTests;
+        document.getElementById('pass-rate').textContent = `${passRate}%`;
     }
     
     // Display filtered test cases for non-LV device types
@@ -533,7 +524,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Create table header
         tableHTML += '<thead><tr>';
-        const headers = ['Issue Key', 'Summary', 'Labels', 'Description', 'Pass/Fail'];
+        let headers;
+        if (deviceType === 'LV') {
+            headers = ['Test #', 'Summary', 'Description', 'Zen V1', 'Mysa LV', 'Pass/Fail'];
+        } else {
+            headers = ['Issue Key', 'Summary', 'Description', 'Labels', 'Pass/Fail'];
+        }
         headers.forEach(header => {
             tableHTML += `<th>${header}</th>`;
         });
@@ -543,19 +539,37 @@ document.addEventListener('DOMContentLoaded', function() {
         tableHTML += '<tbody>';
         
         filteredTestCases.forEach((testCase, index) => {
-            tableHTML += `<tr data-index="${index}">`;
+            // Apply sub-row styling if needed
+            const rowClasses = [];
+            if (testCase.isSubRow) {
+                rowClasses.push('sub-row');
+                rowClasses.push('sub-line-divider');
+            }
             
-            // Issue Key
+            tableHTML += `<tr data-index="${index}" class="${rowClasses.join(' ')}">`;
+            
+            // Test # / Issue Key
             tableHTML += `<td>${testCase.issueKey || 'N/A'}</td>`;
             
             // Summary
             tableHTML += `<td>${testCase.summary || 'N/A'}</td>`;
             
-            // Labels
-            tableHTML += `<td>${testCase.labels || 'N/A'}</td>`;
+            // Description - preserve line breaks
+            const description = testCase.description || 'N/A';
+            tableHTML += `<td>${description.replace(/\n/g, '<br>')}</td>`;
             
-            // Description
-            tableHTML += `<td>${testCase.description || 'N/A'}</td>`;
+            if (deviceType === 'LV') {
+                // Zen V1 column - preserve line breaks
+                const zenV1 = testCase.zenV1 || '';
+                tableHTML += `<td>${zenV1.replace(/\n/g, '<br>')}</td>`;
+                
+                // Mysa LV column - preserve line breaks
+                const mysaLV = testCase.mysaLV || '';
+                tableHTML += `<td>${mysaLV.replace(/\n/g, '<br>')}</td>`;
+            } else {
+                // Labels column for non-LV device types
+                tableHTML += `<td>${testCase.labels || 'N/A'}</td>`;
+            }
             
             // Pass/Fail dropdown
             tableHTML += '<td>';
