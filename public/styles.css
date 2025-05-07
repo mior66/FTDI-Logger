@@ -1219,7 +1219,7 @@ button.primary:hover {
 }
 
 .test-data-container {
-    max-height: 300px;
+    max-height: 1200px;
     overflow-y: auto;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -1286,7 +1286,7 @@ button.primary:hover {
 }
 
 .test-content-container {
-    max-height: 350px;
+    max-height: 1200px;
     overflow-y: auto;
 }
 

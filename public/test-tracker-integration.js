@@ -630,8 +630,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Calculate pass rate
-        const passRate = totalTests > 0 ? Math.round((totalPassed / totalTests) * 100) : 0;
+        // Calculate pass rate (only considering tested items - Pass vs Fail)
+        const testedTotal = totalPassed + totalFailed;
+        const passRate = testedTotal > 0 ? Math.round((totalPassed / testedTotal) * 100) : 0;
         
         // Update summary stats display
         document.getElementById('total-tests').textContent = totalTests;
