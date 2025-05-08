@@ -1,7 +1,6 @@
 // Test Tracker Integration for FTDI Logger
 document.addEventListener('DOMContentLoaded', function() {
     // Get references to elements
-    const testTrackerButton = document.getElementById('test-tracker-button');
     const testTrackerPanel = document.getElementById('test-tracker-panel');
     const selectedTestCaseDisplay = document.getElementById('selected-test-case-display');
     const deviceTypeDropdown = document.getElementById('deviceType');
@@ -17,31 +16,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentDeviceType = '';
     let filteredTestCases = [];
     
-    // Toggle Test Tracker panel when the button is clicked
-    if (testTrackerButton) {
-        testTrackerButton.addEventListener('click', function() {
-            // Toggle the display of the Test Tracker panel
-            if (testTrackerPanel.style.display === 'none') {
-                // Hide the selected test case display
-                selectedTestCaseDisplay.style.display = 'none';
-                // Show the Test Tracker panel
-                testTrackerPanel.style.display = 'block';
-                
-                // Update the button text to indicate it's active
-                testTrackerButton.textContent = 'Automated Testing';
-                testTrackerButton.style.backgroundColor = '#0a2a12';
-            } else {
-                // Show the selected test case display
-                selectedTestCaseDisplay.style.display = 'block';
-                // Hide the Test Tracker panel
-                testTrackerPanel.style.display = 'none';
-                
-                // Update the button text to indicate it's inactive
-                testTrackerButton.textContent = 'Manual Testing';
-                testTrackerButton.style.backgroundColor = '#0d5c23';
-            }
-        });
-    }
+    // Both panels are now visible by default and the Manual Testing button has been removed
+    // No need for toggle functionality
     
     // Handle device type selection
     if (deviceTypeDropdown) {
@@ -234,6 +210,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                     hasMatchingLabel = true;
                                 }
                                 break;
+                            case 'Smoke':
+                                // Smoke - The label must include 'smoke' (case insensitive)
+                                if (labels.some(label => label.toLowerCase().includes('smoke'))) {
+                                    hasMatchingLabel = true;
+                                }
+                                break;
                             case 'BB1':
                                 // BB1 - The label must be BB1 or BB
                                 if (labels.includes('BB1') || labels.includes('BB')) {
@@ -268,12 +250,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 // BB - The label can be BB, BB1, BB2, or BB2L
                                 if (labels.includes('BB') || labels.includes('BB1') || 
                                     labels.includes('BB2') || labels.includes('BB2L')) {
-                                    hasMatchingLabel = true;
-                                }
-                                break;
-                            case 'Smoke':
-                                // Smoke - The label must include 'smoke' (case insensitive)
-                                if (labels.some(label => label.toLowerCase().includes('smoke'))) {
                                     hasMatchingLabel = true;
                                 }
                                 break;
@@ -361,6 +337,17 @@ document.addEventListener('DOMContentLoaded', function() {
             testDataContainer.appendChild(testContentContainer);
         } else {
             testContentContainer.innerHTML = '';
+        }
+        
+        // Store the Specific Config Testing sheet for CN tests if available
+        const specificConfigSheet = workbook.SheetNames.find(name => name === 'Specific Config Testing');
+        if (specificConfigSheet) {
+            // Store this sheet data globally for CN test processing
+            window.specificConfigData = XLSX.utils.sheet_to_json(workbook.Sheets[specificConfigSheet], { header: 1 });
+            console.log('Found Specific Config Testing sheet for CN tests');
+        } else {
+            window.specificConfigData = null;
+            console.log('No Specific Config Testing sheet found for CN tests');
         }
         
         // Filter out sheets we don't want to show
@@ -483,9 +470,290 @@ document.addEventListener('DOMContentLoaded', function() {
         tableHTML += '</tr></thead>';
         tableHTML += '<tbody>';
         
+        // Function to check if a test is a CN test
+        function isCNTest(testNumber) {
+            if (!testNumber) return false;
+            return /^CN-\d{3}$/i.test(testNumber.toString().trim());
+        }
+        
+        // Function to get CN test data from Specific Config Testing sheet
+        function getCNTestData(testNumber) {
+            if (!window.specificConfigData) return null;
+            
+            // Find the header row in the Specific Config Testing sheet
+            let headerRowIndex = -1;
+            for (let i = 0; i < window.specificConfigData.length; i++) {
+                const row = window.specificConfigData[i];
+                if (row && row.some(cell => cell && cell.toString().toLowerCase().includes('test #'))) {
+                    headerRowIndex = i;
+                    break;
+                }
+            }
+            
+            if (headerRowIndex === -1) return null;
+            
+            // Get headers
+            const headers = window.specificConfigData[headerRowIndex];
+            
+            // Find Test # column index
+            const testNumIndex = headers.findIndex(header => 
+                header && header.toString().toLowerCase().includes('test #'));
+            
+            if (testNumIndex === -1) return null;
+            
+            // Find the row with matching test number
+            for (let i = headerRowIndex + 1; i < window.specificConfigData.length; i++) {
+                const row = window.specificConfigData[i];
+                if (!row || !row[testNumIndex]) continue;
+                
+                if (row[testNumIndex].toString().trim() === testNumber.toString().trim()) {
+                    // Return the row data with headers
+                    return {
+                        headers: headers,
+                        data: row
+                    };
+                }
+            }
+            
+            return null;
+        }
+        
         let failedTests = 0;
         let notTestedTests = 0;
         
+        allSelects.forEach(select => {
+            if (select.value === 'pass') {
+                passedTests++;
+            } else if (select.value === 'fail') {
+                failedTests++;
+            } else {
+                notTestedTests++;
+            }
+        });
+        
+        // Process the data rows and add to table
+        let totalTests = 0;
+        let passedTests = 0;
+        let allSelects = [];
+        
+        // Process each row in the sheet
+        for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            if (!row || row.length === 0) continue;
+            
+            // Check if this is a test row (has a test number)
+            const testNumber = row[testNumColumnIndex];
+            if (!testNumber) continue;
+            
+            // Check if this is a CN test
+            const isCNTestRow = isCNTest(testNumber);
+            
+            // If it's a CN test, get the data from the Specific Config Testing sheet
+            if (isCNTestRow && window.specificConfigData) {
+                const cnTestData = getCNTestData(testNumber);
+                
+                if (cnTestData) {
+                    // Add a special row for CN tests
+                    tableHTML += `<tr class="cn-test-row">`;
+                    
+                    // Add the test number
+                    tableHTML += `<td><strong>${testNumber}</strong> (Config Test)</td>`;
+                    
+                    // Add other columns from the main sheet
+                    for (let j = 0; j < headers.length; j++) {
+                        // Skip the test number column (already added) and build/notes columns
+                        if (j === testNumColumnIndex || j === buildColumnIndex || j === generalNotesColumnIndex) {
+                            continue;
+                        }
+                        
+                        // Add the cell value
+                        const cellValue = row[j] !== undefined ? row[j] : '';
+                        tableHTML += `<td>${cellValue}</td>`;
+                    }
+                    
+                    // Add Pass/Fail dropdown if not present in the original data
+                    if (passFailColumnIndex === -1) {
+                        const selectId = `test-status-${totalTests}`;
+                        tableHTML += `<td>
+                            <select id="${selectId}" class="test-status-select" onchange="updateTestStatus(this)">
+                                <option value="not-tested">Not Tested</option>
+                                <option value="pass">Pass</option>
+                                <option value="fail">Fail</option>
+                            </select>
+                        </td>`;
+                    }
+                    
+                    tableHTML += `</tr>`;
+                    
+                    // Add a special row with the Specific Config Testing data
+                    tableHTML += `<tr class="cn-test-details">`;
+                    
+                    // Calculate the colspan based on the number of visible columns
+                    const visibleColumns = headers.length - (buildColumnIndex !== -1 ? 1 : 0) - (generalNotesColumnIndex !== -1 ? 1 : 0);
+                    const colspan = passFailColumnIndex === -1 ? visibleColumns : visibleColumns - 1;
+                    
+                    // Create a nested table for the CN test details
+                    tableHTML += `<td colspan="${colspan}">`;
+                    tableHTML += `<div class="cn-test-details-container">`;
+                    tableHTML += `<h4>Config Test Details</h4>`;
+                    tableHTML += `<table class="cn-test-details-table">`;
+                    
+                    // Create a more compact display with Issue Key on a single line
+                    // Find the Issue Key column index if it exists
+                    const issueKeyIndex = cnTestData.headers.findIndex(header => 
+                        header && header.toString().toLowerCase().includes('issue key'));
+                    
+                    // First show the Issue Key on a single line if it exists
+                    if (issueKeyIndex !== -1 && cnTestData.data[issueKeyIndex]) {
+                        tableHTML += `<div class="cn-issue-key"><strong>Issue Key:</strong> ${cnTestData.data[issueKeyIndex]}</div>`;
+                    }
+                    
+                    // Then show the rest of the data in a table
+                    tableHTML += `<table class="cn-test-details-table">`;
+                    tableHTML += `<tr>`;
+                    
+                    // Add headers, skipping Issue Key since we already displayed it
+                    cnTestData.headers.forEach((header, idx) => {
+                        if (header && idx !== issueKeyIndex) {
+                            tableHTML += `<th>${header}</th>`;
+                        }
+                    });
+                    tableHTML += `</tr>`;
+                    
+                    // Add data, skipping Issue Key
+                    tableHTML += `<tr>`;
+                    cnTestData.headers.forEach((header, idx) => {
+                        if (header && idx !== issueKeyIndex) {
+                            const cellValue = cnTestData.data[idx] !== undefined ? cnTestData.data[idx] : '';
+                            tableHTML += `<td>${cellValue}</td>`;
+                        }
+                    });
+                    tableHTML += `</tr>`;
+                    tableHTML += `</table>`;
+                    
+                    tableHTML += `</div>`;
+                    tableHTML += `</td>`;
+                    
+                    // If we have a Pass/Fail column, add an empty cell to maintain the table structure
+                    if (passFailColumnIndex === -1) {
+                        tableHTML += `<td></td>`;
+                    }
+                    
+                    tableHTML += `</tr>`;
+                } else {
+                    // CN test without specific data - just show normal row
+                    tableHTML += `<tr>`;
+                    
+                    // Add each cell
+                    for (let j = 0; j < headers.length; j++) {
+                        // Skip build and notes columns
+                        if (j === buildColumnIndex || j === generalNotesColumnIndex) {
+                            continue;
+                        }
+                        
+                        // Add the cell value
+                        const cellValue = row[j] !== undefined ? row[j] : '';
+                        tableHTML += `<td>${cellValue}</td>`;
+                    }
+                    
+                    // Add Pass/Fail dropdown if not present in the original data
+                    if (passFailColumnIndex === -1) {
+                        const selectId = `test-status-${totalTests}`;
+                        tableHTML += `<td>
+                            <select id="${selectId}" class="test-status-select" onchange="updateTestStatus(this)">
+                                <option value="not-tested">Not Tested</option>
+                                <option value="pass">Pass</option>
+                                <option value="fail">Fail</option>
+                            </select>
+                        </td>`;
+                    }
+                    
+                    tableHTML += `</tr>`;
+                }
+            } else {
+                // Regular test case (not a CN test)
+                tableHTML += `<tr>`;
+                
+                // Add each cell
+                for (let j = 0; j < headers.length; j++) {
+                    // Skip build and notes columns
+                    if (j === buildColumnIndex || j === generalNotesColumnIndex) {
+                        continue;
+                    }
+                    
+                    // Add the cell value
+                    const cellValue = row[j] !== undefined ? row[j] : '';
+                    tableHTML += `<td>${cellValue}</td>`;
+                }
+                
+                // Add Pass/Fail dropdown if not present in the original data
+                if (passFailColumnIndex === -1) {
+                    const selectId = `test-status-${totalTests}`;
+                    tableHTML += `<td>
+                        <select id="${selectId}" class="test-status-select" onchange="updateTestStatus(this)">
+                            <option value="not-tested">Not Tested</option>
+                            <option value="pass">Pass</option>
+                            <option value="fail">Fail</option>
+                        </select>
+                    </td>`;
+                }
+                
+                tableHTML += `</tr>`;
+            }
+            
+            totalTests++;
+        }
+        
+        tableHTML += '</tbody></table>';
+        
+        // Add the table to the content container
+        document.getElementById('test-content-container').innerHTML = tableHTML;
+        
+        // Add CSS for CN test styling and single-line Issue Key display
+        const style = document.createElement('style');
+        style.textContent = `
+            .cn-test-row { background-color: #e3f2fd; }
+            .cn-test-details { background-color: #f5f5f5; }
+            .cn-test-details-container { padding: 10px; }
+            .cn-test-details-container h4 { margin-top: 0; margin-bottom: 10px; color: #0d47a1; }
+            .cn-issue-key { 
+                font-size: 14px; 
+                margin-bottom: 12px; 
+                padding: 6px 10px; 
+                background-color: #e8f5e9; 
+                border-left: 4px solid #2e7d32; 
+                border-radius: 3px;
+            }
+            .issue-key-header {
+                width: 120px; /* Fixed width for Issue Key column */
+            }
+            .single-line-key {
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                max-width: 120px !important;
+                font-weight: bold;
+                color: #0d47a1;
+                display: block !important;
+            }
+            .test-table td:first-child {
+                white-space: nowrap !important;
+            }
+            .cn-test-details-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+            .cn-test-details-table th, .cn-test-details-table td { 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+                text-align: left; 
+            }
+            .cn-test-details-table th { background-color: #e8eaf6; }
+        `;
+        document.head.appendChild(style);
+        
+        // Get all the test status selects
+        const testStatusSelects = document.querySelectorAll('.test-status-select');
+        allSelects = Array.from(testStatusSelects);
+        
+        // Count the pass/fail/not-tested
         allSelects.forEach(select => {
             if (select.value === 'pass') {
                 passedTests++;
@@ -526,12 +794,17 @@ document.addEventListener('DOMContentLoaded', function() {
         tableHTML += '<thead><tr>';
         let headers;
         if (deviceType === 'LV') {
-            headers = ['Test #', 'Summary', 'Description', 'Zen V1', 'Mysa LV', 'Pass/Fail'];
+            headers = ['Issue Key', 'Summary', 'Description', 'Zen V1', 'Mysa LV', 'Pass/Fail'];
         } else {
             headers = ['Issue Key', 'Summary', 'Description', 'Labels', 'Pass/Fail'];
         }
-        headers.forEach(header => {
-            tableHTML += `<th>${header}</th>`;
+        headers.forEach((header, index) => {
+            // Add a special class for the Issue Key column header
+            if (deviceType !== 'LV' && index === 0) {
+                tableHTML += `<th class="issue-key-header">${header}</th>`;
+            } else {
+                tableHTML += `<th>${header}</th>`;
+            }
         });
         tableHTML += '</tr></thead>';
         
@@ -548,17 +821,19 @@ document.addEventListener('DOMContentLoaded', function() {
             
             tableHTML += `<tr data-index="${index}" class="${rowClasses.join(' ')}">`;
             
-            // Test # / Issue Key
-            tableHTML += `<td>${testCase.issueKey || 'N/A'}</td>`;
-            
-            // Summary
-            tableHTML += `<td>${testCase.summary || 'N/A'}</td>`;
-            
-            // Description - preserve line breaks
-            const description = testCase.description || 'N/A';
-            tableHTML += `<td>${description.replace(/\n/g, '<br>')}</td>`;
-            
             if (deviceType === 'LV') {
+                // Issue Key for LV - using the same fixed width approach as for non-LV
+                const issueKey = testCase.issueKey || 'N/A';
+                tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${issueKey}</td>`;
+                
+                // Summary for LV
+                tableHTML += `<td>${testCase.summary || 'N/A'}</td>`;
+                
+                // Description - clean and preserve line breaks
+                let description = testCase.description || 'N/A';
+                description = cleanDescription(description);
+                tableHTML += `<td>${description.replace(/\n/g, '<br>')}</td>`;
+                
                 // Zen V1 column - preserve line breaks
                 const zenV1 = testCase.zenV1 || '';
                 tableHTML += `<td>${zenV1.replace(/\n/g, '<br>')}</td>`;
@@ -567,6 +842,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const mysaLV = testCase.mysaLV || '';
                 tableHTML += `<td>${mysaLV.replace(/\n/g, '<br>')}</td>`;
             } else {
+                // Issue Key on a single line - using a fixed width approach
+                const issueKey = testCase.issueKey || 'N/A';
+                tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${issueKey}</td>`;
+                
+                // Summary as a separate column
+                tableHTML += `<td>${testCase.summary || 'N/A'}</td>`;
+                
+                // Description - clean and preserve line breaks
+                let description = testCase.description || 'N/A';
+                description = cleanDescription(description);
+                tableHTML += `<td>${description.replace(/\n/g, '<br>')}</td>`;
+                
                 // Labels column for non-LV device types
                 tableHTML += `<td>${testCase.labels || 'N/A'}</td>`;
             }
@@ -610,6 +897,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateSummaryStats();
             });
         });
+        
+        // Add click event listeners to test case rows
+        document.querySelectorAll('#test-data-container tr').forEach(row => {
+            row.addEventListener('click', function(event) {
+                // Ignore clicks on the select dropdown
+                if (event.target.tagName === 'SELECT' || event.target.tagName === 'OPTION') {
+                    return;
+                }
+                
+                const index = this.dataset.index;
+                if (index !== undefined) {
+                    // Display the selected test case in the Test Case Tracker window
+                    displaySelectedTestCase(index);
+                }
+            });
+        });
     }
     
     // Update the summary statistics
@@ -640,6 +943,144 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('failed-tests').textContent = totalFailed;
         document.getElementById('not-tested-tests').textContent = totalNotTested;
         document.getElementById('pass-rate').textContent = `${passRate}%`;
+        
+        // Update the summary display
+        const summaryDisplay = document.getElementById('test-summary-display');
+        if (summaryDisplay) {
+            summaryDisplay.innerHTML = `
+                <div class="summary-stats">
+                    <div class="stat-item">Total: <span class="stat-value">${totalTests}</span></div>
+                    <div class="stat-item">Passed: <span class="stat-value pass">${totalPassed}</span></div>
+                    <div class="stat-item">Failed: <span class="stat-value fail">${totalFailed}</span></div>
+                    <div class="stat-item">Not Tested: <span class="stat-value">${totalNotTested}</span></div>
+                </div>
+            `;
+        }
+    }
+    
+    // Display the selected test case in the Test Case Tracker window
+    function displaySelectedTestCase(index) {
+        const testCase = filteredTestCases[index];
+        if (!testCase) return;
+        
+        // Generate a unique ID for this test case
+        const testCaseId = `test-case-${Date.now()}`;
+        
+        // Store as currently displayed test case - this is the key part that makes the buttons work
+        currentlyDisplayedTestCase = testCaseId;
+        
+        // Initialize test log entries for this test case
+        if (!testLogEntries[testCaseId]) {
+            testLogEntries[testCaseId] = {};
+        }
+        
+        // Store test case data
+        testLogEntries[testCaseId].testCase = testCase;
+        testLogEntries[testCaseId].index = index; // Store the index for updating status later
+        
+        // Create the test case display
+        selectedTestCaseDisplay.innerHTML = '';
+        
+        // Create the header
+        const header = document.createElement('h3');
+        header.textContent = testCase.summary || 'Selected Test Case';
+        selectedTestCaseDisplay.appendChild(header);
+        
+        // Create the test case details
+        const detailsContainer = document.createElement('div');
+        detailsContainer.className = 'test-case-details';
+        
+        // Add test case ID/number
+        const idElement = document.createElement('div');
+        idElement.className = 'test-case-id';
+        idElement.innerHTML = `<strong>ID:</strong> ${testCase.issueKey || 'N/A'}`;
+        detailsContainer.appendChild(idElement);
+        
+        // Add description
+        const descElement = document.createElement('div');
+        descElement.className = 'test-case-description';
+        descElement.innerHTML = `<strong>Description:</strong><br>${testCase.description ? testCase.description.replace(/\n/g, '<br>') : 'N/A'}`;
+        detailsContainer.appendChild(descElement);
+        
+        selectedTestCaseDisplay.appendChild(detailsContainer);
+        
+        // Add note about using existing buttons
+        const noteElement = document.createElement('div');
+        noteElement.className = 'test-note';
+        noteElement.innerHTML = `<p>Use the <strong>Start</strong>, <strong>Pass</strong>, and <strong>Fail</strong> buttons above to log test actions.</p>`;
+        selectedTestCaseDisplay.appendChild(noteElement);
+        
+        // Update button states - this enables/disables buttons appropriately
+        updateTestActionButtonsState();
+        
+        // Add event listener for test log updates to update the status in the table
+        document.addEventListener('testLogUpdated', function updateTestStatus() {
+            // Check if this is still the current test case
+            if (currentlyDisplayedTestCase === testCaseId) {
+                // Update test status in the table based on the log entries
+                if (testLogEntries[testCaseId].pass) {
+                    updateTestCaseStatus(index, 'pass');
+                } else if (testLogEntries[testCaseId].fail) {
+                    updateTestCaseStatus(index, 'fail');
+                }
+            } else {
+                // Remove this listener if it's no longer the current test case
+                document.removeEventListener('testLogUpdated', updateTestStatus);
+            }
+        });
+    }
+    
+    // We're using the existing test action buttons and functions instead of these custom ones
+    
+    // Clean description by removing 'Complete Using: Android Device or iOS Device' section
+    function cleanDescription(description) {
+        if (!description) return '';
+        
+        // Check if the description contains a reference to both Android and iOS devices
+        const hasBothDevices = /Android.*iOS|iOS.*Android/i.test(description);
+        
+        if (hasBothDevices) {
+            // Find the index where the 'Complete using' section starts
+            const completeUsingMatch = description.match(/\*Complete [uU]sing:?\*/i);
+            
+            if (completeUsingMatch && completeUsingMatch.index !== undefined) {
+                // Get everything before the 'Complete using' section
+                description = description.substring(0, completeUsingMatch.index).trim();
+                
+                // Clean up any trailing newlines
+                description = description.replace(/\n+$/g, '');
+            }
+        }
+        
+        return description;
+    }
+    
+    // Update the test case status in the table
+    function updateTestCaseStatus(index, status) {
+        if (index < 0 || index >= filteredTestCases.length) return;
+        
+        // Update the status in the data
+        filteredTestCases[index].status = status;
+        
+        // Update the dropdown in the table
+        const rows = document.querySelectorAll('#test-data-container tr');
+        if (rows[index]) {
+            const select = rows[index].querySelector('.status-select');
+            if (select) {
+                select.value = status;
+                
+                // Apply color styling
+                select.className = 'status-select';
+                if (status === 'pass') {
+                    select.classList.add('pass-selected');
+                } else if (status === 'fail') {
+                    select.classList.add('fail-selected');
+                }
+            }
+        }
+        
+        // Update summary stats
+        updateSummaryStats();
     }
     
     // Function to update test status (called from inline event handler)
