@@ -16,8 +16,7 @@
         </div>
         <header>
             <div class="header-left">
-                <h1>FTDI Logger</h1>
-                <p class="subtitle">A sleek, real-time serial monitor for FTDI devices</p>
+                <h1>FTDI Logger and Test Tracker</h1>
 
                 <div class="button-container left-aligned">
                     <!-- Single column of buttons aligned with header -->
@@ -28,16 +27,10 @@
                         <div class="button-cell"><a href="https://csp.mysa-dev.cloud/" class="test-plan-link mysa-hq-link" target="_blank">CSP DEV</a></div>
                     </div>
                     <div class="button-row">
-                        <div class="button-cell"><a href="https://empoweredhomes.atlassian.net/issues/?filter=10480" class="test-plan-link open-plan-link" target="_blank">Open Test Plan MYSA</a></div>
+                        <div class="button-cell"><a href="/all-test-cases" class="test-plan-link open-plan-link">Open Test Plans</a></div>
                     </div>
                     <div class="button-row">
-                        <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/16xdQXvDj7JombdTCfBGR5toxyyYe4nk-kpPSfwiy6ic/edit?gid=589161712#gid=589161712" class="test-plan-link open-plan-link" target="_blank">Open Test Plan LV</a></div>
-                    </div>
-                    <div class="button-row">
-                        <div class="button-cell"><a id="test-tracker-button" class="test-plan-link config-codes-link" style="cursor: pointer;">Manual Testing</a></div>
-                    </div>
-                    <div class="button-row">
-                        <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/13ChFbZGavVREYhuHa2vPmY_SQCH5IuecG_Nw2LbL3t4/edit?gid=1763151684#gid=1763151684" class="test-plan-link config-codes-link" target="_blank">Config Codes</a></div>
+                        <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/13ChFbZGavVREYhuHa2vPmY_SQCH5IuecG_Nw2LbL3t4/edit?gid=1763151684#gid=1763151684" class="test-plan-link config-codes-link" target="_blank">LV Config Codes</a></div>
                     </div>
                 </div>
                 
@@ -161,15 +154,13 @@
                     <button id="clear-selected-test-case" class="small-button">Clear</button>
                 </div>
             </div>
-            <div id="selected-test-case-display">
-                <div class="test-case-placeholder">No test selected. Select a test case from the Test Plan below or add one manually.</div>
+            <div id="selected-test-case-display" style="display: block;">
+                <div class="test-case-placeholder">No test selected. Select a test case from the test plan below or push the manual button.</div>
             </div>
             
-            <!-- Test Tracker Panel (Hidden by default) -->
-            <div id="test-tracker-panel" style="display: none;">
-                <div class="test-tracker-header">
-                    <h3>Test Plan Tracker</h3>
-                </div>
+            <!-- Test Tracker Panel (Now shown by default) -->
+            <div id="test-tracker-panel" style="display: block;">
+                <!-- Test Plan Tracker header removed -->
                 
                 <div class="tracker-top-controls">
                     <div class="device-selection">
