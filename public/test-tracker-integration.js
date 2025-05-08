@@ -826,21 +826,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 const issueKey = testCase.issueKey || 'N/A';
                 tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${issueKey}</td>`;
                 
-                // Summary for LV
-                tableHTML += `<td>${testCase.summary || 'N/A'}</td>`;
+                // Summary for LV - remove LV label if present
+                let summary = testCase.summary || 'N/A';
+                // Remove 'LV' prefix if it exists
+                summary = summary.replace(/^\s*LV\s*[-:]*\s*/i, '');
+                // Use the same styling as other device types
+                tableHTML += `<td>${summary}</td>`;
                 
-                // Description - clean and preserve line breaks
+                // Description - clean and preserve line breaks, reduce width to give space to Zen V1 and Mysa LV
                 let description = testCase.description || 'N/A';
                 description = cleanDescription(description);
-                tableHTML += `<td>${description.replace(/\n/g, '<br>')}</td>`;
+                tableHTML += `<td style="width: 30%;">${description.replace(/\n/g, '<br>')}</td>`;
                 
-                // Zen V1 column - preserve line breaks
+                // Zen V1 column - preserve line breaks and set fixed width
                 const zenV1 = testCase.zenV1 || '';
-                tableHTML += `<td>${zenV1.replace(/\n/g, '<br>')}</td>`;
+                tableHTML += `<td style="width: 20%;">${zenV1.replace(/\n/g, '<br>')}</td>`;
                 
-                // Mysa LV column - preserve line breaks
+                // Mysa LV column - preserve line breaks and set fixed width
                 const mysaLV = testCase.mysaLV || '';
-                tableHTML += `<td>${mysaLV.replace(/\n/g, '<br>')}</td>`;
+                tableHTML += `<td style="width: 20%;">${mysaLV.replace(/\n/g, '<br>')}</td>`;
             } else {
                 // Issue Key on a single line - using a fixed width approach
                 const issueKey = testCase.issueKey || 'N/A';
@@ -993,14 +997,38 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add test case ID/number
         const idElement = document.createElement('div');
         idElement.className = 'test-case-id';
-        idElement.innerHTML = `<strong>ID:</strong> ${testCase.issueKey || 'N/A'}`;
+        idElement.innerHTML = `<strong>Issue Key:</strong> ${testCase.issueKey || 'N/A'}`;
         detailsContainer.appendChild(idElement);
+        
+        // Add summary
+        const summaryElement = document.createElement('div');
+        summaryElement.className = 'test-case-summary';
+        let summary = testCase.summary || 'N/A';
+        // Remove 'LV' prefix if it exists
+        summary = summary.replace(/^\s*LV\s*[-:]*\s*/i, '');
+        summaryElement.innerHTML = `<strong>Summary:</strong> ${summary}`;
+        detailsContainer.appendChild(summaryElement);
         
         // Add description
         const descElement = document.createElement('div');
         descElement.className = 'test-case-description';
         descElement.innerHTML = `<strong>Description:</strong><br>${testCase.description ? testCase.description.replace(/\n/g, '<br>') : 'N/A'}`;
         detailsContainer.appendChild(descElement);
+        
+        // For LV tests, add Zen V1 and Mysa LV fields if they exist
+        if (testCase.zenV1 !== undefined) {
+            const zenV1Element = document.createElement('div');
+            zenV1Element.className = 'test-case-zen-v1';
+            zenV1Element.innerHTML = `<strong>Zen V1:</strong><br>${testCase.zenV1 ? testCase.zenV1.replace(/\n/g, '<br>') : 'N/A'}`;
+            detailsContainer.appendChild(zenV1Element);
+        }
+        
+        if (testCase.mysaLV !== undefined) {
+            const mysaLVElement = document.createElement('div');
+            mysaLVElement.className = 'test-case-mysa-lv';
+            mysaLVElement.innerHTML = `<strong>Mysa LV:</strong><br>${testCase.mysaLV ? testCase.mysaLV.replace(/\n/g, '<br>') : 'N/A'}`;
+            detailsContainer.appendChild(mysaLVElement);
+        }
         
         selectedTestCaseDisplay.appendChild(detailsContainer);
         
