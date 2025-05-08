@@ -322,7 +322,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         mysaLV: mysaLVIndex >= 0 ? row[mysaLVIndex] : '',
                         labels: labels.join(', '),
                         status: 'not-tested', // Default status
-                        isSubRow: isSubRow // Flag to identify sub-rows
+                        isSubRow: isSubRow, // Flag to identify sub-rows
+                        notes: '' // Field to store user notes
                     });
                 }
             }
@@ -857,7 +858,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (deviceType === 'LV') {
                 // Issue Key for LV - using the same fixed width approach as for non-LV
                 const issueKey = testCase.issueKey || 'N/A';
-                tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${issueKey}</td>`;
+                tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${issueKey}
+                    <i class="notes-icon fa fa-sticky-note" onclick="openNotesPopup(${index})" title="Add/Edit Notes"></i>
+                </td>`;
                 
                 // Summary for LV - remove LV label if present
                 let summary = testCase.summary || 'N/A';
@@ -881,7 +885,10 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 // Issue Key on a single line - using a fixed width approach
                 const issueKey = testCase.issueKey || 'N/A';
-                tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${issueKey}</td>`;
+                tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${issueKey}
+                    <i class="notes-icon fa fa-sticky-note" onclick="openNotesPopup(${index})" title="Add/Edit Notes"></i>
+                </td>`;
                 
                 // Summary as a separate column
                 tableHTML += `<td>${testCase.summary || 'N/A'}</td>`;
@@ -1167,4 +1174,100 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize
     updateSummaryStats();
+    
+    // Notes popup functionality
+    let currentNoteIndex = -1;
+    
+    // Function to open the notes popup
+    window.openNotesPopup = function(index) {
+        currentNoteIndex = index;
+        const testCase = filteredTestCases[index];
+        if (!testCase) return;
+        
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'notes-overlay';
+        document.body.appendChild(overlay);
+        
+        // Create popup
+        const popup = document.createElement('div');
+        popup.className = 'notes-popup';
+        
+        // Create popup header
+        const popupHeader = document.createElement('div');
+        popupHeader.className = 'notes-popup-header';
+        
+        const popupTitle = document.createElement('h3');
+        popupTitle.textContent = `Notes for ${testCase.issueKey}`;
+        popupHeader.appendChild(popupTitle);
+        
+        const closeButton = document.createElement('button');
+        closeButton.className = 'close-notes-popup';
+        closeButton.innerHTML = '&times;';
+        closeButton.onclick = closeNotesPopup;
+        popupHeader.appendChild(closeButton);
+        
+        popup.appendChild(popupHeader);
+        
+        // Create textarea for notes
+        const textarea = document.createElement('textarea');
+        textarea.className = 'notes-textarea';
+        textarea.value = testCase.notes || '';
+        textarea.placeholder = 'Add your notes here...';
+        popup.appendChild(textarea);
+        
+        // Create save button
+        const saveButton = document.createElement('button');
+        saveButton.className = 'save-notes-btn';
+        saveButton.textContent = 'Save Notes';
+        saveButton.onclick = function() {
+            saveNotes(textarea.value);
+        };
+        popup.appendChild(saveButton);
+        
+        document.body.appendChild(popup);
+        
+        // Focus the textarea
+        textarea.focus();
+        
+        // Close popup when clicking on overlay
+        overlay.addEventListener('click', closeNotesPopup);
+    };
+    
+    // Function to save notes
+    function saveNotes(notesText) {
+        if (currentNoteIndex >= 0 && currentNoteIndex < filteredTestCases.length) {
+            // Save the notes to the test case
+            filteredTestCases[currentNoteIndex].notes = notesText;
+            
+            // Close the popup
+            closeNotesPopup();
+            
+            // Provide visual feedback that notes were saved
+            const row = document.querySelector(`tr[data-index="${currentNoteIndex}"]`);
+            if (row) {
+                const notesIcon = row.querySelector('.notes-icon');
+                if (notesIcon) {
+                    // Change color or add a class to indicate notes exist
+                    if (notesText.trim()) {
+                        notesIcon.style.opacity = '1';
+                    } else {
+                        notesIcon.style.opacity = '0.7';
+                    }
+                }
+            }
+        }
+    }
+    
+    // Function to close the notes popup
+    function closeNotesPopup() {
+        // Remove the overlay and popup
+        const overlay = document.querySelector('.notes-overlay');
+        const popup = document.querySelector('.notes-popup');
+        
+        if (overlay) document.body.removeChild(overlay);
+        if (popup) document.body.removeChild(popup);
+        
+        currentNoteIndex = -1;
+    }
 });

@@ -355,7 +355,7 @@ header {
 }
 
 .chart-container {
-    height: 250px;
+    height: 180px;
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
     padding: 10px;
@@ -1231,8 +1231,92 @@ button.primary:hover {
 .test-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 10px;
-    font-size: 14px;
+    margin-bottom: 20px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Notes icon and popup styles */
+.notes-icon {
+    cursor: pointer;
+    color: #0d5c23;
+    margin-left: 5px;
+    font-size: 16px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.notes-icon:hover {
+    opacity: 1;
+}
+
+.notes-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    width: 400px;
+    max-width: 90%;
+}
+
+.notes-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.notes-popup-header h3 {
+    margin: 0;
+    color: #0d5c23;
+}
+
+.close-notes-popup {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+}
+
+.notes-textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.save-notes-btn {
+    background-color: #0d5c23;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.save-notes-btn:hover {
+    background-color: #0a4018;
+}
+
+.notes-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
 }
 
 .test-table th,
@@ -2159,6 +2243,96 @@ button.primary:hover {
     text-align: center;
     padding: 20px;
     font-style: italic;
+}
+
+.test-case-details {
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.test-case-id {
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.test-case-description {
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.test-log-container {
+    margin-top: 20px;
+}
+
+.test-log-entries {
+    margin-bottom: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+
+.log-entry {
+    padding: 8px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.log-start {
+    background-color: #e3f2fd;
+}
+
+.log-pass {
+    background-color: #e8f5e9;
+}
+
+.log-fail {
+    background-color: #ffebee;
+}
+
+.log-icon {
+    margin-right: 10px;
+}
+
+.log-timestamp {
+    margin-right: 10px;
+    color: #666;
+    font-size: 12px;
+}
+
+.log-type {
+    font-weight: bold;
+}
+
+.test-action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+/* Make test case rows clickable */
+#test-data-container tbody tr {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#test-data-container tbody tr:hover {
+    background-color: #f0f8ff;
+}
+
+/* Test note styling */
+.test-note {
+    margin: 15px 0;
+    padding: 10px;
+    background-color: #e8f5e9;
+    border-left: 4px solid #4caf50;
+    border-radius: 4px;
 }
 
 .test-case-header-container {
