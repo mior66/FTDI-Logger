@@ -41,12 +41,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (loadFileBtn) {
                         loadFileBtn.textContent = 'Load Test Plan';
                     }
+                    
+                    // Show the LV category filter dropdown
+                    const lvCategoryFilterContainer = document.getElementById('lv-category-filter-container');
+                    if (lvCategoryFilterContainer) {
+                        lvCategoryFilterContainer.style.display = 'flex';
+                    }
                 } else {
                     // For other device types
                     // Update file upload text
                     const fileUploadText = document.querySelector('.file-upload-container p');
                     if (fileUploadText) {
                         fileUploadText.textContent = `Upload your ${currentDeviceType} test cases Excel file:`;
+                    }
+                    
+                    // Hide the LV category filter dropdown
+                    const lvCategoryFilterContainer = document.getElementById('lv-category-filter-container');
+                    if (lvCategoryFilterContainer) {
+                        lvCategoryFilterContainer.style.display = 'none';
                     }
                     
                     // Update button text
@@ -119,6 +131,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Clear file input
             fileUpload.value = '';
+            
+            // Disable the LV category filter dropdown
+            const lvCategoryFilter = document.getElementById('lv-category-filter');
+            if (lvCategoryFilter) {
+                lvCategoryFilter.disabled = true;
+                lvCategoryFilter.selectedIndex = 0; // Reset to 'All'
+            }
         });
     }
     
@@ -144,6 +163,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function processDeviceTestCases(workbook, deviceType) {
         console.log(`Processing ${deviceType} test cases`);
         filteredTestCases = [];
+        
+        // If this is an LV device type, enable the category filter dropdown
+        if (deviceType === 'LV') {
+            const lvCategoryFilter = document.getElementById('lv-category-filter');
+            if (lvCategoryFilter) {
+                lvCategoryFilter.disabled = false;
+            }
+        }
         
         try {
             // Process the first sheet with label filtering for all device types
@@ -316,6 +343,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function processLVTestPlan(workbook) {
         // Clear previous data
         testDataContainer.innerHTML = '';
+        
+        // Enable the LV category filter dropdown
+        const lvCategoryFilter = document.getElementById('lv-category-filter');
+        if (lvCategoryFilter) {
+            lvCategoryFilter.disabled = false;
+        }
         
         // Create tabs container if it doesn't exist
         let tabsContainer = document.getElementById('tabs-container');

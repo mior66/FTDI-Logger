@@ -212,6 +212,19 @@
                                 <span class="stat-label">Pass Rate:</span>
                                 <span id="pass-rate" class="stat-value" style="margin-left: 5px; color: #2e7d32;">0%</span>
                             </div>
+                            
+                            <!-- LV Category Filter - Hidden by default, shown when LV is selected, disabled until test cases are loaded -->
+                            <div id="lv-category-filter-container" style="display: none; margin-left: 20px; align-items: center;">
+                                <label for="lv-category-filter" style="margin-right: 5px;">Category:</label>
+                                <select id="lv-category-filter" class="category-dropdown" disabled>
+                                    <option value="all" selected>All</option>
+                                    <option value="heat">Heat</option>
+                                    <option value="cool">Cool</option>
+                                    <option value="general">General</option>
+                                    <option value="pairing">Pairing/Config</option>
+                                    <option value="specific">Specific Config</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
