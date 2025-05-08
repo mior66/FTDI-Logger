@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let testResults = {};
     let currentSheetName = null;
     let currentDeviceType = '';
+    let originalLVTestCases = []; // Store original LV test cases for category filtering
     let filteredTestCases = [];
     
     // Both panels are now visible by default and the Manual Testing button has been removed
@@ -122,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
             testResults = {};
             currentSheetName = null;
             filteredTestCases = [];
+            originalLVTestCases = []; // Reset the original LV test cases array
             
             // Clear the test data container
             testDataContainer.innerHTML = '';
@@ -132,11 +134,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Clear file input
             fileUpload.value = '';
             
-            // Disable the LV category filter dropdown
+            // Reset and disable the LV category filter dropdown
             const lvCategoryFilter = document.getElementById('lv-category-filter');
             if (lvCategoryFilter) {
+                lvCategoryFilter.value = 'all'; // Reset to 'All' option
                 lvCategoryFilter.disabled = true;
-                lvCategoryFilter.selectedIndex = 0; // Reset to 'All'
             }
         });
     }
@@ -168,7 +170,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (deviceType === 'LV') {
             const lvCategoryFilter = document.getElementById('lv-category-filter');
             if (lvCategoryFilter) {
+                // Enable the dropdown
                 lvCategoryFilter.disabled = false;
+                
+                // Add event listener to filter test cases when category changes
+                lvCategoryFilter.addEventListener('change', function() {
+                    filterLVTestCasesByCategory(this.value);
+                });
+                
+                // Reset to 'All' option
+                lvCategoryFilter.value = 'all';
             }
         }
         
@@ -328,6 +339,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
+            // Store original LV test cases for filtering
+            if (deviceType === 'LV') {
+                originalLVTestCases = [...filteredTestCases];
+            }
+            
             // Display the filtered test cases
             displayFilteredTestCases(deviceType);
             
@@ -348,7 +364,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Enable the LV category filter dropdown
         const lvCategoryFilter = document.getElementById('lv-category-filter');
         if (lvCategoryFilter) {
+            // Enable the dropdown
             lvCategoryFilter.disabled = false;
+            
+            // Add event listener to filter test cases when category changes
+            lvCategoryFilter.addEventListener('change', function() {
+                filterLVTestCasesByCategory(this.value);
+            });
+            
+            // Reset to 'All' option
+            lvCategoryFilter.value = 'all';
         }
         
         // Create tabs container if it doesn't exist
@@ -743,6 +768,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add the table to the content container
         document.getElementById('test-content-container').innerHTML = tableHTML;
         
+        // Store original LV test cases for filtering
+        originalLVTestCases = [...filteredTestCases];
+        
         // Add CSS for CN test styling and single-line Issue Key display
         const style = document.createElement('style');
         style.textContent = `
@@ -957,6 +985,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
+    }
+    
+    // Function to filter LV test cases by category
+    function filterLVTestCasesByCategory(category) {
+        // If no category selected or 'all' selected, show all test cases
+        if (!category || category === 'all') {
+            filteredTestCases = [...originalLVTestCases];
+        } else {
+            // Filter test cases based on the Issue Key prefix
+            filteredTestCases = originalLVTestCases.filter(testCase => {
+                const issueKey = testCase.issueKey || '';
+                
+                switch(category) {
+                    case 'heat':
+                        return issueKey.startsWith('H-');
+                    case 'cool':
+                        return issueKey.startsWith('C-');
+                    case 'general':
+                        return issueKey.startsWith('G-');
+                    case 'pairing':
+                        return issueKey.startsWith('CP-');
+                    case 'specific':
+                        return issueKey.startsWith('CN-');
+                    default:
+                        return true;
+                }
+            });
+        }
+        
+        // Display the filtered test cases
+        displayFilteredTestCases('LV');
+        
+        // Update summary statistics
+        updateSummaryStats();
     }
     
     // Update the summary statistics
