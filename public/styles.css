@@ -2124,7 +2124,12 @@ button.primary:hover {
     color: #e74c3c;
 }
 
-/* Test case notes styles */
+/* Adjust spacing for Test Plan header to match spacing between other fields */
+#test-plan-message {
+    margin-top: -10px; /* Reduce space between Notes and Test Plan header */
+}
+
+/* Test Case Notes */
 .test-case-notes-container {
     margin-top: 15px;
     border-top: 1px solid #eee;

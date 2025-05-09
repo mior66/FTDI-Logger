@@ -2640,6 +2640,11 @@ function loadTestPlanData() {
             
             testPlanData = data;
             renderTestPlanTabs(data.sheetNames);
+            
+            // Hide the 'Please load test plan' message and show the test plan container
+            document.getElementById('test-plan-message').style.display = 'none';
+            document.getElementById('test-plan').style.display = 'block';
+            
             // Display the first sheet by default
             if (data.sheetNames.length > 0) {
                 displayTestPlanSheet(data.sheetNames[0]);
