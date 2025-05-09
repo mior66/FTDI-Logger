@@ -54,7 +54,7 @@
         
         <div class="connection-panel">
             <!-- First row: Serial port controls -->
-            <div class="connection-row" style="display: flex; align-items: center; margin-bottom: 15px; width: 100%; border: 1px solid rgba(13, 92, 35, 0.3); border-radius: 4px; padding: 8px; background-color: rgba(13, 92, 35, 0.2);">
+            <div class="connection-row" style="display: flex; align-items: center; margin-bottom: 5px; width: 100%; border: 1px solid rgba(13, 92, 35, 0.3); border-radius: 4px; padding: 8px; background-color: rgba(13, 92, 35, 0.2);">
                 <div class="form-group" style="margin-right: 15px;">
                     <label for="port-select" style="font-weight: bold;">Serial Port:</label>
                     <select id="port-select">
@@ -98,49 +98,8 @@
                     });
                 </script>
             </div>
-            
-
-            
-            <!-- Second row: Status fields, utility buttons, and connection status -->
-            <div class="connection-row" style="width: 100%; display: flex; align-items: center;">
-                <div class="thermostat-status-inline" style="width: 100%;">
-                    <label style="margin-right: 15px; font-weight: bold; display: inline-block; vertical-align: middle;">Automated Settings:</label>
-                    <span class="status-label">Status:</span>
-                    <span id="status-value" class="status-value">--</span>
-                    <span class="status-label">App:</span>
-                    <span id="app-version" class="status-value">--</span>
-                    <span class="status-label">Device Type:</span>
-                    <span id="device-type" class="status-value">--</span>
-                    <span class="status-label">DID:</span>
-                    <span id="device-id" class="status-value">--</span>
-                    <span class="status-label">Serial:</span>
-                    <span id="device-serial" class="status-value">--</span>
-                    <span class="status-label">Setpoint:</span>
-                    <span id="thermostat-setpoint" class="status-value">--</span>
-                    <span class="status-label">Mode:</span>
-                    <span id="thermostat-mode" class="status-value">--</span>
-                    <span class="status-label">ABright:</span>
-                    <span id="ambient-brightness" class="status-value">--</span>
-                    <span class="status-label">IBright:</span>
-                    <span id="indicator-brightness" class="status-value">--</span>
-                    <span class="status-label">MinSet:</span>
-                    <span id="min-setpoint" class="status-value">--</span>
-                    <span class="status-label">MaxSet:</span>
-                    <span id="max-setpoint" class="status-value">--</span>
-                    <span class="status-label">FloorTemp:</span>
-                    <span id="floor-temp" class="status-value">--</span>
-                    <span class="status-label">TempFormat:</span>
-                    <span id="temp-unit" class="status-value">--</span>
-                    <span class="status-label">Lock:</span>
-                    <span id="ui-lock" class="status-value">--</span>
-                    <span class="status-label">Language:</span>
-                    <span id="language" class="status-value">--</span>
-                    <span class="status-label">Timezone:</span>
-                    <span id="timezone" class="status-value">--</span>
-                </div>
-                <!-- Connection status moved to status fields section -->
-                <div id="connection-status" style="display: none;">Not connected</div>
-            </div>
+            <!-- Connection status moved to status fields section -->
+            <div id="connection-status" style="display: none;">Not connected</div>
             
             <!-- Command Input Section Removed -->
         </div>
@@ -259,6 +218,49 @@
                 
                 <div id="test-data-container" class="test-data-container">
                     <!-- Test data will be displayed here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Automated Settings Section -->
+        <div class="automated-settings-wrapper">
+            <div class="automated-settings-container">
+                <div class="automated-settings-header">
+                    <h2>Automated Settings</h2>
+                </div>
+                <div class="thermostat-status-inline" style="width: 100%;">
+                    <span class="status-label">Status:</span>
+                    <span id="status-value" class="status-value">--</span>
+                    <span class="status-label">App:</span>
+                    <span id="app-version" class="status-value">--</span>
+                    <span class="status-label">Device Type:</span>
+                    <span id="device-type" class="status-value">--</span>
+                    <span class="status-label">DID:</span>
+                    <span id="device-id" class="status-value">--</span>
+                    <span class="status-label">Serial:</span>
+                    <span id="device-serial" class="status-value">--</span>
+                    <span class="status-label">Setpoint:</span>
+                    <span id="thermostat-setpoint" class="status-value">--</span>
+                    <span class="status-label">Mode:</span>
+                    <span id="thermostat-mode" class="status-value">--</span>
+                    <span class="status-label">ABright:</span>
+                    <span id="ambient-brightness" class="status-value">--</span>
+                    <span class="status-label">IBright:</span>
+                    <span id="indicator-brightness" class="status-value">--</span>
+                    <span class="status-label">MinSet:</span>
+                    <span id="min-setpoint" class="status-value">--</span>
+                    <span class="status-label">MaxSet:</span>
+                    <span id="max-setpoint" class="status-value">--</span>
+                    <span class="status-label">FloorTemp:</span>
+                    <span id="floor-temp" class="status-value">--</span>
+                    <span class="status-label">TempFormat:</span>
+                    <span id="temp-unit" class="status-value">--</span>
+                    <span class="status-label">Lock:</span>
+                    <span id="ui-lock" class="status-value">--</span>
+                    <span class="status-label">Language:</span>
+                    <span id="language" class="status-value">--</span>
+                    <span class="status-label">Timezone:</span>
+                    <span id="timezone" class="status-value">--</span>
                 </div>
             </div>
         </div>

@@ -505,7 +505,7 @@ gap: 15px;
 background-color: #fff;
 padding: 20px;
 border-radius: 0 0 8px 8px;
-margin-bottom: 20px;
+margin-bottom: 10px;
 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 align-items: center;
 }
@@ -1081,7 +1081,8 @@ button.primary:hover {
 }
 
 .device-selection {
-    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
 }
 
 .device-dropdown {
@@ -3260,4 +3261,38 @@ button.primary:hover {
     outline: none;
     border-color: #0d5c23;
     box-shadow: 0 0 5px rgba(13, 92, 35, 0.3);
+}
+
+/* Automated Settings Styles */
+.automated-settings-wrapper {
+    margin: 20px 0;
+}
+
+.automated-settings-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.automated-settings-header {
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #0a2a12, #0d5c23);
+    color: white;
+    border-bottom: 1px solid #0a2a12;
+}
+
+.automated-settings-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.thermostat-status-inline {
+    padding: 15px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
 }
