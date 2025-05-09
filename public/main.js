@@ -4206,7 +4206,7 @@ function exportSelectedTestCase() {
     
     // Add test log information
     textContent += `\nCURRENT TEST LOGS:\n`;
-    textContent += `-----------\n\n`;
+    textContent += `-----------------\n\n`;
     
     // Add start log
     textContent += `START: ${testLogs.start.timestamp} - ${testLogs.start.text}\n\n`;
@@ -4622,7 +4622,7 @@ function updateTestLogDisplay() {
     
     // Add a heading for the test logs
     const logHeading = document.createElement('h4');
-    logHeading.textContent = 'Current Test Logs';
+    logHeading.textContent = 'Current Test Logs:';
     logContainer.appendChild(logHeading);
     
     // Add the start log if it exists
@@ -4654,7 +4654,7 @@ function updateTestLogDisplay() {
     notesSection.className = 'test-notes-section';
     
     const notesHeading = document.createElement('h4');
-    notesHeading.textContent = 'General Notes/Bugs';
+    notesHeading.textContent = 'General Notes/Bugs:';
     notesSection.appendChild(notesHeading);
     
     // Create editable textarea for notes
