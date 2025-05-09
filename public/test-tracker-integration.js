@@ -80,7 +80,34 @@ document.addEventListener('DOMContentLoaded', function() {
     if (loadFileBtn) {
         loadFileBtn.addEventListener('click', function() {
             if (!fileUpload.files.length) {
-                alert('Please select a file first.');
+                // Custom alert with 'Warning:' instead of 'localhost:3000 says'
+                const warningMessage = 'Please select a file first.';
+                
+                // Create a custom modal dialog
+                const modal = document.createElement('div');
+                modal.className = 'custom-alert-modal';
+                modal.innerHTML = `
+                    <div class="custom-alert-content">
+                        <div class="custom-alert-header">Warning:</div>
+                        <div class="custom-alert-message">${warningMessage}</div>
+                        <button class="custom-alert-button">OK</button>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Add event listener to the OK button
+                const okButton = modal.querySelector('.custom-alert-button');
+                okButton.addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                });
+                
+                // Also close when clicking outside the modal
+                modal.addEventListener('click', function(event) {
+                    if (event.target === modal) {
+                        document.body.removeChild(modal);
+                    }
+                });
                 return;
             }
             
