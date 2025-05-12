@@ -4128,11 +4128,23 @@ function exportSelectedTestCase() {
             textContent += `Description: ${testLogs.description}\n`;
         }
     } else {
-        // Get the test case data for non-manual test cases
-        const testCaseNumber = currentlyDisplayedTestCase.split('-test-')[1];
-        const sheetName = currentlyDisplayedTestCase.split('-test-')[0];
-        textContent += `Test Case: ${testCaseNumber}\n`;
-        textContent += `Sheet: ${sheetName}\n`;
+        // Get the test case data directly from the test log entries
+        let issueKey = 'unknown';
+        let summary = '';
+        let description = '';
+        
+        // If we have test log entries with a test case object, use its properties
+        if (testLogs.testCase) {
+            issueKey = testLogs.testCase.issueKey || 'unknown';
+            summary = testLogs.testCase.summary || '';
+            description = testLogs.testCase.description || '';
+        }
+        
+        textContent += `Issue Key: ${issueKey}\n`;
+        if (summary) {
+            textContent += `Summary: ${summary}\n`;
+        }
+        textContent += `Sheet: ${currentlyDisplayedTestCase.split('-test-')[0]}\n`;
     }
     
     textContent += `Date: ${new Date().toLocaleString()}\n\n`;
@@ -4490,8 +4502,15 @@ function exportSelectedTestCase() {
     if (isManualTest) {
         filename = `manual-test-case-${timestamp}.txt`;
     } else {
-        const testCaseNumber = currentlyDisplayedTestCase.split('-test-')[1];
-        filename = `test-case-${testCaseNumber}-${timestamp}.txt`;
+        // Get the Issue Key directly from the test log entries
+        let issueKey = 'unknown';
+        
+        // If we have test log entries with a test case object that has an Issue Key, use that
+        if (testLogs.testCase && testLogs.testCase.issueKey) {
+            issueKey = testLogs.testCase.issueKey;
+        }
+        
+        filename = `test-case-${issueKey}-${timestamp}.txt`;
     }
     
     // Create a text file and download it
