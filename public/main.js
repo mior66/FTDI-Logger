@@ -4733,30 +4733,66 @@ function exportAllTestCases() {
         const testCaseId = `${activeSheetName}-test-${issueKey}`;
         const testLogs = testLogEntries[testCaseId] || {};
         
-        // Get the status indicator from the row
+        // Get the status from the row
         let status = 'Not Started';
-        const statusIndicator = row.querySelector('.status-indicator');
         
-        if (statusIndicator) {
-            if (statusIndicator.classList.contains('status-pass')) {
+        // Check if the last cell in the row contains 'Pass' or 'Fail' text
+        const allCells = Array.from(row.querySelectorAll('td'));
+        if (allCells.length > 0) {
+            const lastCell = allCells[allCells.length - 1];
+            const cellText = lastCell.textContent.trim();
+            
+            if (cellText === 'Pass') {
                 status = 'PASS';
-            } else if (statusIndicator.classList.contains('status-fail')) {
+            } else if (cellText === 'Fail') {
                 status = 'FAIL';
-            } else if (statusIndicator.classList.contains('status-in-progress')) {
+            }
+        }
+        
+        // If status not found in last cell, check for visual status indicators
+        if (status === 'Not Started') {
+            const statusIndicator = row.querySelector('.status-indicator');
+            if (statusIndicator) {
+                if (statusIndicator.classList.contains('status-pass')) {
+                    status = 'PASS';
+                } else if (statusIndicator.classList.contains('status-fail')) {
+                    status = 'FAIL';
+                } else if (statusIndicator.classList.contains('status-in-progress')) {
+                    status = 'INCOMPLETE';
+                }
+            }
+        }
+        
+        // If still not found, check for pass/fail buttons that are highlighted
+        if (status === 'Not Started') {
+            const passButton = row.querySelector('.pass-button.active');
+            const failButton = row.querySelector('.fail-button.active');
+            
+            if (passButton) {
+                status = 'PASS';
+            } else if (failButton) {
+                status = 'FAIL';
+            }
+        }
+        
+        // As a last resort, check the test logs
+        if (status === 'Not Started') {
+            if (testLogs.pass) {
+                status = 'PASS';
+            } else if (testLogs.fail) {
+                status = 'FAIL';
+            } else if (testLogs.start) {
                 status = 'INCOMPLETE';
             }
-        } else if (testLogs.pass) {
-            status = 'PASS';
-        } else if (testLogs.fail) {
-            status = 'FAIL';
-        } else if (testLogs.start) {
-            status = 'INCOMPLETE';
         }
         
         // Add test case header
         textContent += `Issue Key: ${issueKey}\n`;
         textContent += `Summary: ${summary}\n`;
-        textContent += `Status: ${status}\n`;
+        
+        // Add test case header
+        textContent += `Issue Key: ${issueKey}\n`;
+        textContent += `Summary: ${summary}\n`;
         
         // Add test case notes if available
         if (window.testCaseNotes && window.testCaseNotes[testCaseId]) {
