@@ -4158,10 +4158,16 @@ function exportManualTestCase(manualTestCaseId) {
     textContent += `======================\n\n`;
     textContent += `Date: ${new Date().toLocaleString()}\n`;
     
-    // Add Device Type if available
-    const deviceType = document.getElementById('device-type-tracker');
-    if (deviceType && deviceType.value) {
-        textContent += `Device Type: ${deviceType.value}\n`;
+    // Add Device Type if available - check both the status display and any input field
+    const deviceTypeElement = document.getElementById('device-type');
+    const deviceTypeInput = document.getElementById('deviceType');
+    
+    if (deviceTypeInput && deviceTypeInput.value) {
+        // First priority: use the value from the input field if available
+        textContent += `Device Type: ${deviceTypeInput.value}\n`;
+    } else if (deviceTypeElement && deviceTypeElement.textContent && deviceTypeElement.textContent !== '--') {
+        // Second priority: use the value from the status display if available
+        textContent += `Device Type: ${deviceTypeElement.textContent}\n`;
     }
     
     // Add Firmware Version if available
@@ -4199,8 +4205,16 @@ function exportManualTestCase(manualTestCaseId) {
     // Add the manual test case description
     textContent += `Manual Test Case:\n${description || 'No description provided'}\n\n`;
     
-    // Create a filename for the export
-    let filename = `Manual Test Case - ${new Date().toISOString().slice(0, 10)}.txt`;
+    // Create a filename for the export with Device Type and Firmware Version
+    let deviceTypeStr = 'Unknown';
+    if (deviceTypeInput && deviceTypeInput.value) {
+        deviceTypeStr = deviceTypeInput.value;
+    } else if (deviceTypeElement && deviceTypeElement.textContent && deviceTypeElement.textContent !== '--') {
+        deviceTypeStr = deviceTypeElement.textContent;
+    }
+    
+    let firmwareVersionStr = firmwareVersion && firmwareVersion.value ? firmwareVersion.value : 'No Firmware';
+    let filename = `Manual Test Case - ${deviceTypeStr} - ${firmwareVersionStr} - ${new Date().toISOString().slice(0, 10)}.txt`;
     
     // Create a text file and download it
     const blob = new Blob([textContent], { type: 'text/plain' });
