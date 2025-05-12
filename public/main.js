@@ -3688,13 +3688,46 @@ function createManualTestCase() {
         testLogEntries[manualTestCaseId] = {};
     }
     
+    // Enable the export button for manual test cases
+    const exportSelectedTestCaseButton = document.getElementById('export-selected-test-case');
+    if (exportSelectedTestCaseButton) {
+        exportSelectedTestCaseButton.disabled = false;
+    }
+    
     // Create the manual test case display
     selectedTestCaseDisplay.innerHTML = '';
+    
+    const manualTestCaseContainer = document.createElement('div');
+    manualTestCaseContainer.className = 'manual-test-case-container';
+    
+    // Create a header container to hold both the header and export button
+    const headerContainer = document.createElement('div');
+    headerContainer.style.display = 'flex';
+    headerContainer.style.justifyContent = 'space-between';
+    headerContainer.style.alignItems = 'center';
+    headerContainer.style.marginBottom = '10px';
     
     // Create the header
     const header = document.createElement('h3');
     header.textContent = 'Manual Test Case';
-    selectedTestCaseDisplay.appendChild(header);
+    header.style.margin = '0';
+    headerContainer.appendChild(header);
+    
+    // Add an export button specifically for manual test cases
+    const manualExportButton = document.createElement('button');
+    manualExportButton.textContent = 'Export Manual Test';
+    manualExportButton.className = 'small-button export-button';
+    manualExportButton.style.backgroundColor = '#0d5c23';
+    manualExportButton.style.color = 'white';
+    manualExportButton.style.border = '1px solid #0a2a12';
+    manualExportButton.addEventListener('click', function() {
+        console.log('Manual export button clicked');
+        exportManualTestCase(manualTestCaseId);
+    });
+    headerContainer.appendChild(manualExportButton);
+    
+    manualTestCaseContainer.appendChild(headerContainer);
+    selectedTestCaseDisplay.appendChild(manualTestCaseContainer);
     
     // Create the text box for the manual test case description
     const textBox = document.createElement('textarea');
@@ -4104,22 +4137,104 @@ function selectAllTestCasesInTab(sheetName, displayName) {
     showNotification(`Added all ${testCaseCount} test cases from ${displayName} tab`, 'success');
 }
 
+// Export a manual test case
+function exportManualTestCase(manualTestCaseId) {
+    console.log('Exporting manual test case:', manualTestCaseId);
+    
+    // Initialize test logs if they don't exist
+    if (!testLogEntries[manualTestCaseId]) {
+        testLogEntries[manualTestCaseId] = {};
+    }
+    
+    // Get the description from the manual test case textarea
+    const descriptionTextarea = document.querySelector('.manual-test-description');
+    const description = descriptionTextarea ? descriptionTextarea.value : '';
+    
+    // Create a text content for the export
+    let textContent = '';
+    
+    // Add test case header information
+    textContent += `MANUAL TEST CASE REPORT\n`;
+    textContent += `======================\n\n`;
+    textContent += `Date: ${new Date().toLocaleString()}\n`;
+    
+    // Add Device Type if available
+    const deviceType = document.getElementById('device-type-tracker');
+    if (deviceType && deviceType.value) {
+        textContent += `Device Type: ${deviceType.value}\n`;
+    }
+    
+    // Add Firmware Version if available
+    const firmwareVersion = document.getElementById('firmware-build');
+    if (firmwareVersion && firmwareVersion.value) {
+        textContent += `Firmware Version: ${firmwareVersion.value}\n`;
+    }
+    
+    // Add App Version if available - check both the status display and the tracker input
+    const appVersionStatus = document.getElementById('app-version');
+    const appVersionTracker = document.getElementById('app-version-tracker');
+    
+    if (appVersionTracker && appVersionTracker.value) {
+        // First priority: use the value from the input field if available
+        textContent += `App Version: ${appVersionTracker.value}\n`;
+    } else if (appVersionStatus && appVersionStatus.textContent && appVersionStatus.textContent !== '--') {
+        // Second priority: use the value from the status display if available
+        textContent += `App Version: ${appVersionStatus.textContent}\n`;
+    }
+    
+    // Add Phone OS/Version if available
+    const phoneOS = document.getElementById('phone-type');
+    if (phoneOS && phoneOS.value) {
+        textContent += `Phone OS/Version: ${phoneOS.value}\n`;
+    }
+    
+    // Add Test Plan Notes if available
+    const testNotes = document.getElementById('test-notes');
+    if (testNotes && testNotes.value) {
+        textContent += `Test Plan Notes:\n${testNotes.value}\n`;
+    }
+    
+    textContent += `\n`;
+    
+    // Add the manual test case description
+    textContent += `Manual Test Case:\n${description || 'No description provided'}\n\n`;
+    
+    // Create a filename for the export
+    let filename = `Manual Test Case - ${new Date().toISOString().slice(0, 10)}.txt`;
+    
+    // Create a text file and download it
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+    
+    showNotification(`Manual test case exported as ${filename}`, 'success');
+}
+
 // Export the selected test case with all logs between start and pass/fail timestamps
 function exportSelectedTestCase() {
+    console.log('Export button clicked');
     if (!currentlyDisplayedTestCase) {
         showNotification('No test selected', 'error');
         return;
     }
     
-    // Get the test logs for the current test case
-    const testLogs = testLogEntries[currentlyDisplayedTestCase];
-    if (!testLogs || !testLogs.start) {
-        showNotification('No test logs available for export', 'error');
-        return;
-    }
-    
     // Check if this is a manual test case
     const isManualTest = currentlyDisplayedTestCase.startsWith('manual-test-');
+    
+    // Initialize or get test logs - no logs required for any test case
+    if (!testLogEntries[currentlyDisplayedTestCase]) {
+        testLogEntries[currentlyDisplayedTestCase] = {};
+    }
+    const testLogs = testLogEntries[currentlyDisplayedTestCase];
     
     // Create a text content for the export
     let textContent = '';
@@ -4849,8 +4964,8 @@ function updateTestActionButtonsState() {
     testPassButton.disabled = !isConnected || !hasSelectedTestCase || !hasRecentLogEntry || !hasStartLog;
     testFailButton.disabled = !isConnected || !hasSelectedTestCase || !hasRecentLogEntry || !hasStartLog;
     
-    // Enable/disable export button based on test case selection and having start log
-    exportSelectedTestCaseButton.disabled = !hasSelectedTestCase || !hasStartLog;
+    // Enable the export button for all test cases as long as a test case is selected
+    exportSelectedTestCaseButton.disabled = !hasSelectedTestCase;
 }
 
 // Add a test start log entry
