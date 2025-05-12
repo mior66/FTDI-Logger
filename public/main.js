@@ -4141,11 +4141,6 @@ function selectAllTestCasesInTab(sheetName, displayName) {
 function exportManualTestCase(manualTestCaseId) {
     console.log('Exporting manual test case:', manualTestCaseId);
     
-    // Initialize test logs if they don't exist
-    if (!testLogEntries[manualTestCaseId]) {
-        testLogEntries[manualTestCaseId] = {};
-    }
-    
     // Get the description from the manual test case textarea
     const descriptionTextarea = document.querySelector('.manual-test-description');
     const description = descriptionTextarea ? descriptionTextarea.value : '';
@@ -4158,22 +4153,18 @@ function exportManualTestCase(manualTestCaseId) {
     textContent += `======================\n\n`;
     textContent += `Date: ${new Date().toLocaleString()}\n`;
     
-    // Add Device Type if available - check both the status display and any input field
-    const deviceTypeElement = document.getElementById('device-type');
-    const deviceTypeInput = document.getElementById('deviceType');
+    // Add Device Type if available - check the status display
+    const deviceTypeDisplay = document.getElementById('device-type');
     
-    if (deviceTypeInput && deviceTypeInput.value) {
-        // First priority: use the value from the input field if available
-        textContent += `Device Type: ${deviceTypeInput.value}\n`;
-    } else if (deviceTypeElement && deviceTypeElement.textContent && deviceTypeElement.textContent !== '--') {
-        // Second priority: use the value from the status display if available
-        textContent += `Device Type: ${deviceTypeElement.textContent}\n`;
+    if (deviceTypeDisplay && deviceTypeDisplay.textContent && deviceTypeDisplay.textContent !== '--') {
+        // Use the value from the status display if available
+        textContent += `Device Type: ${deviceTypeDisplay.textContent}\n`;
     }
     
     // Add Firmware Version if available
-    const firmwareVersion = document.getElementById('firmware-build');
-    if (firmwareVersion && firmwareVersion.value) {
-        textContent += `Firmware Version: ${firmwareVersion.value}\n`;
+    const firmwareBuild = document.getElementById('firmware-build');
+    if (firmwareBuild && firmwareBuild.value) {
+        textContent += `Firmware Version: ${firmwareBuild.value}\n`;
     }
     
     // Add App Version if available - check both the status display and the tracker input
@@ -4194,6 +4185,9 @@ function exportManualTestCase(manualTestCaseId) {
         textContent += `Phone OS/Version: ${phoneOS.value}\n`;
     }
     
+    // Add a blank line before Test Plan Notes
+    textContent += `\n`;
+    
     // Add Test Plan Notes if available
     const testNotes = document.getElementById('test-notes');
     if (testNotes && testNotes.value) {
@@ -4205,16 +4199,66 @@ function exportManualTestCase(manualTestCaseId) {
     // Add the manual test case description
     textContent += `Manual Test Case:\n${description || 'No description provided'}\n\n`;
     
-    // Create a filename for the export with Device Type and Firmware Version
-    let deviceTypeStr = 'Unknown';
-    if (deviceTypeInput && deviceTypeInput.value) {
-        deviceTypeStr = deviceTypeInput.value;
-    } else if (deviceTypeElement && deviceTypeElement.textContent && deviceTypeElement.textContent !== '--') {
-        deviceTypeStr = deviceTypeElement.textContent;
+    // Add Test Specific Notes/Bugs if available
+    if (window.testCaseNotes && window.testCaseNotes[manualTestCaseId]) {
+        textContent += `Test Specific Notes/Bugs:\n${window.testCaseNotes[manualTestCaseId]}\n\n`;
     }
     
-    let firmwareVersionStr = firmwareVersion && firmwareVersion.value ? firmwareVersion.value : 'No Firmware';
-    let filename = `Manual Test Case - ${deviceTypeStr} - ${firmwareVersionStr} - ${new Date().toISOString().slice(0, 10)}.txt`;
+    // Also check in testLogEntries if it exists
+    if (testLogEntries[manualTestCaseId] && testLogEntries[manualTestCaseId].notes) {
+        textContent += `Test Specific Notes/Bugs:\n${testLogEntries[manualTestCaseId].notes}\n\n`;
+    }
+    
+    // Add test logs if available
+    if (testLogEntries[manualTestCaseId]) {
+        const testLogs = testLogEntries[manualTestCaseId];
+        
+        // Add Current Test Logs section if there are any logs
+        if (testLogs.start || testLogs.pass || testLogs.fail) {
+            textContent += `Current Test Logs:\n`;
+            textContent += `----------------\n`;
+            
+            // Add the start log if it exists
+            if (testLogs.start && testLogs.start.timestamp) {
+                textContent += `Start: ${testLogs.start.timestamp}\n`;
+            }
+            
+            // Add the pass log if it exists
+            if (testLogs.pass && testLogs.pass.timestamp) {
+                textContent += `Pass: ${testLogs.pass.timestamp}\n`;
+            }
+            
+            // Add the fail log if it exists
+            if (testLogs.fail && testLogs.fail.timestamp) {
+                textContent += `Fail: ${testLogs.fail.timestamp}\n`;
+            }
+            
+            textContent += `\n`;
+        }
+    }
+    
+    // Create a filename for the export with Device Type and Firmware Version
+    let deviceTypeStr = 'Unknown';
+    if (deviceTypeDisplay && deviceTypeDisplay.textContent && deviceTypeDisplay.textContent !== '--') {
+        deviceTypeStr = deviceTypeDisplay.textContent;
+    }
+    
+    let firmwareVersionStr = 'No Firmware';
+    if (firmwareBuild && firmwareBuild.value) {
+        firmwareVersionStr = firmwareBuild.value;
+    }
+    
+    // Add Pass/Fail status to filename if available
+    let statusStr = '';
+    if (testLogEntries[manualTestCaseId]) {
+        if (testLogEntries[manualTestCaseId].pass) {
+            statusStr = ' - PASS';
+        } else if (testLogEntries[manualTestCaseId].fail) {
+            statusStr = ' - FAIL';
+        }
+    }
+    
+    let filename = `Manual Test Case - ${deviceTypeStr} - ${firmwareVersionStr}${statusStr} - ${new Date().toISOString().slice(0, 10)}.txt`;
     
     // Create a text file and download it
     const blob = new Blob([textContent], { type: 'text/plain' });
