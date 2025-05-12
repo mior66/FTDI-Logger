@@ -4268,7 +4268,7 @@ function exportSelectedTestCase() {
     
     // Add notes if they exist
     if (testLogs.notes && testLogs.notes.trim()) {
-        textContent += `GENERAL NOTES/BUGS:\n`;
+        textContent += `TEST SPECIFIC NOTES/BUGS:\n`;
         textContent += `-----------------\n`;
         textContent += `${testLogs.notes}\n\n`;
     }
@@ -4532,21 +4532,38 @@ function exportSelectedTestCase() {
     }
 
     // Create a filename for the export
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     let filename;
     
     if (isManualTest) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         filename = `manual-test-case-${timestamp}.txt`;
     } else {
-        // Get the Issue Key directly from the test log entries
+        // Get the components for the file name
         let issueKey = 'unknown';
+        let summary = '';
+        let firmwareVersion = '';
+        let status = testLogs.pass ? 'Pass' : (testLogs.fail ? 'Fail' : 'Incomplete');
         
-        // If we have test log entries with a test case object that has an Issue Key, use that
-        if (testLogs.testCase && testLogs.testCase.issueKey) {
-            issueKey = testLogs.testCase.issueKey;
+        // Get Issue Key and Summary from test case object
+        if (testLogs.testCase) {
+            issueKey = testLogs.testCase.issueKey || 'unknown';
+            summary = testLogs.testCase.summary || '';
         }
         
-        filename = `test-case-${issueKey}-${timestamp}.txt`;
+        // Get Firmware Version from input field
+        const firmwareElement = document.getElementById('firmware-build');
+        if (firmwareElement && firmwareElement.value) {
+            firmwareVersion = firmwareElement.value;
+        }
+        
+        // Clean up summary for filename (remove special characters, limit length)
+        summary = summary.replace(/[\/:*?"<>|]/g, '').trim();
+        if (summary.length > 30) {
+            summary = summary.substring(0, 30) + '...';
+        }
+        
+        // Format: "Test Case - [Firmware Version] - [Issue Key] - [Summary] - [Pass/Fail status]"
+        filename = `Test Case - ${firmwareVersion ? firmwareVersion + ' - ' : ''}${issueKey} - ${summary} - ${status}.txt`;
     }
     
     // Create a text file and download it
@@ -4709,7 +4726,7 @@ function updateTestLogDisplay() {
     notesSection.className = 'test-notes-section';
     
     const notesHeading = document.createElement('h4');
-    notesHeading.textContent = 'General Notes/Bugs:';
+    notesHeading.textContent = 'Test Specific Notes/Bugs:';
     notesSection.appendChild(notesHeading);
     
     // Create editable textarea for notes
