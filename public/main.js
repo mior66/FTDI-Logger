@@ -140,6 +140,12 @@ function init() {
     // Set up event listeners
     connectButton.addEventListener('click', connectToPort);
     disconnectButton.addEventListener('click', disconnectFromPort);
+    
+    // Set up export all test cases button event listener
+    const exportAllTestCasesButton = document.getElementById('export-all-test-cases');
+    if (exportAllTestCasesButton) {
+        exportAllTestCasesButton.addEventListener('click', exportAllTestCases);
+    }
 
     clearLogButton.addEventListener('click', clearLog);
     saveLogButton.addEventListener('click', saveLog);
@@ -4594,6 +4600,185 @@ function exportSelectedTestCase() {
     }, 100);
     
     showNotification(`Test case exported as ${filename}`, 'success');
+}
+
+// Export all test cases with their Pass/Fail status and individual notes
+function exportAllTestCases() {
+    // Get the test plan table
+    const testPlanTable = document.querySelector('#test-data-container table');
+    
+    if (!testPlanTable) {
+        showNotification('No test plan loaded', 'error');
+        return;
+    }
+    
+    // Create a text content for the export
+    let textContent = '';
+    
+    // Add header information
+    textContent += `ALL TEST CASES REPORT\n`;
+    textContent += `====================\n\n`;
+    textContent += `Date: ${new Date().toLocaleString()}\n`;
+    
+    // Add Device Type if available
+    const deviceType = document.getElementById('deviceType');
+    if (deviceType && deviceType.value) {
+        textContent += `Device Type: ${deviceType.value}\n`;
+    }
+    
+    // Add Firmware Version if available
+    const firmwareVersion = document.getElementById('firmware-build');
+    if (firmwareVersion && firmwareVersion.value) {
+        textContent += `Firmware Version: ${firmwareVersion.value}\n`;
+    }
+    
+    // Add App Version if available
+    const appVersionElement = document.getElementById('app-version');
+    if (appVersionElement && appVersionElement.textContent && appVersionElement.textContent !== '--') {
+        textContent += `App Version: ${appVersionElement.textContent}\n`;
+    }
+    
+    // Add Phone OS/Version if available
+    const phoneOSVersion = document.getElementById('phone-type');
+    if (phoneOSVersion && phoneOSVersion.value) {
+        textContent += `Phone OS/Version: ${phoneOSVersion.value}\n`;
+    }
+    
+    // Add Test Plan Notes if available
+    const testNotes = document.getElementById('test-notes');
+    if (testNotes && testNotes.value) {
+        textContent += `\nTest Plan Notes:\n`;
+        textContent += `-----------------\n`;
+        textContent += `${testNotes.value}\n`;
+    }
+    
+    textContent += `\n`;
+    
+    // Get all rows from the table body
+    const rows = testPlanTable.querySelectorAll('tbody tr');
+    
+    if (!rows || rows.length === 0) {
+        showNotification('No test cases available to export', 'error');
+        return;
+    }
+    
+    // Get the headers from the table
+    const headers = [];
+    const headerRow = testPlanTable.querySelector('thead tr');
+    if (headerRow) {
+        headerRow.querySelectorAll('th').forEach(th => {
+            headers.push(th.textContent || '');
+        });
+    }
+    
+    // Find the index of the Issue Key column
+    let issueKeyIndex = -1;
+    let summaryIndex = -1;
+    
+    headers.forEach((header, index) => {
+        const headerText = header.toLowerCase();
+        if (headerText.includes('issue') || headerText.includes('key') || headerText.includes('test #') || headerText === 'id') {
+            issueKeyIndex = index;
+        }
+        if (headerText.includes('summary') || headerText.includes('description')) {
+            summaryIndex = index;
+        }
+    });
+    
+    // If we couldn't find the Issue Key column, use the first column
+    if (issueKeyIndex === -1) issueKeyIndex = 0;
+    // If we couldn't find the Summary column, use the second column
+    if (summaryIndex === -1) summaryIndex = 1;
+    
+    // Count test results
+    let passedTests = 0;
+    let failedTests = 0;
+    let incompleteTests = 0;
+    let notStartedTests = 0;
+    
+    // Add each test case with its status and notes
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (!cells || cells.length === 0) return;
+        
+        // Get the Issue Key and Summary from the table cells
+        const issueKey = cells[issueKeyIndex] ? cells[issueKeyIndex].textContent.trim() : 'unknown';
+        const summary = cells[summaryIndex] ? cells[summaryIndex].textContent.trim() : '';
+        
+        // Create a test case ID from the Issue Key
+        const testCaseId = `${activeSheetName}-test-${issueKey}`;
+        const testLogs = testLogEntries[testCaseId] || {};
+        
+        // Determine test status
+        let status = 'Not Started';
+        if (testLogs.pass) {
+            status = 'PASS';
+            passedTests++;
+        } else if (testLogs.fail) {
+            status = 'FAIL';
+            failedTests++;
+        } else if (testLogs.start) {
+            status = 'INCOMPLETE';
+            incompleteTests++;
+        } else {
+            notStartedTests++;
+        }
+        
+        // Add test case header
+        textContent += `Issue Key: ${issueKey}\n`;
+        textContent += `Summary: ${summary}\n`;
+        textContent += `Status: ${status}\n`;
+        
+        // Add test case notes if available
+        if (window.testCaseNotes && window.testCaseNotes[testCaseId]) {
+            textContent += `Test Specific Notes/Bugs:\n${window.testCaseNotes[testCaseId]}\n`;
+        }
+        
+        // Add timestamps if available
+        if (testLogs.start) {
+            textContent += `Start: ${testLogs.start.timestamp}\n`;
+        }
+        if (testLogs.pass) {
+            textContent += `Pass: ${testLogs.pass.timestamp}\n`;
+        } else if (testLogs.fail) {
+            textContent += `Fail: ${testLogs.fail.timestamp}\n`;
+        }
+        
+        textContent += `\n`; // Add a blank line between test cases
+    });
+    
+    // Add summary statistics
+    textContent += `TEST STATISTICS:\n`;
+    textContent += `---------------\n`;
+    textContent += `Total Tests: ${rows.length}\n`;
+    textContent += `Passed: ${passedTests}\n`;
+    textContent += `Failed: ${failedTests}\n`;
+    textContent += `Incomplete: ${incompleteTests}\n`;
+    textContent += `Not Started: ${notStartedTests}\n\n`;
+    
+    // Create a filename for the export
+    let deviceTypeStr = deviceType && deviceType.value ? deviceType.value : 'Unknown';
+    let firmwareVersionStr = firmwareVersion && firmwareVersion.value ? firmwareVersion.value : '';
+    let filename = `All Test Cases - ${deviceTypeStr}${firmwareVersionStr ? ' - ' + firmwareVersionStr : ''} - ${new Date().toISOString().slice(0, 10)}.txt`;
+    
+    // Create a text file and download it
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create a download link and trigger the download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+    
+    showNotification(`All test cases exported as ${filename}`, 'success');
 }
 
 // Update the state of test action buttons based on connection and test case selection
