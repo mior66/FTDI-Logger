@@ -4790,10 +4790,6 @@ function exportAllTestCases() {
         textContent += `Issue Key: ${issueKey}\n`;
         textContent += `Summary: ${summary}\n`;
         
-        // Add test case header
-        textContent += `Issue Key: ${issueKey}\n`;
-        textContent += `Summary: ${summary}\n`;
-        
         // Add test case notes if available
         if (window.testCaseNotes && window.testCaseNotes[testCaseId]) {
             textContent += `Test Specific Notes/Bugs:\n${window.testCaseNotes[testCaseId]}\n`;
