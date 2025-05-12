@@ -4252,8 +4252,15 @@ function exportSelectedTestCase() {
     }
     }
     
+    // Add notes if they exist (moved to appear above the logs)
+    if (testLogs.notes && testLogs.notes.trim()) {
+        textContent += `\nTEST SPECIFIC NOTES/BUGS:\n`;
+        textContent += `-----------------\n`;
+        textContent += `${testLogs.notes}\n\n`;
+    }
+    
     // Add test log information
-    textContent += `\nCURRENT TEST LOGS:\n`;
+    textContent += `CURRENT TEST LOGS:\n`;
     textContent += `-----------------\n\n`;
     
     // Add start log
@@ -4264,13 +4271,6 @@ function exportSelectedTestCase() {
         textContent += `PASS: ${testLogs.pass.timestamp} - ${testLogs.pass.text}\n\n`;
     } else if (testLogs.fail) {
         textContent += `FAIL: ${testLogs.fail.timestamp} - ${testLogs.fail.text}\n\n`;
-    }
-    
-    // Add notes if they exist
-    if (testLogs.notes && testLogs.notes.trim()) {
-        textContent += `TEST SPECIFIC NOTES/BUGS:\n`;
-        textContent += `-----------------\n`;
-        textContent += `${testLogs.notes}\n\n`;
     }
     
     // Get all logs between start and pass/fail timestamps
@@ -4535,8 +4535,18 @@ function exportSelectedTestCase() {
     let filename;
     
     if (isManualTest) {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        filename = `manual-test-case-${timestamp}.txt`;
+        // Get components for manual test case file name
+        let firmwareVersion = '';
+        let status = testLogs.pass ? 'Pass' : (testLogs.fail ? 'Fail' : 'Incomplete');
+        
+        // Get Firmware Version from input field
+        const firmwareElement = document.getElementById('firmware-build');
+        if (firmwareElement && firmwareElement.value) {
+            firmwareVersion = firmwareElement.value;
+        }
+        
+        // Format: "Manual Test Case - [Firmware Version] - [Pass/Fail]"
+        filename = `Manual Test Case - ${firmwareVersion ? firmwareVersion + ' - ' : ''}${status}.txt`;
     } else {
         // Get the components for the file name
         let issueKey = 'unknown';
