@@ -4696,44 +4696,25 @@ function exportAllTestCases() {
     // If we couldn't find the Summary column, use the second column
     if (summaryIndex === -1) summaryIndex = 1;
     
-    // Count test results
-    let passedTests = 0;
-    let failedTests = 0;
-    let incompleteTests = 0;
-    let notStartedTests = 0;
+    // Get test statistics from the UI display
+    const passedTests = document.getElementById('passed-tests') ? parseInt(document.getElementById('passed-tests').textContent) || 0 : 0;
+    const failedTests = document.getElementById('failed-tests') ? parseInt(document.getElementById('failed-tests').textContent) || 0 : 0;
+    const notTestedTests = document.getElementById('not-tested-tests') ? parseInt(document.getElementById('not-tested-tests').textContent) || 0 : 0;
+    const passRate = document.getElementById('pass-rate') ? document.getElementById('pass-rate').textContent : '0%';
     
-    // First pass: count test results
-    rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (!cells || cells.length === 0) return;
-        
-        // Get the Issue Key from the table cells
-        const issueKey = cells[issueKeyIndex] ? cells[issueKeyIndex].textContent.trim() : 'unknown';
-        
-        // Create a test case ID from the Issue Key
-        const testCaseId = `${activeSheetName}-test-${issueKey}`;
-        const testLogs = testLogEntries[testCaseId] || {};
-        
-        // Count by status
-        if (testLogs.pass) {
-            passedTests++;
-        } else if (testLogs.fail) {
-            failedTests++;
-        } else if (testLogs.start) {
-            incompleteTests++;
-        } else {
-            notStartedTests++;
-        }
-    });
+    // Calculate total and incomplete tests
+    const totalTests = rows.length;
+    const incompleteTests = totalTests - passedTests - failedTests - notTestedTests;
     
     // Add summary statistics before test case details
     textContent += `TEST STATISTICS:\n`;
     textContent += `---------------\n`;
-    textContent += `Total Tests: ${rows.length}\n`;
+    textContent += `Total Tests: ${totalTests}\n`;
     textContent += `Passed: ${passedTests}\n`;
     textContent += `Failed: ${failedTests}\n`;
     textContent += `Incomplete: ${incompleteTests}\n`;
-    textContent += `Not Started: ${notStartedTests}\n\n`;
+    textContent += `Not Started: ${notTestedTests}\n`;
+    textContent += `Pass Rate: ${passRate}\n\n`;
     
     // Add test cases section header
     textContent += `TEST CASES:\n`;
@@ -4752,9 +4733,19 @@ function exportAllTestCases() {
         const testCaseId = `${activeSheetName}-test-${issueKey}`;
         const testLogs = testLogEntries[testCaseId] || {};
         
-        // Determine test status
+        // Get the status indicator from the row
         let status = 'Not Started';
-        if (testLogs.pass) {
+        const statusIndicator = row.querySelector('.status-indicator');
+        
+        if (statusIndicator) {
+            if (statusIndicator.classList.contains('status-pass')) {
+                status = 'PASS';
+            } else if (statusIndicator.classList.contains('status-fail')) {
+                status = 'FAIL';
+            } else if (statusIndicator.classList.contains('status-in-progress')) {
+                status = 'INCOMPLETE';
+            }
+        } else if (testLogs.pass) {
             status = 'PASS';
         } else if (testLogs.fail) {
             status = 'FAIL';
