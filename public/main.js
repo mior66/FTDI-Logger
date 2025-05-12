@@ -4632,10 +4632,16 @@ function exportAllTestCases() {
         textContent += `Firmware Version: ${firmwareVersion.value}\n`;
     }
     
-    // Add App Version if available
-    const appVersionElement = document.getElementById('app-version');
-    if (appVersionElement && appVersionElement.textContent && appVersionElement.textContent !== '--') {
-        textContent += `App Version: ${appVersionElement.textContent}\n`;
+    // Add App Version if available - check both the status display and the tracker input
+    const appVersionStatus = document.getElementById('app-version');
+    const appVersionTracker = document.getElementById('app-version-tracker');
+    
+    if (appVersionTracker && appVersionTracker.value) {
+        // First priority: use the value from the input field if available
+        textContent += `App Version: ${appVersionTracker.value}\n`;
+    } else if (appVersionStatus && appVersionStatus.textContent && appVersionStatus.textContent !== '--') {
+        // Second priority: use the value from the status display if available
+        textContent += `App Version: ${appVersionStatus.textContent}\n`;
     }
     
     // Add Phone OS/Version if available
@@ -4671,7 +4677,7 @@ function exportAllTestCases() {
         });
     }
     
-    // Find the index of the Issue Key column
+    // Find the index of the Issue Key column and Summary column
     let issueKeyIndex = -1;
     let summaryIndex = -1;
     
@@ -4680,7 +4686,7 @@ function exportAllTestCases() {
         if (headerText.includes('issue') || headerText.includes('key') || headerText.includes('test #') || headerText === 'id') {
             issueKeyIndex = index;
         }
-        if (headerText.includes('summary') || headerText.includes('description')) {
+        if (headerText.includes('summary')) {
             summaryIndex = index;
         }
     });
@@ -4696,7 +4702,44 @@ function exportAllTestCases() {
     let incompleteTests = 0;
     let notStartedTests = 0;
     
-    // Add each test case with its status and notes
+    // First pass: count test results
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (!cells || cells.length === 0) return;
+        
+        // Get the Issue Key from the table cells
+        const issueKey = cells[issueKeyIndex] ? cells[issueKeyIndex].textContent.trim() : 'unknown';
+        
+        // Create a test case ID from the Issue Key
+        const testCaseId = `${activeSheetName}-test-${issueKey}`;
+        const testLogs = testLogEntries[testCaseId] || {};
+        
+        // Count by status
+        if (testLogs.pass) {
+            passedTests++;
+        } else if (testLogs.fail) {
+            failedTests++;
+        } else if (testLogs.start) {
+            incompleteTests++;
+        } else {
+            notStartedTests++;
+        }
+    });
+    
+    // Add summary statistics before test case details
+    textContent += `TEST STATISTICS:\n`;
+    textContent += `---------------\n`;
+    textContent += `Total Tests: ${rows.length}\n`;
+    textContent += `Passed: ${passedTests}\n`;
+    textContent += `Failed: ${failedTests}\n`;
+    textContent += `Incomplete: ${incompleteTests}\n`;
+    textContent += `Not Started: ${notStartedTests}\n\n`;
+    
+    // Add test cases section header
+    textContent += `TEST CASES:\n`;
+    textContent += `-----------\n\n`;
+    
+    // Second pass: add each test case with its status and notes
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
         if (!cells || cells.length === 0) return;
@@ -4713,15 +4756,10 @@ function exportAllTestCases() {
         let status = 'Not Started';
         if (testLogs.pass) {
             status = 'PASS';
-            passedTests++;
         } else if (testLogs.fail) {
             status = 'FAIL';
-            failedTests++;
         } else if (testLogs.start) {
             status = 'INCOMPLETE';
-            incompleteTests++;
-        } else {
-            notStartedTests++;
         }
         
         // Add test case header
@@ -4747,19 +4785,10 @@ function exportAllTestCases() {
         textContent += `\n`; // Add a blank line between test cases
     });
     
-    // Add summary statistics
-    textContent += `TEST STATISTICS:\n`;
-    textContent += `---------------\n`;
-    textContent += `Total Tests: ${rows.length}\n`;
-    textContent += `Passed: ${passedTests}\n`;
-    textContent += `Failed: ${failedTests}\n`;
-    textContent += `Incomplete: ${incompleteTests}\n`;
-    textContent += `Not Started: ${notStartedTests}\n\n`;
-    
     // Create a filename for the export
     let deviceTypeStr = deviceType && deviceType.value ? deviceType.value : 'Unknown';
     let firmwareVersionStr = firmwareVersion && firmwareVersion.value ? firmwareVersion.value : '';
-    let filename = `All Test Cases - ${deviceTypeStr}${firmwareVersionStr ? ' - ' + firmwareVersionStr : ''} - ${new Date().toISOString().slice(0, 10)}.txt`;
+    let filename = `Test Cases - ${deviceTypeStr} - ${firmwareVersionStr || 'No Firmware'} - ${new Date().toISOString().slice(0, 10)}.txt`;
     
     // Create a text file and download it
     const blob = new Blob([textContent], { type: 'text/plain' });
@@ -4778,7 +4807,7 @@ function exportAllTestCases() {
         URL.revokeObjectURL(url);
     }, 100);
     
-    showNotification(`All test cases exported as ${filename}`, 'success');
+    showNotification(`Test cases exported as ${filename}`, 'success');
 }
 
 // Update the state of test action buttons based on connection and test case selection
