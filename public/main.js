@@ -4153,11 +4153,15 @@ function exportManualTestCase(manualTestCaseId) {
     textContent += `======================\n\n`;
     textContent += `Date: ${new Date().toLocaleString()}\n`;
     
-    // Add Device Type if available - check the status display
+    // Add Device Type if available - check the dropdown first, then the status display
+    const deviceTypeDropdown = document.getElementById('deviceType');
     const deviceTypeDisplay = document.getElementById('device-type');
     
-    if (deviceTypeDisplay && deviceTypeDisplay.textContent && deviceTypeDisplay.textContent !== '--') {
-        // Use the value from the status display if available
+    if (deviceTypeDropdown && deviceTypeDropdown.value) {
+        // First priority: use the value from the dropdown if available
+        textContent += `Device Type: ${deviceTypeDropdown.value}\n`;
+    } else if (deviceTypeDisplay && deviceTypeDisplay.textContent && deviceTypeDisplay.textContent !== '--') {
+        // Second priority: use the value from the status display if available
         textContent += `Device Type: ${deviceTypeDisplay.textContent}\n`;
     }
     
@@ -4238,8 +4242,10 @@ function exportManualTestCase(manualTestCaseId) {
     }
     
     // Create a filename for the export with Device Type and Firmware Version
-    let deviceTypeStr = 'Unknown';
-    if (deviceTypeDisplay && deviceTypeDisplay.textContent && deviceTypeDisplay.textContent !== '--') {
+    let deviceTypeStr = '';
+    if (deviceTypeDropdown && deviceTypeDropdown.value) {
+        deviceTypeStr = deviceTypeDropdown.value;
+    } else if (deviceTypeDisplay && deviceTypeDisplay.textContent && deviceTypeDisplay.textContent !== '--') {
         deviceTypeStr = deviceTypeDisplay.textContent;
     }
     
@@ -4258,7 +4264,13 @@ function exportManualTestCase(manualTestCaseId) {
         }
     }
     
-    let filename = `Manual Test Case - ${deviceTypeStr} - ${firmwareVersionStr}${statusStr} - ${new Date().toISOString().slice(0, 10)}.txt`;
+    // Format the filename, handling empty device type
+    let filename;
+    if (deviceTypeStr) {
+        filename = `Manual Test Case - ${deviceTypeStr} - ${firmwareVersionStr}${statusStr} - ${new Date().toISOString().slice(0, 10)}.txt`;
+    } else {
+        filename = `Manual Test Case - ${firmwareVersionStr}${statusStr} - ${new Date().toISOString().slice(0, 10)}.txt`;
+    }
     
     // Create a text file and download it
     const blob = new Blob([textContent], { type: 'text/plain' });
