@@ -1342,7 +1342,7 @@ function createLogEntryElement(entry, index) {
     
     // Handle special characters and control codes
     let formattedMessage = entry.message
-        .replace(/\r\n|\r|\n/g, '<br>')
+        .replace(/\r\n|\r|\n/g, '')
         .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
         .replace(/ /g, '&nbsp;');
     
