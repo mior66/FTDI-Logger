@@ -4147,7 +4147,43 @@ function exportSelectedTestCase() {
         textContent += `Sheet: ${currentlyDisplayedTestCase.split('-test-')[0]}\n`;
     }
     
-    textContent += `Date: ${new Date().toLocaleString()}\n\n`;
+    textContent += `Date: ${new Date().toLocaleString()}\n`;
+    
+    // Add additional information if available
+    const firmwareVersion = document.getElementById('firmware-build');
+    if (firmwareVersion && firmwareVersion.value) {
+        textContent += `Firmware Version: ${firmwareVersion.value}\n`;
+    }
+    
+    // Add App Version if available - check both the status display and the tracker input
+    const appVersionStatus = document.getElementById('app-version');
+    const appVersionTracker = document.getElementById('app-version-tracker');
+    
+    if (appVersionTracker && appVersionTracker.value) {
+        // First priority: use the value from the input field if available
+        textContent += `App Version: ${appVersionTracker.value}\n`;
+    } else if (appVersionStatus && appVersionStatus.textContent && appVersionStatus.textContent !== '--') {
+        // Second priority: use the value from the status display if available
+        textContent += `App Version: ${appVersionStatus.textContent}\n`;
+    }
+    
+    // Add Phone OS/Version if available
+    const phoneOSVersion = document.getElementById('phone-type');
+    if (phoneOSVersion && phoneOSVersion.value) {
+        textContent += `Phone OS/Version: ${phoneOSVersion.value}\n`;
+    }
+    
+    // Add Notes if available - check both the test notes and the test case notes
+    const testNotes = document.getElementById('test-notes');
+    if (testNotes && testNotes.value) {
+        // First priority: use the value from the test notes textarea
+        textContent += `\nNotes: ${testNotes.value}\n`;
+    } else if (window.testCaseNotes && window.testCaseNotes[currentlyDisplayedTestCase]) {
+        // Second priority: use the test case notes if available
+        textContent += `\nNotes: ${window.testCaseNotes[currentlyDisplayedTestCase]}\n`;
+    }
+    
+    textContent += `\n`;
     
     // Add test result information
     const result = testLogs.pass ? 'PASS' : (testLogs.fail ? 'FAIL' : 'INCOMPLETE');
