@@ -5212,56 +5212,61 @@ function exportAllTestCases() {
         // Create a test case ID from the Issue Key
         const testCaseId = activeSheetName ? `${activeSheetName}-test-${issueKey}` : `test-${issueKey}`;
         
-        // Get the status from the row
-        let status = 'Not Started';
+        // Get the status from the row - default to 'Not Tested'
+        let status = 'Not Tested';
         
-        // Check for status indicators in the row
-        const statusIndicator = row.querySelector('.status-indicator');
-        if (statusIndicator) {
-            if (statusIndicator.classList.contains('status-pass')) {
-                status = 'PASS';
-            } else if (statusIndicator.classList.contains('status-fail')) {
-                status = 'FAIL';
-            } else if (statusIndicator.classList.contains('status-in-progress')) {
-                status = 'INCOMPLETE';
-            }
-        }
-        
-        // If no status indicator, check for pass/fail buttons
-        if (status === 'Not Started') {
-            const passButton = row.querySelector('.pass-button.active');
-            const failButton = row.querySelector('.fail-button.active');
+        // Find the Pass/Fail column - it's usually the last column in the table
+        const allCells = Array.from(row.querySelectorAll('td'));
+        if (allCells.length > 0) {
+            // Check the last cell first (most likely to contain Pass/Fail)
+            const lastCell = allCells[allCells.length - 1];
             
-            if (passButton) {
-                status = 'PASS';
-            } else if (failButton) {
-                status = 'FAIL';
-            }
-        }
-        
-        // Check the last cell in the row for Pass/Fail text
-        if (status === 'Not Started') {
-            const allCells = Array.from(row.querySelectorAll('td'));
-            if (allCells.length > 0) {
-                const lastCell = allCells[allCells.length - 1];
+            // Check for a dropdown in the cell
+            const statusDropdown = lastCell.querySelector('select');
+            if (statusDropdown) {
+                // Get the selected option's text
+                const selectedOption = statusDropdown.options[statusDropdown.selectedIndex];
+                const selectedText = selectedOption ? selectedOption.text : '';
+                
+                if (selectedText === 'Pass') {
+                    status = 'Pass';
+                } else if (selectedText === 'Fail') {
+                    status = 'Fail';
+                }
+            } 
+            // If no dropdown, check the cell text directly
+            else {
                 const cellText = lastCell.textContent.trim();
                 
                 if (cellText === 'Pass') {
-                    status = 'PASS';
+                    status = 'Pass';
                 } else if (cellText === 'Fail') {
-                    status = 'FAIL';
+                    status = 'Fail';
                 }
             }
         }
         
-        // If still no status, check the test logs
-        if (status === 'Not Started' && testLogEntries[testCaseId]) {
-            if (testLogEntries[testCaseId].pass) {
-                status = 'PASS';
-            } else if (testLogEntries[testCaseId].fail) {
-                status = 'FAIL';
-            } else if (testLogEntries[testCaseId].start) {
-                status = 'INCOMPLETE';
+        // If still no status from the last cell, check other indicators
+        if (status === 'Not Tested') {
+            // Check for status indicators in the row
+            const statusIndicator = row.querySelector('.status-indicator');
+            if (statusIndicator) {
+                if (statusIndicator.classList.contains('status-pass')) {
+                    status = 'Pass';
+                } else if (statusIndicator.classList.contains('status-fail')) {
+                    status = 'Fail';
+                }
+            }
+            // Check for pass/fail buttons
+            else {
+                const passButton = row.querySelector('.pass-button.active');
+                const failButton = row.querySelector('.fail-button.active');
+                
+                if (passButton) {
+                    status = 'Pass';
+                } else if (failButton) {
+                    status = 'Fail';
+                }
             }
         }
         
