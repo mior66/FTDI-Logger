@@ -5239,6 +5239,21 @@ function exportAllTestCases() {
             }
         }
         
+        // Check the last cell in the row for Pass/Fail text
+        if (status === 'Not Started') {
+            const allCells = Array.from(row.querySelectorAll('td'));
+            if (allCells.length > 0) {
+                const lastCell = allCells[allCells.length - 1];
+                const cellText = lastCell.textContent.trim();
+                
+                if (cellText === 'Pass') {
+                    status = 'PASS';
+                } else if (cellText === 'Fail') {
+                    status = 'FAIL';
+                }
+            }
+        }
+        
         // If still no status, check the test logs
         if (status === 'Not Started' && testLogEntries[testCaseId]) {
             if (testLogEntries[testCaseId].pass) {
@@ -5253,18 +5268,34 @@ function exportAllTestCases() {
         // Get notes from the editable Notes field if available
         let notes = '';
         
-        // First check for notes in the contenteditable div if it exists
-        const notesField = document.querySelector(`div.notes-field[data-test-case-id="${testCaseId}"]`);
-        if (notesField) {
-            notes = notesField.innerText.trim();
+        // Check all possible sources for notes in this priority order
+        // 1. Check for notes in the table row itself (new notes field)
+        const notesCell = row.querySelector('.notes-field');
+        if (notesCell && notesCell.innerText.trim()) {
+            notes = notesCell.innerText.trim();
         }
-        // If no notes found, check the global object
-        else if (window.testCaseNotes && window.testCaseNotes[testCaseId]) {
-            notes = window.testCaseNotes[testCaseId];
-        }
-        // Try with a different format of the testCaseId (without sheet name)
-        else if (window.testCaseNotes && window.testCaseNotes[`test-${issueKey}`]) {
-            notes = window.testCaseNotes[`test-${issueKey}`];
+        // 2. Check for notes in the contenteditable div if it exists
+        else {
+            const notesField = document.querySelector(`div.notes-field[data-test-case-id="${testCaseId}"]`);
+            if (notesField && notesField.innerText.trim()) {
+                notes = notesField.innerText.trim();
+            }
+            // 3. Check the global testCaseNotes object with the current testCaseId
+            else if (window.testCaseNotes && window.testCaseNotes[testCaseId]) {
+                notes = window.testCaseNotes[testCaseId];
+            }
+            // 4. Try with a different format of the testCaseId (without sheet name)
+            else if (window.testCaseNotes && window.testCaseNotes[`test-${issueKey}`]) {
+                notes = window.testCaseNotes[`test-${issueKey}`];
+            }
+            // 5. Try with device type instead of sheet name
+            else {
+                const deviceType = document.getElementById('deviceType').value;
+                const alternateTestCaseId = `${deviceType}-test-${issueKey}`;
+                if (window.testCaseNotes && window.testCaseNotes[alternateTestCaseId]) {
+                    notes = window.testCaseNotes[alternateTestCaseId];
+                }
+            }
         }
 
         // Add the test case data to the array
