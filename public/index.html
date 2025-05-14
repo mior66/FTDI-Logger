@@ -110,6 +110,7 @@
                 <h3>Test Case Tracking</h3>
                 <div class="test-case-controls">
                     <button id="export-selected-test-case" class="small-button export-button">Test Case Export with Logs</button>
+                    <button id="export-history-button" class="small-button">History</button>
                     <button id="manual-test-button" class="small-button">Manual</button>
                     <button id="clear-selected-test-case" class="small-button">Clear</button>
                 </div>
@@ -204,13 +205,8 @@
                             <input type="text" id="phone-type" class="info-input" placeholder="Enter phone OS and version">
                         </div>
                     </div>
-                    <div class="notes-field">
-                        <label for="test-notes">Test Plan Notes:</label>
-                        <textarea id="test-notes" class="notes-textarea" placeholder="Enter general test notes here..."></textarea>
-                    </div>
-                    
                     <!-- Test Plan header with export button -->
-                    <div class="notes-field" id="test-plan-message" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="notes-field" id="test-plan-message" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
                         <label>Test Plan:</label>
                         <button id="export-all-test-cases" class="small-button export-button" style="background-color: #0d5c23; color: white; border: 1px solid #0a2a12;">Test Plan Export</button>
                     </div>
@@ -468,6 +464,22 @@
     <!-- Footer -->
     <div class="footer">
         <span>Project created by Adam Mior</span>
+    </div>
+    <!-- Export History Overlay -->
+    <div id="export-history-overlay" class="overlay" style="display: none;">
+        <div class="overlay-content">
+            <div class="overlay-header">
+                <h2>Export History</h2>
+                <button id="close-export-history" class="close-button">&times;</button>
+            </div>
+            <div class="overlay-body">
+                <div id="export-history-actions" class="history-actions">
+                    <button id="export-history-export" class="history-global-button">Export as Text</button>
+                    <button id="export-history-print" class="history-global-button">Print History</button>
+                </div>
+                <div id="export-history-list" class="history-list"></div>
+            </div>
+        </div>
     </div>
 </body>
 </html>

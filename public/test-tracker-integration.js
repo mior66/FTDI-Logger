@@ -885,7 +885,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (deviceType === 'LV') {
             headers = ['Issue Key', 'Summary', 'Description', 'Zen V1', 'Mysa LV', 'Pass/Fail'];
         } else {
-            headers = ['Issue Key', 'Summary', 'Description', 'Labels', 'Pass/Fail'];
+            headers = ['Issue Key', 'Summary', 'Description', 'Notes', 'Pass/Fail'];
         }
         headers.forEach((header, index) => {
             // Add a special class for the Issue Key column header
@@ -915,20 +915,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 const issueKey = testCase.issueKey || 'N/A';
                 tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     ${issueKey}
-                    <i class="notes-icon fa fa-sticky-note" onclick="openNotesPopup(${index})" title="Add/Edit Notes"></i>
                 </td>`;
                 
                 // Summary for LV - remove LV label if present
                 let summary = testCase.summary || 'N/A';
                 // Remove 'LV' prefix if it exists
                 summary = summary.replace(/^\s*LV\s*[-:]*\s*/i, '');
-                // Use the same styling as other device types
-                tableHTML += `<td>${summary}</td>`;
+                // Use the same styling as other device types with explicit width
+                tableHTML += `<td style="width: 20%;">${summary}</td>`;
                 
-                // Description - clean and preserve line breaks, reduce width to give space to Zen V1 and Mysa LV
+                // Description - clean and preserve line breaks, further increased width to give space to Zen V1 and Mysa LV
                 let description = testCase.description || 'N/A';
                 description = cleanDescription(description);
-                tableHTML += `<td style="width: 30%;">${description.replace(/\n/g, '<br>')}</td>`;
+                tableHTML += `<td style="width: 45%;">${description.replace(/\n/g, '<br>')}</td>`;
                 
                 // Zen V1 column - preserve line breaks and set fixed width
                 const zenV1 = testCase.zenV1 || '';
@@ -942,23 +941,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 const issueKey = testCase.issueKey || 'N/A';
                 tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     ${issueKey}
-                    <i class="notes-icon fa fa-sticky-note" onclick="openNotesPopup(${index})" title="Add/Edit Notes"></i>
                 </td>`;
                 
-                // Summary as a separate column
-                tableHTML += `<td>${testCase.summary || 'N/A'}</td>`;
+                // Summary as a separate column with explicit width
+                tableHTML += `<td style="width: 20%;">${testCase.summary || 'N/A'}</td>`;
                 
-                // Description - clean and preserve line breaks
+                // Description - clean and preserve line breaks with further increased width
                 let description = testCase.description || 'N/A';
                 description = cleanDescription(description);
-                tableHTML += `<td>${description.replace(/\n/g, '<br>')}</td>`;
+                tableHTML += `<td style="width: 45%;">${description.replace(/\n/g, '<br>')}</td>`;
                 
-                // Labels column for non-LV device types
-                tableHTML += `<td>${testCase.labels || 'N/A'}</td>`;
+                // Notes field for non-LV device types - using contenteditable div with increased width
+                const testCaseId = `${deviceType}-test-${testCase.issueKey}`;
+                const savedNotes = window.testCaseNotes && window.testCaseNotes[testCaseId] ? window.testCaseNotes[testCaseId] : '';
+                tableHTML += `<td style="width: 20%;">
+                    <div class="notes-field" data-test-case-id="${testCaseId}" contenteditable="true" 
+                    onblur="saveNotes(this, '${testCaseId}')">${savedNotes}</div>
+                </td>`;
             }
             
-            // Pass/Fail dropdown
-            tableHTML += '<td>';
+            // Pass/Fail dropdown with constrained width
+            tableHTML += '<td style="width: 10%;">';
             tableHTML += '<select class="status-select" onchange="updateTestStatus(this)">';
             tableHTML += '<option value="not-tested" selected>Not Tested</option>';
             tableHTML += '<option value="pass">Pass</option>';
@@ -1236,26 +1239,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Update summary stats
-        updateSummaryStats();
-    }
     
-    // Function to update test status (called from inline event handler)
-    window.updateTestStatus = function(selectElement) {
-        const row = selectElement.closest('tr');
-        const index = parseInt(row.dataset.index);
-        const status = selectElement.value;
-        
-        // Update the test case status
-        filteredTestCases[index].status = status;
-        
-        // Apply color styling based on selection
-        selectElement.className = 'status-select';
-        if (status === 'pass') {
-            selectElement.classList.add('pass-selected');
-        } else if (status === 'fail') {
-            selectElement.classList.add('fail-selected');
-        }
+    // Store as currently displayed test case - this is the key part that makes the buttons work
+    currentlyDisplayedTestCase = testCaseId;
         
         // Update summary stats
         updateSummaryStats();
@@ -1358,5 +1344,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (popup) document.body.removeChild(popup);
         
         currentNoteIndex = -1;
+    }
+    
+    // Function to save notes directly from the contenteditable div in the table
+    window.saveNotes = function(element, testCaseId) {
+        // Initialize the testCaseNotes object if it doesn't exist
+        if (!window.testCaseNotes) {
+            window.testCaseNotes = {};
+        }
+        
+        // Save the notes
+        window.testCaseNotes[testCaseId] = element.innerText;
+        
+        console.log(`Saved notes for ${testCaseId}:`, element.innerText);
     }
 });

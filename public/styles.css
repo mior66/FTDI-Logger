@@ -1251,6 +1251,31 @@ button.primary:hover {
     opacity: 1;
 }
 
+/* Styles for the editable notes field - exactly matching the original Labels field */
+.notes-field {
+    display: inline-block;
+    width: 100%;
+    min-height: 1em;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+    cursor: text;
+    outline: none;
+}
+
+.notes-field:empty:before {
+    content: 'Add notes here...';
+    color: #999;
+}
+
+.notes-field:focus {
+    outline: none;
+    background-color: rgba(13, 92, 35, 0.05);
+}
+
 .notes-popup {
     position: fixed;
     top: 50%;
@@ -3303,4 +3328,221 @@ button.primary:hover {
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
+}
+
+/* Export History Overlay Styles */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.overlay-content {
+    background-color: #fff;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #ddd;
+    background-color: #f5f5f5;
+    border-radius: 8px 8px 0 0;
+}
+
+.overlay-header h2 {
+    margin: 0;
+    color: #333;
+    font-size: 1.4rem;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #555;
+}
+
+.close-button:hover {
+    color: #000;
+}
+
+.overlay-body {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(80vh - 70px);
+}
+
+.history-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.history-global-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    background-color: #0d5c23;
+    color: white;
+    transition: background-color 0.2s;
+}
+
+.history-global-button:hover {
+    background-color: #094019;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #f9f9f9;
+    transition: background-color 0.2s;
+}
+
+.history-item:hover {
+    background-color: #f0f0f0;
+}
+
+.history-item-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.history-item-title {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #0d5c23;
+}
+
+.history-item-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.history-item-test {
+    color: #555;
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.history-item-result {
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.history-item-result.PASS {
+    background-color: #e6f4ea;
+    color: #0d5c23;
+}
+
+.history-item-result.FAIL {
+    background-color: #fce8e6;
+    color: #c5221f;
+}
+
+.history-item-result.INCOMPLETE {
+    background-color: #fff8e1;
+    color: #f9a825;
+}
+
+.history-item-result.MANUAL {
+    background-color: #e8eaf6;
+    color: #3f51b5;
+}
+
+.history-item-result.MULTIPLE {
+    background-color: #e0f2f1;
+    color: #00796b;
+}
+
+.history-item-date {
+    color: #777;
+    font-size: 0.85rem;
+}
+
+.history-item-path {
+    color: #999;
+    font-size: 0.8rem;
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.history-item-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.history-action-button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+}
+
+.history-open-button {
+    background-color: #0d5c23;
+    color: white;
+}
+
+.history-open-button:hover {
+    background-color: #094019;
+}
+
+.history-clear-button {
+    background-color: #c5221f;
+    color: white;
+}
+
+.history-clear-button:hover {
+    background-color: #a11c19;
+}
+
+.no-history-message {
+    text-align: center;
+    color: #777;
+    padding: 20px;
+    font-style: italic;
 }

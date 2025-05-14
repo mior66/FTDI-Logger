@@ -87,6 +87,10 @@ let selectedTestCases = new Set(); // Store selected test case rows
 let currentlyDisplayedTestCase = null; // Store the currently displayed test case ID
 let testLogEntries = {}; // Store test log entries by test case ID
 
+// Export history variables
+let exportHistory = [];
+const MAX_HISTORY_ITEMS = 50; // Maximum number of history items to store
+
 // Array to store custom filter patterns
 let customFilterPatterns = [];
 
@@ -132,6 +136,9 @@ function init() {
     // Initialize environment data chart
     initializeEnvChart();
     
+    // Load export history from localStorage
+    loadExportHistory();
+    
     // Directly add event listener for clear chart button
     document.getElementById('clear-chart-button').onclick = function() {
         clearChart();
@@ -140,6 +147,30 @@ function init() {
     // Set up event listeners
     connectButton.addEventListener('click', connectToPort);
     disconnectButton.addEventListener('click', disconnectFromPort);
+    
+    // Set up export history button event listener
+    const exportHistoryButton = document.getElementById('export-history-button');
+    if (exportHistoryButton) {
+        exportHistoryButton.addEventListener('click', showExportHistory);
+    }
+    
+    // Set up close export history button event listener
+    const closeExportHistoryButton = document.getElementById('close-export-history');
+    if (closeExportHistoryButton) {
+        closeExportHistoryButton.addEventListener('click', hideExportHistory);
+    }
+    
+    // Set up export history export button event listener
+    const exportHistoryExportButton = document.getElementById('export-history-export');
+    if (exportHistoryExportButton) {
+        exportHistoryExportButton.addEventListener('click', exportHistoryAsText);
+    }
+    
+    // Set up export history print button event listener
+    const exportHistoryPrintButton = document.getElementById('export-history-print');
+    if (exportHistoryPrintButton) {
+        exportHistoryPrintButton.addEventListener('click', printHistory);
+    }
     
     // Set up export all test cases button event listener
     const exportAllTestCasesButton = document.getElementById('export-all-test-cases');
@@ -4807,6 +4838,19 @@ function exportSelectedTestCase() {
     document.body.appendChild(a);
     a.click();
     
+    // Get the download path (this will be an approximation since we can't get the actual path)
+    const downloadPath = `${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}${filename}`;
+    
+    // Add to export history
+    addToExportHistory({
+        title: filename,
+        path: downloadPath,
+        date: new Date().toISOString(),
+        testCase: isManualTest ? 'Manual Test Case' : testLogs.testCase?.issueKey || 'Unknown',
+        summary: isManualTest ? (testLogs.description || 'Manual Test') : (testLogs.testCase?.summary || 'Unknown'),
+        result: testLogs.pass ? 'PASS' : (testLogs.fail ? 'FAIL' : 'INCOMPLETE')
+    });
+    
     // Clean up
     setTimeout(() => {
         document.body.removeChild(a);
@@ -4864,13 +4908,7 @@ function exportAllTestCases() {
         textContent += `Phone OS/Version: ${phoneOSVersion.value}\n`;
     }
     
-    // Add Test Plan Notes if available
-    const testNotes = document.getElementById('test-notes');
-    if (testNotes && testNotes.value) {
-        textContent += `\nTest Plan Notes:\n`;
-        textContent += `-----------------\n`;
-        textContent += `${testNotes.value}\n`;
-    }
+    // Test Plan Notes section removed
     
     textContent += `\n`;
     
@@ -5038,13 +5076,191 @@ function exportAllTestCases() {
     document.body.appendChild(a);
     a.click();
     
+    // Get the download path (this will be an approximation since we can't get the actual path)
+    const downloadPath = `${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}${filename}`;
+    
+    // Add to export history
+    addToExportHistory({
+        title: filename,
+        path: downloadPath,
+        date: new Date().toISOString(),
+        testCase: 'Manual Test Case',
+        summary: manualTestDescription || 'Manual Test',
+        result: 'MANUAL'
+    });
+    
     // Clean up
     setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }, 100);
     
-    showNotification(`Test cases exported as ${filename}`, 'success');
+    showNotification(`Manual test case exported as ${filename}`, 'success');
+}
+
+// Export all test cases with their Pass/Fail status and individual notes
+function exportAllTestCases() {
+    // Check if test plan is loaded
+    const testPlanTable = document.querySelector('#test-data-container table');
+    if (!testPlanTable) {
+        showNotification('No test plan loaded', 'error');
+        return;
+    }
+    
+    // Get all rows from the table body
+    const rows = testPlanTable.querySelectorAll('tbody tr');
+    if (!rows || rows.length === 0) {
+        showNotification('No test cases available to export', 'error');
+        return;
+    }
+    
+    // Create a worksheet
+    const ws = XLSX.utils.aoa_to_sheet([]);
+    
+    // Get the headers from the table
+    const headers = [];
+    const headerRow = testPlanTable.querySelector('thead tr');
+    if (headerRow) {
+        headerRow.querySelectorAll('th').forEach(th => {
+            headers.push(th.textContent || '');
+        });
+    }
+    
+    // Find the index of the Issue Key column and Summary column
+    let issueKeyIndex = -1;
+    let summaryIndex = -1;
+    let descriptionIndex = -1;
+    
+    headers.forEach((header, index) => {
+        const headerText = header.toLowerCase();
+        if (headerText.includes('issue') || headerText.includes('key') || headerText.includes('test #') || headerText === 'id') {
+            issueKeyIndex = index;
+        }
+        if (headerText.includes('summary')) {
+            summaryIndex = index;
+        }
+        if (headerText.includes('description')) {
+            descriptionIndex = index;
+        }
+    });
+    
+    // If we couldn't find the columns, use defaults
+    if (issueKeyIndex === -1) issueKeyIndex = 0;
+    if (summaryIndex === -1) summaryIndex = 1;
+    if (descriptionIndex === -1) descriptionIndex = 2;
+    
+    // Add headers to the Excel file
+    XLSX.utils.sheet_add_aoa(ws, [['Test Case ID', 'Summary', 'Description', 'Status', 'Notes']], { origin: 'A1' });
+    
+    // Add data for each test case
+    const testCaseData = [];
+    
+    // Process each row in the table
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (!cells || cells.length === 0) return;
+        
+        // Get the Issue Key and Summary from the table cells
+        const issueKey = cells[issueKeyIndex] ? cells[issueKeyIndex].textContent.trim() : 'unknown';
+        const summary = cells[summaryIndex] ? cells[summaryIndex].textContent.trim() : '';
+        const description = cells[descriptionIndex] ? cells[descriptionIndex].textContent.trim() : '';
+        
+        // Create a test case ID from the Issue Key
+        const testCaseId = activeSheetName ? `${activeSheetName}-test-${issueKey}` : `test-${issueKey}`;
+        
+        // Get the status from the row
+        let status = 'Not Started';
+        
+        // Check for status indicators in the row
+        const statusIndicator = row.querySelector('.status-indicator');
+        if (statusIndicator) {
+            if (statusIndicator.classList.contains('status-pass')) {
+                status = 'PASS';
+            } else if (statusIndicator.classList.contains('status-fail')) {
+                status = 'FAIL';
+            } else if (statusIndicator.classList.contains('status-in-progress')) {
+                status = 'INCOMPLETE';
+            }
+        }
+        
+        // If no status indicator, check for pass/fail buttons
+        if (status === 'Not Started') {
+            const passButton = row.querySelector('.pass-button.active');
+            const failButton = row.querySelector('.fail-button.active');
+            
+            if (passButton) {
+                status = 'PASS';
+            } else if (failButton) {
+                status = 'FAIL';
+            }
+        }
+        
+        // If still no status, check the test logs
+        if (status === 'Not Started' && testLogEntries[testCaseId]) {
+            if (testLogEntries[testCaseId].pass) {
+                status = 'PASS';
+            } else if (testLogEntries[testCaseId].fail) {
+                status = 'FAIL';
+            } else if (testLogEntries[testCaseId].start) {
+                status = 'INCOMPLETE';
+            }
+        }
+        
+        // Get notes from the editable Notes field if available
+        let notes = '';
+        
+        // First check for notes in the contenteditable div if it exists
+        const notesField = document.querySelector(`div.notes-field[data-test-case-id="${testCaseId}"]`);
+        if (notesField) {
+            notes = notesField.innerText.trim();
+        }
+        // If no notes found in the contenteditable div, check the testCaseNotes object
+        else if (window.testCaseNotes && window.testCaseNotes[testCaseId]) {
+            notes = window.testCaseNotes[testCaseId];
+        }
+        
+        // Add to data array
+        testCaseData.push([issueKey, summary, description, status, notes]);
+    });
+    
+    // Add all test case data to the worksheet
+    if (testCaseData.length > 0) {
+        XLSX.utils.sheet_add_aoa(ws, testCaseData, { origin: 'A2' });
+    }
+    
+    // Get device type and firmware version for the filename
+    const deviceType = document.getElementById('deviceType');
+    const firmwareVersion = document.getElementById('firmware-build');
+    let deviceTypeStr = deviceType && deviceType.value ? deviceType.value : 'Unknown';
+    let firmwareVersionStr = firmwareVersion && firmwareVersion.value ? firmwareVersion.value : 'NoFirmware';
+    
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+    const filename = `${deviceTypeStr}_TestCases_${firmwareVersionStr}_${timestamp}.xlsx`;
+    
+    // Create a workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Add the worksheet to the workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Test Results');
+    
+    // Generate the XLSX file and trigger download
+    XLSX.writeFile(wb, filename);
+    
+    // Get the download path (this will be an approximation since we can't get the actual path)
+    const downloadPath = `${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}${filename}`;
+    
+    // Add to export history
+    addToExportHistory({
+        title: filename,
+        path: downloadPath,
+        date: new Date().toISOString(),
+        testCase: 'Multiple Test Cases',
+        summary: 'All Test Cases Export',
+        result: 'MULTIPLE'
+    });
+    
+    showNotification(`All test cases exported as ${filename}`, 'success');
 }
 
 // Update the state of test action buttons based on connection and test case selection
@@ -6428,6 +6644,279 @@ function updateParsedLineTypesList() {
             parsedLineTypesList.appendChild(filterTag);
         });
     }
+}
+
+// Load export history from localStorage
+function loadExportHistory() {
+    const savedHistory = localStorage.getItem('exportHistory');
+    if (savedHistory) {
+        try {
+            exportHistory = JSON.parse(savedHistory);
+            console.log(`Loaded ${exportHistory.length} export history items`);
+        } catch (error) {
+            console.error('Error loading export history:', error);
+            exportHistory = [];
+        }
+    }
+}
+
+// Save export history to localStorage
+function saveExportHistory() {
+    try {
+        localStorage.setItem('exportHistory', JSON.stringify(exportHistory));
+        console.log(`Saved ${exportHistory.length} export history items`);
+    } catch (error) {
+        console.error('Error saving export history:', error);
+        // If localStorage is full, remove the oldest items and try again
+        if (error.name === 'QuotaExceededError' && exportHistory.length > 10) {
+            exportHistory = exportHistory.slice(-10); // Keep only the 10 most recent items
+            localStorage.setItem('exportHistory', JSON.stringify(exportHistory));
+            console.log('Trimmed export history to the 10 most recent items');
+        }
+    }
+}
+
+// Add an item to the export history
+function addToExportHistory(item) {
+    // Add the new item to the beginning of the array
+    exportHistory.unshift(item);
+    
+    // Limit the history to MAX_HISTORY_ITEMS
+    if (exportHistory.length > MAX_HISTORY_ITEMS) {
+        exportHistory = exportHistory.slice(0, MAX_HISTORY_ITEMS);
+    }
+    
+    // Save the updated history to localStorage
+    saveExportHistory();
+    
+    console.log('Added item to export history:', item.title);
+}
+
+// Show the export history popup
+function showExportHistory() {
+    const historyOverlay = document.getElementById('export-history-overlay');
+    const historyList = document.getElementById('export-history-list');
+    const historyActions = document.getElementById('export-history-actions');
+    
+    // Clear the history list
+    historyList.innerHTML = '';
+    
+    // Update the global actions visibility
+    if (exportHistory.length === 0) {
+        historyActions.style.display = 'none';
+    } else {
+        historyActions.style.display = 'flex';
+    }
+    
+    // If there are no history items, show a message
+    if (exportHistory.length === 0) {
+        historyList.innerHTML = '<p class="no-history-message">No export history available.</p>';
+    } else {
+        // Add each history item to the list
+        exportHistory.forEach((item, index) => {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            
+            // Format the date
+            const date = new Date(item.date);
+            const formattedDate = date.toLocaleString();
+            
+            // Create the item content
+            historyItem.innerHTML = `
+                <div class="history-item-details">
+                    <div class="history-item-title">${item.title}</div>
+                    <div class="history-item-info">
+                        <span class="history-item-test">${item.testCase}: ${item.summary}</span>
+                        <span class="history-item-result ${item.result}">${item.result}</span>
+                    </div>
+                    <div class="history-item-date">${formattedDate}</div>
+                    <div class="history-item-path">${item.path}</div>
+                </div>
+                <div class="history-item-actions">
+                    <button class="history-action-button history-open-button" data-index="${index}">Open</button>
+                    <button class="history-action-button history-clear-button" data-index="${index}">Clear</button>
+                </div>
+            `;
+            
+            // Add the item to the list
+            historyList.appendChild(historyItem);
+        });
+        
+        // Add event listeners to the buttons
+        const openButtons = document.querySelectorAll('.history-open-button');
+        openButtons.forEach(button => {
+            button.addEventListener('click', (event) => {
+                const index = parseInt(event.target.getAttribute('data-index'));
+                openExportedFile(exportHistory[index]);
+            });
+        });
+        
+        const clearButtons = document.querySelectorAll('.history-clear-button');
+        clearButtons.forEach(button => {
+            button.addEventListener('click', (event) => {
+                const index = parseInt(event.target.getAttribute('data-index'));
+                removeHistoryItem(index);
+            });
+        });
+    }
+    
+    // Show the overlay
+    historyOverlay.style.display = 'flex';
+}
+
+// Hide the export history popup
+function hideExportHistory() {
+    const historyOverlay = document.getElementById('export-history-overlay');
+    historyOverlay.style.display = 'none';
+}
+
+// Open an exported file
+function openExportedFile(item) {
+    // We can't directly open files from the file system due to browser security restrictions
+    // Instead, show a notification with instructions
+    showNotification(`Please open the file at: ${item.path}`, 'info', 5000);
+    
+    // For Excel files, we could potentially create a new one with the same data
+    if (item.title.endsWith('.xlsx')) {
+        showNotification('Excel files must be opened manually from your Downloads folder', 'info', 5000);
+    }
+    
+    // For text files, we could potentially create a new one with similar content
+    if (item.title.endsWith('.txt')) {
+        showNotification('Text files must be opened manually from your Downloads folder', 'info', 5000);
+    }
+}
+
+// Remove a history item
+function removeHistoryItem(index) {
+    // Remove the item from the array
+    exportHistory.splice(index, 1);
+    
+    // Save the updated history
+    saveExportHistory();
+    
+    // Refresh the history display
+    showExportHistory();
+    
+    showNotification('History item removed', 'success');
+}
+
+// Export the history as a text file
+function exportHistoryAsText() {
+    // Create the text content
+    let textContent = 'FTDI Logger - Export History\n';
+    textContent += '==============================\n\n';
+    
+    if (exportHistory.length === 0) {
+        textContent += 'No export history available.\n';
+    } else {
+        exportHistory.forEach((item, index) => {
+            const date = new Date(item.date);
+            const formattedDate = date.toLocaleString();
+            
+            textContent += `${index + 1}. ${item.title}\n`;
+            textContent += `   Test Case: ${item.testCase}\n`;
+            textContent += `   Summary: ${item.summary}\n`;
+            textContent += `   Result: ${item.result}\n`;
+            textContent += `   Date: ${formattedDate}\n`;
+            textContent += `   Path: ${item.path}\n\n`;
+        });
+    }
+    
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+    const filename = `export_history_${timestamp}.txt`;
+    
+    // Create a text file and download it
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create a download link and trigger the download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+    
+    showNotification(`Export history saved as ${filename}`, 'success');
+}
+
+// Print the history
+function printHistory() {
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    
+    // Create the HTML content
+    let htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>FTDI Logger - Export History</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                h1 { color: #0d5c23; }
+                .history-item { margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 15px; }
+                .history-title { font-weight: bold; font-size: 16px; }
+                .history-info { margin: 5px 0; }
+                .history-result { font-weight: bold; }
+                .history-result.PASS { color: #0d5c23; }
+                .history-result.FAIL { color: #c5221f; }
+                .history-result.INCOMPLETE { color: #f9a825; }
+                .history-result.MANUAL { color: #3f51b5; }
+                .history-result.MULTIPLE { color: #00796b; }
+                .history-date, .history-path { color: #777; font-size: 12px; }
+                @media print { 
+                    body { font-size: 12px; }
+                    h1 { font-size: 18px; }
+                }
+            </style>
+        </head>
+        <body>
+            <h1>FTDI Logger - Export History</h1>
+    `;
+    
+    if (exportHistory.length === 0) {
+        htmlContent += '<p>No export history available.</p>';
+    } else {
+        exportHistory.forEach((item) => {
+            const date = new Date(item.date);
+            const formattedDate = date.toLocaleString();
+            
+            htmlContent += `
+                <div class="history-item">
+                    <div class="history-title">${item.title}</div>
+                    <div class="history-info">Test Case: ${item.testCase}</div>
+                    <div class="history-info">Summary: ${item.summary}</div>
+                    <div class="history-info">Result: <span class="history-result ${item.result}">${item.result}</span></div>
+                    <div class="history-date">Date: ${formattedDate}</div>
+                    <div class="history-path">Path: ${item.path}</div>
+                </div>
+            `;
+        });
+    }
+    
+    htmlContent += `
+        </body>
+        </html>
+    `;
+    
+    // Write the HTML content to the new window
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Wait for the content to load before printing
+    printWindow.onload = function() {
+        printWindow.print();
+        // Close the window after printing (optional)
+        // printWindow.close();
+    };
 }
 
 // Initialize the application when the DOM is loaded
