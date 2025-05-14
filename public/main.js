@@ -123,8 +123,8 @@ function init() {
     // Load default settings
     loadDefaultSettings();
     
-    // Load the test plan data automatically
-    loadTestPlanData();
+    // Load the test plan data silently on initial load
+    loadTestPlanData(true);
     
     // Display a random inspirational quote
     displayRandomQuote();
@@ -2600,10 +2600,12 @@ function fetchRestaurantData() {
 
 
 
-// Load test plan data automatically from the server
-function loadTestPlanData() {
-    // Show loading state
-    testPlanTableContainer.innerHTML = '<div class="loading">Loading test plan...</div>';
+// Load test plan data from the server
+function loadTestPlanData(isInitialLoad = false) {
+    // Show loading state only if not initial load
+    if (!isInitialLoad) {
+        testPlanTableContainer.innerHTML = '<div class="loading">Loading test plan...</div>';
+    }
     
     // Add a timestamp to prevent caching
     const cacheBuster = `?timestamp=${Date.now()}`;
@@ -2656,15 +2658,23 @@ function loadTestPlanData() {
                 displayTestPlanSheet(data.sheetNames[0]);
             }
             console.log('Test plan loaded successfully');
-            showNotification('Test plan reloaded successfully', 'success');
+            
+            // Only show notification if this wasn't an initial load
+            if (!isInitialLoad) {
+                showNotification('Test plan reloaded successfully', 'success');
+            }
         })
         .catch(error => {
             console.error('Error loading test plan:', error);
-            testPlanTableContainer.innerHTML = `
-                <div class="error-message">${error.message}</div>
-                <div class="error-details">Check the console for more details</div>
-            `;
-            showNotification('Failed to load test plan', 'error');
+            
+            // Only update UI and show notification if this wasn't an initial load
+            if (!isInitialLoad) {
+                testPlanTableContainer.innerHTML = `
+                    <div class="error-message">${error.message}</div>
+                    <div class="error-details">Check the console for more details</div>
+                `;
+                showNotification('Failed to load test plan', 'error');
+            }
         });
 }
 
@@ -4289,7 +4299,7 @@ function exportManualTestCase(manualTestCaseId) {
     showNotification(`Manual test case exported as ${filename}`, 'success');
 }
 
-// Export the selected test case with all logs between start and pass/fail timestamps
+// Export the selected test case with all logs between start and pass/fail timestamps (if available)
 function exportSelectedTestCase() {
     console.log('Export button clicked');
     if (!currentlyDisplayedTestCase) {
@@ -4454,106 +4464,125 @@ function exportSelectedTestCase() {
     textContent += `CURRENT TEST LOGS:\n`;
     textContent += `-----------------\n\n`;
     
-    // Add start log
-    textContent += `START: ${testLogs.start.timestamp} - ${testLogs.start.text}\n\n`;
+    // Check if we have any test logs to display
+    const hasStartLog = testLogs.start && testLogs.start.timestamp && testLogs.start.text;
+    const hasPassLog = testLogs.pass && testLogs.pass.timestamp && testLogs.pass.text;
+    const hasFailLog = testLogs.fail && testLogs.fail.timestamp && testLogs.fail.text;
     
-    // Add result log if available
-    if (testLogs.pass) {
-        textContent += `PASS: ${testLogs.pass.timestamp} - ${testLogs.pass.text}\n\n`;
-    } else if (testLogs.fail) {
-        textContent += `FAIL: ${testLogs.fail.timestamp} - ${testLogs.fail.text}\n\n`;
+    // If no logs exist, indicate this in the export
+    if (!hasStartLog && !hasPassLog && !hasFailLog) {
+        textContent += `No test logs available. Test case was exported without running the test.\n\n`;
+    } else {
+        // Add start log if it exists
+        if (hasStartLog) {
+            textContent += `START: ${testLogs.start.timestamp} - ${testLogs.start.text}\n\n`;
+        }
+        
+        // Add result log if available
+        if (hasPassLog) {
+            textContent += `PASS: ${testLogs.pass.timestamp} - ${testLogs.pass.text}\n\n`;
+        } else if (hasFailLog) {
+            textContent += `FAIL: ${testLogs.fail.timestamp} - ${testLogs.fail.text}\n\n`;
+        }
     }
     
-    // Get all logs between start and pass/fail timestamps
-    const startTimestamp = new Date(testLogs.start.timestamp).getTime();
-    const endTimestamp = testLogs.pass ? 
-        new Date(testLogs.pass.timestamp).getTime() : 
-        (testLogs.fail ? new Date(testLogs.fail.timestamp).getTime() : Date.now());
+    // Only include log entries if we have start and end timestamps
+    let relevantLogs = [];
     
-    // Filter logs that fall between the start and end timestamps
-    const relevantLogs = [];
-    logEntries.forEach(entry => {
-        const logTime = new Date(entry.timestamp).getTime();
-        if (logTime >= startTimestamp && logTime <= endTimestamp) {
-            relevantLogs.push(entry);
-        }
-    });
+    if (hasStartLog) {
+        // Get all logs between start and pass/fail timestamps
+        const startTimestamp = new Date(testLogs.start.timestamp).getTime();
+        const endTimestamp = hasPassLog ? 
+            new Date(testLogs.pass.timestamp).getTime() : 
+            (hasFailLog ? new Date(testLogs.fail.timestamp).getTime() : Date.now());
+        
+        // Filter logs that fall between the start and end timestamps
+        logEntries.forEach(entry => {
+            const logTime = new Date(entry.timestamp).getTime();
+            if (logTime >= startTimestamp && logTime <= endTimestamp) {
+                relevantLogs.push(entry);
+            }
+        });
+    }
     
-    // Add categorized log entries section
-    textContent += `CATEGORIZED LOG ENTRIES:\n`;
-    textContent += `----------------------\n\n`;
+    // Only add categorized log entries section if we have logs
+    if (relevantLogs.length > 0) {
+        textContent += `CATEGORIZED LOG ENTRIES:\n`;
+        textContent += `----------------------\n\n`;
     
-    // Categorize logs by type
-    const errorLogs = [];
-    const failureLogs = [];
-    const unexpectedLogs = [];
-    const exceptionLogs = [];
-    
-    // Filter logs by category
-    relevantLogs.forEach(entry => {
-        const lowerCaseMessage = entry.message.toLowerCase();
-        if (lowerCaseMessage.includes('error')) {
-            errorLogs.push(entry);
+        // Categorize logs by type
+        const errorLogs = [];
+        const failureLogs = [];
+        const unexpectedLogs = [];
+        const exceptionLogs = [];
+        
+        relevantLogs.forEach(entry => {
+            const lowerCaseMessage = entry.message.toLowerCase();
+            if (lowerCaseMessage.includes('error')) {
+                errorLogs.push(entry);
+            }
+            if (lowerCaseMessage.includes('fail') || lowerCaseMessage.includes('failure') || lowerCaseMessage.includes('fails') || lowerCaseMessage.includes('failed')) {
+                failureLogs.push(entry);
+            }
+            if (lowerCaseMessage.includes('unexpected')) {
+                unexpectedLogs.push(entry);
+            }
+            if (lowerCaseMessage.includes('exception')) {
+                exceptionLogs.push(entry);
+            }
+        });
+        
+        // Add errors section if there are any
+        if (errorLogs.length > 0) {
+            textContent += `ERRORS:\n`;
+            textContent += `-------\n`;
+            errorLogs.forEach(entry => {
+                textContent += `${entry.timestamp} - ${entry.message}\n`;
+            });
+            textContent += `\n`;
         }
-        if (lowerCaseMessage.includes('fail') || lowerCaseMessage.includes('failure') || lowerCaseMessage.includes('fails') || lowerCaseMessage.includes('failed')) {
-            failureLogs.push(entry);
+        
+        // Add failures section if there are any
+        if (failureLogs.length > 0) {
+            textContent += `FAILURES:\n`;
+            textContent += `---------\n`;
+            failureLogs.forEach(entry => {
+                textContent += `${entry.timestamp} - ${entry.message}\n`;
+            });
+            textContent += `\n`;
         }
-        if (lowerCaseMessage.includes('unexpected')) {
-            unexpectedLogs.push(entry);
+        
+        // Add unexpected section if there are any
+        if (unexpectedLogs.length > 0) {
+            textContent += `UNEXPECTED:\n`;
+            textContent += `-----------\n`;
+            unexpectedLogs.forEach(entry => {
+                textContent += `${entry.timestamp} - ${entry.message}\n`;
+            });
+            textContent += `\n`;
         }
-        if (lowerCaseMessage.includes('exception')) {
-            exceptionLogs.push(entry);
+        
+        // Add exceptions section if there are any
+        if (exceptionLogs.length > 0) {
+            textContent += `EXCEPTIONS:\n`;
+            textContent += `-----------\n`;
+            exceptionLogs.forEach(entry => {
+                textContent += `${entry.timestamp} - ${entry.message}\n`;
+            });
+            textContent += `\n`;
         }
-    });
-    
-    // Add errors section if there are any
-    if (errorLogs.length > 0) {
-        textContent += `ERRORS:\n`;
-        textContent += `-------\n`;
-        errorLogs.forEach(entry => {
+        
+        // Add all logs section
+        textContent += `COMPLETE LOG ENTRIES:\n`;
+        textContent += `--------------------\n\n`;
+        
+        // Add each log entry
+        relevantLogs.forEach(entry => {
             textContent += `${entry.timestamp} - ${entry.message}\n`;
         });
-        textContent += `\n`;
+    } else {
+        textContent += `No log entries available.\n\n`;
     }
-    
-    // Add failures section if there are any
-    if (failureLogs.length > 0) {
-        textContent += `FAILURES:\n`;
-        textContent += `---------\n`;
-        failureLogs.forEach(entry => {
-            textContent += `${entry.timestamp} - ${entry.message}\n`;
-        });
-        textContent += `\n`;
-    }
-    
-    // Add unexpected section if there are any
-    if (unexpectedLogs.length > 0) {
-        textContent += `UNEXPECTED:\n`;
-        textContent += `-----------\n`;
-        unexpectedLogs.forEach(entry => {
-            textContent += `${entry.timestamp} - ${entry.message}\n`;
-        });
-        textContent += `\n`;
-    }
-    
-    // Add exceptions section if there are any
-    if (exceptionLogs.length > 0) {
-        textContent += `EXCEPTIONS:\n`;
-        textContent += `-----------\n`;
-        exceptionLogs.forEach(entry => {
-            textContent += `${entry.timestamp} - ${entry.message}\n`;
-        });
-        textContent += `\n`;
-    }
-    
-    // Add all logs section
-    textContent += `COMPLETE LOG ENTRIES:\n`;
-    textContent += `--------------------\n\n`;
-    
-    // Add each log entry
-    relevantLogs.forEach(entry => {
-        textContent += `${entry.timestamp} - ${entry.message}\n`;
-    });
     
     // Save the errors to a file
     function saveErrors() {
@@ -5034,7 +5063,7 @@ function updateTestActionButtonsState() {
     testPassButton.disabled = !isConnected || !hasSelectedTestCase || !hasRecentLogEntry || !hasStartLog;
     testFailButton.disabled = !isConnected || !hasSelectedTestCase || !hasRecentLogEntry || !hasStartLog;
     
-    // Enable the export button for all test cases as long as a test case is selected
+    // Always enable the export button as long as a test case is selected, regardless of connection status or logs
     exportSelectedTestCaseButton.disabled = !hasSelectedTestCase;
 }
 
