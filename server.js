@@ -12,19 +12,6 @@ const fileUpload = require('express-fileupload');
 const XLSX = require('xlsx');
 const fetch = require('node-fetch');
 
-// Log environment variables status
-console.log('Checking Jira API credentials...');
-if (process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN) {
-  console.log('Jira API credentials loaded successfully');
-} else {
-  console.warn('Jira API credentials not found or incomplete');
-}
-
-// Jira API configuration
-const JIRA_EMAIL = process.env.JIRA_EMAIL;
-const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
-const JIRA_DOMAIN = process.env.JIRA_DOMAIN || 'empoweredhomes.atlassian.net';
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -141,55 +128,7 @@ app.get('/api/sports/:league', async (req, res) => {
   }
 });
 
-// Test route to get all projects from Jira
-app.get('/jira-projects', async (req, res) => {
-  try {
-    console.log('Fetching all projects from Jira...');
-    
-    // Check if Jira credentials are available
-    if (!JIRA_EMAIL || !JIRA_API_TOKEN) {
-      console.error('Jira API credentials not found.');
-      return res.status(500).json({ 
-        error: 'Jira API credentials not configured'
-      });
-    }
-    
-    const jiraUrl = `https://${JIRA_DOMAIN}/rest/api/2/project`;
-    console.log('Sending request to Jira API:', jiraUrl);
-    
-    const response = await fetch(jiraUrl, {
-      headers: {
-        'Authorization': `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`,
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Jira API error response:', errorText);
-      throw new Error(`Jira API responded with status: ${response.status}`);
-    }
-    
-    const projects = await response.json();
-    console.log(`Retrieved ${projects.length} projects from Jira API`);
-    
-    return res.json({
-      success: true,
-      projects: projects.map(project => ({
-        id: project.id,
-        key: project.key,
-        name: project.name
-      }))
-    });
-    
-  } catch (error) {
-    console.error('Error fetching projects from Jira:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch projects', 
-      message: error.message
-    });
-  }
-});
+// Removed Jira integration
 
 // Route to serve the test plan data directly
 app.get('/test-plan-data', (req, res) => {
@@ -311,7 +250,7 @@ app.get('/default-settings', (req, res) => {
   });
 });
 
-// Bug list functionality removed - now linking directly to Jira
+// Bug list functionality removed
 
 // List available ports for the frontend to use
 app.get('/ports', async (req, res) => {

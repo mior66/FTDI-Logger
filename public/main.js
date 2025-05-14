@@ -328,16 +328,9 @@ function init() {
     let currentSortDirection = 'asc';
     let bugData = [];
     
-    // Function to open the Jira page directly
-    function openJiraPage() {
-        // Check if we're on the MYSA Logger page
-        if (window.location.pathname.includes('mysa-logger')) {
-            // MYSA Jira filter
-            window.open('https://empoweredhomes.atlassian.net/issues/?filter=10571', '_blank');
-        } else {
-            // LV Jira filter
-            window.open('https://empoweredhomes.atlassian.net/jira/software/c/projects/LV/issues/?jql=project%20%3D%20%22LV%22%20AND%20reporter%20%3D%2062726ff1106b60006f583820%20ORDER%20BY%20created%20DESC', '_blank');
-        }
+    // Function placeholder for future integrations
+    function handleExternalIntegration() {
+        console.log('External integration functionality removed');
     }
     
     // Function to show today's sports events
@@ -662,108 +655,10 @@ function init() {
             });
     }
     
-    // Function to update bug counts
-    function updateBugCounts(bugs) {
-        const totalCount = bugs.length;
-        document.getElementById('bug-count-total').textContent = totalCount;
-        
-        // Count bugs by priority
-        const priorityCounts = {
-            highest: 0,
-            high: 0,
-            medium: 0,
-            low: 0
-        };
-        
-        bugs.forEach(bug => {
-            // Add null check before using toLowerCase
-            const priority = bug.priority ? bug.priority.toLowerCase() : 'medium';
-            if (priorityCounts.hasOwnProperty(priority)) {
-                priorityCounts[priority]++;
-            }
-        });
-        
-        // Update priority count elements
-        document.getElementById('bug-count-highest').textContent = priorityCounts.highest;
-        document.getElementById('bug-count-high').textContent = priorityCounts.high;
-        document.getElementById('bug-count-medium').textContent = priorityCounts.medium;
-        document.getElementById('bug-count-low').textContent = priorityCounts.low;
-    }
-    
-    // Function to sort bugs
-    function sortBugs(bugs, column, direction) {
-        return [...bugs].sort((a, b) => {
-            let valueA = a[column];
-            let valueB = b[column];
-            
-            // Handle special sorting for dates
-            if (column === 'updated') {
-                valueA = new Date(valueA);
-                valueB = new Date(valueB);
-            }
-            
-            // Handle priority sorting
-            if (column === 'priority') {
-                const priorityOrder = { 'highest': 0, 'high': 1, 'medium': 2, 'low': 3 };
-                valueA = priorityOrder[valueA && typeof valueA === 'string' ? valueA.toLowerCase() : 'medium'] || 999;
-                valueB = priorityOrder[valueB && typeof valueB === 'string' ? valueB.toLowerCase() : 'medium'] || 999;
-            }
-            
-            // Compare values
-            if (valueA < valueB) {
-                return direction === 'asc' ? -1 : 1;
-            }
-            if (valueA > valueB) {
-                return direction === 'asc' ? 1 : -1;
-            }
-            return 0;
-        });
-    }
-    
-    // Function to render bugs
-    function renderBugs(bugs) {
-        // Clear existing bug list
-        bugListTbody.innerHTML = '';
-        
-        // Add bugs to table
-        bugs.forEach(bug => {
-            const row = document.createElement('tr');
-            
-            // Add priority class with null check
-            const priorityClass = `priority-${bug.priority ? bug.priority.toLowerCase() : 'medium'}`;
-            
-            // Add status class with null check
-            const statusClass = bug.status ? `status-${bug.status.toLowerCase().replace(/\s+/g, '')}` : 'status-unknown';
-            
-            row.innerHTML = `
-                <td><a href="${bug.url || '#'}" target="_blank" class="bug-number-link">${bug.key}</a></td>
-                <td>${bug.reporter}</td>
-                <td>${bug.summary}</td>
-                <td class="${priorityClass}">${bug.priority}</td>
-            `;
-            
-            bugListTbody.appendChild(row);
-        });
-    }
-    
-    // Function to sort and render bugs
-    function sortAndRenderBugs() {
-        const sortedBugs = sortBugs(bugData, currentSortColumn, currentSortDirection);
-        renderBugs(sortedBugs);
-        
-        // Update sort indicators
-        document.querySelectorAll('.bug-list-table th.sortable').forEach(th => {
-            th.classList.remove('sort-asc', 'sort-desc');
-            if (th.dataset.sort === currentSortColumn) {
-                th.classList.add(currentSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
-            }
-        });
-    }
-    
     if (bugListButton) {
-        // Open the actual Jira page when button is clicked
-        bugListButton.addEventListener('click', function() {
-            openJiraPage();
+        // Button click handler for external integrations
+        $('#view-bugs-btn').on('click', function() {
+            handleExternalIntegration();
         });
         
         // No need for other bug list related event listeners
