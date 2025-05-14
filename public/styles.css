@@ -2293,13 +2293,7 @@ button.primary:hover {
     background-color: rgba(255, 255, 255, 0.3);
 }
 
-.selected-test-case-panel .export-button {
-    background-color: rgba(13, 92, 35, 0.3);
-}
-
-.selected-test-case-panel .export-button:hover {
-    background-color: rgba(13, 92, 35, 0.5);
-}
+/* Export button styling removed to match other buttons */
 
 #selected-test-case-display {
     padding: 15px;

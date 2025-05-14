@@ -5129,8 +5129,13 @@ function exportAllTestCases() {
         return;
     }
     
-    // Create a worksheet
-    const ws = XLSX.utils.aoa_to_sheet([]);
+    // Get metadata for the export
+    const currentDeviceType = document.getElementById('deviceType').value || 'Unknown';
+    const currentFirmwareVersion = document.getElementById('firmware-build').value || 'Not specified';
+    const currentAppVersion = document.getElementById('app-version-tracker').value || 'Not specified';
+    const currentPhoneOSVersion = document.getElementById('phone-type').value || 'Not specified';
+    const currentTestPlanNotes = document.getElementById('test-plan-notes').value || '';
+    const currentTimestamp = new Date().toLocaleString();
     
     // Get the headers from the table
     const headers = [];
@@ -5164,13 +5169,37 @@ function exportAllTestCases() {
     if (summaryIndex === -1) summaryIndex = 1;
     if (descriptionIndex === -1) descriptionIndex = 2;
     
-    // Add headers to the Excel file
-    XLSX.utils.sheet_add_aoa(ws, [['Test Case ID', 'Summary', 'Description', 'Status', 'Notes']], { origin: 'A1' });
+    // Create a workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([]);
     
-    // Add data for each test case
-    const testCaseData = [];
+    // Prepare the header data
+    const headerData = [
+        ['FTDI LOGGER - TEST PLAN EXPORT', '', '', '', ''],
+        ['', '', '', '', ''],
+        ['Generated on:', currentTimestamp, '', '', ''],
+        ['Device Type:', currentDeviceType, '', '', ''],
+        ['Firmware Version:', currentFirmwareVersion, '', '', ''],
+        ['App Version:', currentAppVersion, '', '', ''],
+        ['Phone OS/Version:', currentPhoneOSVersion, '', '', '']
+    ];
     
-    // Process each row in the table
+    // Add test plan notes if they exist
+    if (currentTestPlanNotes) {
+        headerData.push(['Test Plan Notes:', currentTestPlanNotes, '', '', '']);
+    }
+    
+    // Add a blank row before the column headers
+    headerData.push(['', '', '', '', '']);
+    
+    // Add column headers
+    headerData.push(['Test Case ID', 'Summary', 'Description', 'Status', 'Notes']);
+    
+    // Add the header data to the worksheet
+    XLSX.utils.sheet_add_aoa(ws, headerData, { origin: 'A1' });
+    
+    // Process each row in the table to create data rows
+    const dataRows = [];
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
         if (!cells || cells.length === 0) return;
@@ -5224,61 +5253,80 @@ function exportAllTestCases() {
         // Get notes from the editable Notes field if available
         let notes = '';
         
-        // Check multiple sources for notes in this priority order:
-        // 1. Direct DOM query for the notes field
-        // 2. Global testCaseNotes object with the current testCaseId
-        // 3. Try with a different format of the testCaseId (without sheet name)
-        
         // First check for notes in the contenteditable div if it exists
         const notesField = document.querySelector(`div.notes-field[data-test-case-id="${testCaseId}"]`);
-        if (notesField && notesField.innerText.trim()) {
+        if (notesField) {
             notes = notesField.innerText.trim();
-            console.log(`Found notes in DOM for ${testCaseId}: ${notes}`);
         }
-        // If no notes found in the contenteditable div, check the testCaseNotes object
+        // If no notes found, check the global object
         else if (window.testCaseNotes && window.testCaseNotes[testCaseId]) {
             notes = window.testCaseNotes[testCaseId];
-            console.log(`Found notes in testCaseNotes for ${testCaseId}: ${notes}`);
         }
-        // Try with current device type instead of sheet name
-        else {
-            const deviceType = document.getElementById('deviceType').value;
-            const alternateTestCaseId = `${deviceType}-test-${issueKey}`;
-            
-            if (window.testCaseNotes && window.testCaseNotes[alternateTestCaseId]) {
-                notes = window.testCaseNotes[alternateTestCaseId];
-                console.log(`Found notes with alternate ID ${alternateTestCaseId}: ${notes}`);
-            }
+        // Try with a different format of the testCaseId (without sheet name)
+        else if (window.testCaseNotes && window.testCaseNotes[`test-${issueKey}`]) {
+            notes = window.testCaseNotes[`test-${issueKey}`];
         }
-        
-        // Add to data array
-        testCaseData.push([issueKey, summary, description, status, notes]);
+
+        // Add the test case data to the array
+        dataRows.push([issueKey, summary, description, status, notes]);
     });
-    
-    // Add all test case data to the worksheet
-    if (testCaseData.length > 0) {
-        XLSX.utils.sheet_add_aoa(ws, testCaseData, { origin: 'A2' });
+
+    // Add the data rows to the worksheet
+    XLSX.utils.sheet_add_aoa(ws, dataRows, { origin: `A${headerData.length + 1}` });
+
+    // Apply formatting to the worksheet
+    // Format the title row
+    ws['A1'].s = { 
+        font: { bold: true, sz: 16, color: { rgb: "FFFFFF" } }, 
+        fill: { fgColor: { rgb: "0D5C23" } }, 
+        alignment: { horizontal: "center" } 
+    };
+
+    // Merge cells for the title row
+    ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } } // Merge A1:E1 for the title
+    ];
+
+    // Format the metadata section
+    for (let i = 2; i < headerData.length - 1; i++) { 
+        if (ws[`A${i+1}`] && ws[`A${i+1}`].v) {
+            ws[`A${i+1}`].s = { font: { bold: true } }; // Bold the labels
+        }
     }
-    
-    // Get device type and firmware version for the filename
-    const deviceType = document.getElementById('deviceType');
-    const firmwareVersion = document.getElementById('firmware-build');
-    let deviceTypeStr = deviceType && deviceType.value ? deviceType.value : 'Unknown';
-    let firmwareVersionStr = firmwareVersion && firmwareVersion.value ? firmwareVersion.value : 'NoFirmware';
-    
-    // Generate filename with timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
-    const filename = `${deviceTypeStr}_TestCases_${firmwareVersionStr}_${timestamp}.xlsx`;
-    
-    // Create a workbook
-    const wb = XLSX.utils.book_new();
-    
+
+    // Format the column headers row
+    const columnHeaderRow = headerData.length;
+    const columns = ['A', 'B', 'C', 'D', 'E'];
+    columns.forEach(col => {
+        const cellRef = `${col}${columnHeaderRow}`;
+        if (ws[cellRef]) {
+            ws[cellRef].s = { 
+                font: { bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "0D5C23" } },
+                alignment: { horizontal: "center" }
+            };
+        }
+    });
+
+    // Set column widths
+    ws['!cols'] = [
+        { width: 15 },  // Test Case ID
+        { width: 30 },  // Summary
+        { width: 50 },  // Description
+        { width: 15 },  // Status
+        { width: 30 }   // Notes
+    ];
+
     // Add the worksheet to the workbook
-    XLSX.utils.book_append_sheet(wb, ws, 'Test Results');
-    
-    // Generate the XLSX file and trigger download
+    XLSX.utils.book_append_sheet(wb, ws, 'Test Cases');
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `FTDI_Logger_Test_Plan_${timestamp}.xlsx`;
+
+    // Write the workbook and trigger download
     XLSX.writeFile(wb, filename);
-    
+
     // Get the download path (this will be an approximation since we can't get the actual path)
     const downloadPath = `${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}${filename}`;
     
