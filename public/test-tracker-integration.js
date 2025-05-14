@@ -1162,6 +1162,16 @@ document.addEventListener('DOMContentLoaded', function() {
             detailsContainer.appendChild(mysaLVElement);
         }
         
+        // Add Notes field
+        const notesElement = document.createElement('div');
+        notesElement.className = 'test-case-notes';
+        // Get the test case ID for retrieving notes
+        const notesTestCaseId = `${currentDeviceType}-test-${testCase.issueKey}`;
+        // Get notes from the global notes object or from the contenteditable div
+        const notes = window.testCaseNotes && window.testCaseNotes[notesTestCaseId] ? window.testCaseNotes[notesTestCaseId] : '';
+        notesElement.innerHTML = `<strong>Notes:</strong><br>${notes ? notes.replace(/\n/g, '<br>') : 'No notes added yet'}`;
+        detailsContainer.appendChild(notesElement);
+        
         selectedTestCaseDisplay.appendChild(detailsContainer);
         
         // Add note about using existing buttons
