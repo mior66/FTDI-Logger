@@ -5173,6 +5173,61 @@ function exportAllTestCases() {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([]);
     
+    // Calculate test results summary
+    let totalTests = 0;
+    let passedTests = 0;
+    let failedTests = 0;
+    let notTestedTests = 0;
+    
+    // Count the different statuses
+    rows.forEach(row => {
+        totalTests++;
+        
+        // Get the status from the last cell (Pass/Fail column)
+        const cells = row.querySelectorAll('td');
+        const lastCell = cells[cells.length - 1];
+        
+        // Check for dropdown or text content
+        let status = 'Not Tested';
+        const statusDropdown = lastCell.querySelector('select');
+        
+        if (statusDropdown) {
+            const selectedOption = statusDropdown.options[statusDropdown.selectedIndex];
+            if (selectedOption) {
+                const selectedText = selectedOption.textContent.trim();
+                if (selectedText.toLowerCase().includes('pass')) {
+                    status = 'Pass';
+                    passedTests++;
+                } else if (selectedText.toLowerCase().includes('fail')) {
+                    status = 'Fail';
+                    failedTests++;
+                } else {
+                    notTestedTests++;
+                }
+            } else {
+                notTestedTests++;
+            }
+        } else if (lastCell.textContent.trim()) {
+            const cellText = lastCell.textContent.trim().toLowerCase();
+            if (cellText.includes('pass')) {
+                status = 'Pass';
+                passedTests++;
+            } else if (cellText.includes('fail')) {
+                status = 'Fail';
+                failedTests++;
+            } else {
+                notTestedTests++;
+            }
+        } else {
+            notTestedTests++;
+        }
+    });
+    
+    // Calculate pass rate based only on Pass vs. Fail (ignoring Not Tested)
+    // Only consider tests that have been executed (Pass or Fail)
+    const executedTests = passedTests + failedTests;
+    const passRate = executedTests > 0 ? Math.round((passedTests / executedTests) * 100) : 0;
+    
     // Prepare the header data
     const headerData = [
         ['FTDI LOGGER - TEST PLAN EXPORT', '', '', '', ''],
@@ -5181,24 +5236,24 @@ function exportAllTestCases() {
         ['Device Type:', currentDeviceType, '', '', ''],
         ['Firmware Version:', currentFirmwareVersion, '', '', ''],
         ['App Version:', currentAppVersion, '', '', ''],
-        ['Phone OS/Version:', currentPhoneOSVersion, '', '', '']
+        ['Phone OS/Version:', currentPhoneOSVersion, '', '', ''],
+        ['Test Plan Notes:', currentTestPlanNotes, '', '', ''],
+        ['', '', '', '', ''],
+        ['TEST PLAN RESULTS', '', '', '', ''],
+        ['Total Tests:', totalTests, '', '', ''],
+        ['Passed:', passedTests, '', '', ''],
+        ['Failed:', failedTests, '', '', ''],
+        ['Not Tested:', notTestedTests, '', '', ''],
+        ['Pass Rate:', `${passRate}%`, '', '', ''],
+        ['', '', '', '', ''],
+        ['Test Case ID', 'Summary', 'Description', 'Status', 'Notes']
     ];
-    
-    // Add test plan notes if they exist
-    if (currentTestPlanNotes) {
-        headerData.push(['Test Plan Notes:', currentTestPlanNotes, '', '', '']);
-    }
-    
-    // Add a blank row before the column headers
-    headerData.push(['', '', '', '', '']);
-    
-    // Add column headers
-    headerData.push(['Test Case ID', 'Summary', 'Description', 'Status', 'Notes']);
     
     // Add the header data to the worksheet
     XLSX.utils.sheet_add_aoa(ws, headerData, { origin: 'A1' });
     
     // Process each row in the table to create data rows
+    // ... (rest of the code remains the same)
     const dataRows = [];
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
@@ -5310,36 +5365,89 @@ function exportAllTestCases() {
     // Add the data rows to the worksheet
     XLSX.utils.sheet_add_aoa(ws, dataRows, { origin: `A${headerData.length + 1}` });
 
-    // Apply formatting to the worksheet
+    // Apply explicit cell styles to ensure formatting works
     // Format the title row
-    ws['A1'].s = { 
-        font: { bold: true, sz: 16, color: { rgb: "FFFFFF" } }, 
-        fill: { fgColor: { rgb: "0D5C23" } }, 
-        alignment: { horizontal: "center" } 
+    if (!ws['!cols']) ws['!cols'] = [];
+    ws['!cols'] = [
+        { width: 15 },  // Test Case ID
+        { width: 30 },  // Summary
+        { width: 50 },  // Description
+        { width: 15 },  // Status
+        { width: 30 }   // Notes
+    ];
+    
+    // Apply styles to each cell individually for better compatibility
+    // Title row - make it larger and bolder
+    ws['A1'] = { 
+        v: ws['A1'].v, // Keep the original value
+        s: { 
+            font: { bold: true, sz: 20, color: { rgb: "FFFFFF" } }, 
+            fill: { fgColor: { rgb: "0D5C23" } }, 
+            alignment: { horizontal: "center" } 
+        }
     };
-
+    
     // Merge cells for the title row
     ws['!merges'] = [
         { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } } // Merge A1:E1 for the title
     ];
-
-    // Format the metadata section
+    
+    // Format the metadata section - make headers bold and slightly larger
     for (let i = 2; i < headerData.length - 1; i++) { 
-        if (ws[`A${i+1}`] && ws[`A${i+1}`].v) {
-            ws[`A${i+1}`].s = { font: { bold: true } }; // Bold the labels
+        // Bold and increase size of the labels in column A
+        const cellA = `A${i+1}`;
+        if (ws[cellA] && ws[cellA].v) {
+            ws[cellA] = {
+                v: ws[cellA].v,
+                s: { font: { bold: true, sz: 12 } }
+            };
+        }
+        
+        // Add some formatting to the values in column B
+        const cellB = `B${i+1}`;
+        if (ws[cellB]) {
+            ws[cellB] = {
+                v: ws[cellB].v,
+                s: { font: { sz: 11 } }
+            };
         }
     }
 
-    // Format the column headers row
+    // Format the column headers row - make them bolder and slightly larger
     const columnHeaderRow = headerData.length;
     const columns = ['A', 'B', 'C', 'D', 'E'];
     columns.forEach(col => {
         const cellRef = `${col}${columnHeaderRow}`;
         if (ws[cellRef]) {
-            ws[cellRef].s = { 
-                font: { bold: true, color: { rgb: "FFFFFF" } },
-                fill: { fgColor: { rgb: "0D5C23" } },
-                alignment: { horizontal: "center" }
+            // Replace the cell completely with new object containing both value and style
+            ws[cellRef] = {
+                v: ws[cellRef].v, // Keep the original value
+                s: { 
+                    font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } },
+                    fill: { fgColor: { rgb: "0D5C23" } },
+                    alignment: { horizontal: "center" },
+                    border: {
+                        top: { style: 'thin', color: { rgb: "000000" } },
+                        bottom: { style: 'thin', color: { rgb: "000000" } }
+                    }
+                }
+            };
+        }
+    });
+    
+    // Add explicit style to the first row of data for better separation
+    const dataStartRow = headerData.length + 1;
+    columns.forEach(col => {
+        const cellRef = `${col}${dataStartRow}`;
+        if (ws[cellRef]) {
+            const originalValue = ws[cellRef].v;
+            ws[cellRef] = {
+                v: originalValue,
+                s: {
+                    border: {
+                        top: { style: 'thin', color: { rgb: "CCCCCC" } }
+                    }
+                }
             };
         }
     });
@@ -5356,9 +5464,21 @@ function exportAllTestCases() {
     // Add the worksheet to the workbook
     XLSX.utils.book_append_sheet(wb, ws, 'Test Cases');
 
-    // Generate filename with timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `FTDI_Logger_Test_Plan_${timestamp}.xlsx`;
+    // Generate filename with Firmware Version, Device Type, and Today's Date
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    // Get firmware version and device type from the form
+    const firmwareVersion = currentFirmwareVersion !== 'Not specified' ? currentFirmwareVersion : '';
+    const deviceType = currentDeviceType !== 'Unknown' ? currentDeviceType : 'Generic';
+    
+    // Construct the filename based on available information
+    let filename = '';
+    if (firmwareVersion) {
+        filename = `${firmwareVersion} - ${deviceType} - ${formattedDate}.xlsx`;
+    } else {
+        filename = `${deviceType} - ${formattedDate}.xlsx`;
+    }
 
     // Write the workbook and trigger download
     XLSX.writeFile(wb, filename);
