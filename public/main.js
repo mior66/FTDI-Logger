@@ -5224,14 +5224,31 @@ function exportAllTestCases() {
         // Get notes from the editable Notes field if available
         let notes = '';
         
+        // Check multiple sources for notes in this priority order:
+        // 1. Direct DOM query for the notes field
+        // 2. Global testCaseNotes object with the current testCaseId
+        // 3. Try with a different format of the testCaseId (without sheet name)
+        
         // First check for notes in the contenteditable div if it exists
         const notesField = document.querySelector(`div.notes-field[data-test-case-id="${testCaseId}"]`);
-        if (notesField) {
+        if (notesField && notesField.innerText.trim()) {
             notes = notesField.innerText.trim();
+            console.log(`Found notes in DOM for ${testCaseId}: ${notes}`);
         }
         // If no notes found in the contenteditable div, check the testCaseNotes object
         else if (window.testCaseNotes && window.testCaseNotes[testCaseId]) {
             notes = window.testCaseNotes[testCaseId];
+            console.log(`Found notes in testCaseNotes for ${testCaseId}: ${notes}`);
+        }
+        // Try with current device type instead of sheet name
+        else {
+            const deviceType = document.getElementById('deviceType').value;
+            const alternateTestCaseId = `${deviceType}-test-${issueKey}`;
+            
+            if (window.testCaseNotes && window.testCaseNotes[alternateTestCaseId]) {
+                notes = window.testCaseNotes[alternateTestCaseId];
+                console.log(`Found notes with alternate ID ${alternateTestCaseId}: ${notes}`);
+            }
         }
         
         // Add to data array
