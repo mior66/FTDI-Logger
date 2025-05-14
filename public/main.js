@@ -3741,7 +3741,7 @@ function createManualTestCase() {
     const manualTestCaseContainer = document.createElement('div');
     manualTestCaseContainer.className = 'manual-test-case-container';
     
-    // Create a header container to hold both the header and export button
+    // Create a header container for the manual test case
     const headerContainer = document.createElement('div');
     headerContainer.style.display = 'flex';
     headerContainer.style.justifyContent = 'space-between';
@@ -3753,19 +3753,6 @@ function createManualTestCase() {
     header.textContent = 'Manual Test Case';
     header.style.margin = '0';
     headerContainer.appendChild(header);
-    
-    // Add an export button specifically for manual test cases
-    const manualExportButton = document.createElement('button');
-    manualExportButton.textContent = 'Export Manual Test';
-    manualExportButton.className = 'small-button export-button';
-    manualExportButton.style.backgroundColor = '#0d5c23';
-    manualExportButton.style.color = 'white';
-    manualExportButton.style.border = '1px solid #0a2a12';
-    manualExportButton.addEventListener('click', function() {
-        console.log('Manual export button clicked');
-        exportManualTestCase(manualTestCaseId);
-    });
-    headerContainer.appendChild(manualExportButton);
     
     manualTestCaseContainer.appendChild(headerContainer);
     selectedTestCaseDisplay.appendChild(manualTestCaseContainer);
@@ -4861,7 +4848,7 @@ function exportSelectedTestCase() {
         title: filename,
         path: downloadPath,
         date: new Date().toISOString(),
-        testCase: isManualTest ? 'Manual Test Case' : testLogs.testCase?.issueKey || 'Unknown',
+        testCase: 'Test Case Exported',
         summary: isManualTest ? (testLogs.description || 'Manual Test') : (testLogs.testCase?.summary || 'Unknown'),
         result: testLogs.pass ? 'PASS' : (testLogs.fail ? 'FAIL' : 'INCOMPLETE')
     });
@@ -5099,7 +5086,7 @@ function exportAllTestCases() {
         title: filename,
         path: downloadPath,
         date: new Date().toISOString(),
-        testCase: 'Manual Test Case',
+        testCase: 'Test Case Exported',
         summary: manualTestDescription || 'Manual Test',
         result: 'MANUAL'
     });
@@ -5495,8 +5482,8 @@ function exportAllTestCases() {
         title: filename,
         path: downloadPath,
         date: new Date().toISOString(),
-        testCase: 'Multiple Test Cases',
-        summary: `All Test Cases Export (${passedTests} Pass, ${failedTests} Fail, ${notTestedTests} Not Tested)`,
+        testCase: 'Test Plan Exported',
+        summary: `(${passedTests} Pass, ${failedTests} Fail, ${notTestedTests} Not Tested)`,
         result: testPlanFailed ? 'FAIL' : 'PASS'
     });
     
