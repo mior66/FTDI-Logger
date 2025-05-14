@@ -4407,11 +4407,26 @@ function exportSelectedTestCase() {
     
     // Add Notes if available - check both the test notes and the test case notes
     const testNotes = document.getElementById('test-notes');
+    
+    // Create the test case ID for retrieving notes from the notes field
+    let notesTestCaseId = '';
+    if (!isManualTest && testLogs.testCase) {
+        const deviceType = document.getElementById('deviceType').value || activeSheetName;
+        notesTestCaseId = `${deviceType}-test-${testLogs.testCase.issueKey}`;
+    }
+    
+    // Check for notes in the following order of priority:
+    // 1. Test notes textarea (if available)
+    // 2. Notes field in the table (using the notesTestCaseId)
+    // 3. Test case notes stored in the global testCaseNotes object
     if (testNotes && testNotes.value) {
         // First priority: use the value from the test notes textarea
         textContent += `\nNotes: ${testNotes.value}\n`;
+    } else if (notesTestCaseId && window.testCaseNotes && window.testCaseNotes[notesTestCaseId]) {
+        // Second priority: use notes from the Notes field in the table
+        textContent += `\nNotes: ${window.testCaseNotes[notesTestCaseId]}\n`;
     } else if (window.testCaseNotes && window.testCaseNotes[currentlyDisplayedTestCase]) {
-        // Second priority: use the test case notes if available
+        // Third priority: use the test case notes if available
         textContent += `\nNotes: ${window.testCaseNotes[currentlyDisplayedTestCase]}\n`;
     }
     
