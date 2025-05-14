@@ -5464,7 +5464,7 @@ function exportAllTestCases() {
     // Add the worksheet to the workbook
     XLSX.utils.book_append_sheet(wb, ws, 'Test Cases');
 
-    // Generate filename with Firmware Version, Device Type, and Today's Date
+    // Generate filename with Firmware Version, Device Type, Today's Date, and FAIL status if needed
     const today = new Date();
     const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
     
@@ -5472,12 +5472,16 @@ function exportAllTestCases() {
     const firmwareVersion = currentFirmwareVersion !== 'Not specified' ? currentFirmwareVersion : '';
     const deviceType = currentDeviceType !== 'Unknown' ? currentDeviceType : 'Generic';
     
+    // Determine if the test plan has failed (only if there are actual failed tests)
+    const testPlanFailed = failedTests > 0;
+    const failSuffix = testPlanFailed ? ' - FAIL' : '';
+    
     // Construct the filename based on available information
     let filename = '';
     if (firmwareVersion) {
-        filename = `${firmwareVersion} - ${deviceType} - ${formattedDate}.xlsx`;
+        filename = `${firmwareVersion} - ${deviceType} - ${formattedDate}${failSuffix}.xlsx`;
     } else {
-        filename = `${deviceType} - ${formattedDate}.xlsx`;
+        filename = `${deviceType} - ${formattedDate}${failSuffix}.xlsx`;
     }
 
     // Write the workbook and trigger download
@@ -5486,14 +5490,14 @@ function exportAllTestCases() {
     // Get the download path (this will be an approximation since we can't get the actual path)
     const downloadPath = `${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}${filename}`;
     
-    // Add to export history
+    // Add to export history with appropriate result status
     addToExportHistory({
         title: filename,
         path: downloadPath,
         date: new Date().toISOString(),
         testCase: 'Multiple Test Cases',
-        summary: 'All Test Cases Export',
-        result: 'MULTIPLE'
+        summary: `All Test Cases Export (${passedTests} Pass, ${failedTests} Fail, ${notTestedTests} Not Tested)`,
+        result: testPlanFailed ? 'FAIL' : 'PASS'
     });
     
     showNotification(`All test cases exported as ${filename}`, 'success');
