@@ -6952,6 +6952,15 @@ function showExportHistory() {
     if (exportHistory.length === 0) {
         historyList.innerHTML = '<p class="no-history-message">No export history available.</p>';
     } else {
+        // Show the common file location at the top
+        const locationInfo = document.createElement('div');
+        locationInfo.className = 'file-location-info';
+        locationInfo.innerHTML = `
+            <div class="file-location-label">File Location:</div>
+            <div class="file-location-path">${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}</div>
+        `;
+        historyList.appendChild(locationInfo);
+        
         // Add each history item to the list
         exportHistory.forEach((item, index) => {
             const historyItem = document.createElement('div');
@@ -6961,19 +6970,37 @@ function showExportHistory() {
             const date = new Date(item.date);
             const formattedDate = date.toLocaleString();
             
+            // Extract test type and test results for better formatting
+            const testType = item.testCase;
+            
+            // Parse the summary to extract test results
+            let testResults = '';
+            if (item.summary.includes('(') && item.summary.includes(')')) {
+                const resultsMatch = item.summary.match(/\((.*?)\)/);
+                if (resultsMatch && resultsMatch[1]) {
+                    testResults = resultsMatch[1];
+                }
+            }
+            
+            // Get the summary without the test results
+            let summaryText = item.summary;
+            if (testResults) {
+                summaryText = item.summary.replace(`(${testResults})`, '').trim();
+            }
+            
             // Create the item content
             historyItem.innerHTML = `
                 <div class="history-item-details">
                     <div class="history-item-title">${item.title}</div>
                     <div class="history-item-info">
-                        <span class="history-item-test">${item.testCase}: ${item.summary}</span>
-                        <span class="history-item-result ${item.result}">${item.result}</span>
+                        <span class="history-item-test">${testType}</span>
                     </div>
+                    <div class="history-item-summary">${summaryText}</div>
+                    <div class="history-item-results">${testResults}</div>
                     <div class="history-item-date">${formattedDate}</div>
-                    <div class="history-item-path">${item.path}</div>
                 </div>
                 <div class="history-item-actions">
-                    <button class="history-action-button history-open-button" data-index="${index}">Open</button>
+                    <span class="history-item-result ${item.result}">${item.result}</span>
                     <button class="history-action-button history-clear-button" data-index="${index}">Clear</button>
                 </div>
             `;
@@ -6982,15 +7009,7 @@ function showExportHistory() {
             historyList.appendChild(historyItem);
         });
         
-        // Add event listeners to the buttons
-        const openButtons = document.querySelectorAll('.history-open-button');
-        openButtons.forEach(button => {
-            button.addEventListener('click', (event) => {
-                const index = parseInt(event.target.getAttribute('data-index'));
-                openExportedFile(exportHistory[index]);
-            });
-        });
-        
+        // Add event listeners to the Clear buttons
         const clearButtons = document.querySelectorAll('.history-clear-button');
         clearButtons.forEach(button => {
             button.addEventListener('click', (event) => {

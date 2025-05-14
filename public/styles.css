@@ -3372,15 +3372,24 @@ button.primary:hover {
 }
 
 .close-button {
-    background: none;
-    border: none;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 50%;
     font-size: 1.5rem;
     cursor: pointer;
-    color: #555;
+    color: #000;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
 }
 
 .close-button:hover {
-    color: #000;
+    background-color: #e0e0e0;
+    color: #c5221f;
 }
 
 .overlay-body {
@@ -3410,10 +3419,33 @@ button.primary:hover {
 }
 
 .history-global-button:hover {
-    background-color: #094019;
+    background-color: #0a4a1c;
+}
+
+.file-location-info {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #f0f0f0;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.file-location-label {
+    font-weight: bold;
+    margin-right: 10px;
+    color: #555;
+}
+
+.file-location-path {
+    font-family: monospace;
+    color: #666;
 }
 
 .history-list {
+    margin-top: 20px;
+    max-height: 500px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -3449,17 +3481,27 @@ button.primary:hover {
 
 .history-item-info {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     font-size: 0.9rem;
+    margin-bottom: 4px;
 }
 
 .history-item-test {
     color: #555;
-    max-width: 70%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-weight: bold;
+}
+
+.history-item-summary {
+    color: #555;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.history-item-results {
+    color: #555;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+    font-style: italic;
 }
 
 .history-item-result {
@@ -3467,6 +3509,7 @@ button.primary:hover {
     padding: 3px 8px;
     border-radius: 4px;
     font-size: 0.8rem;
+    margin-right: 10px;
 }
 
 .history-item-result.PASS {
