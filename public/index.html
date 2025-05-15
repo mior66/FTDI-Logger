@@ -484,8 +484,36 @@
             </div>
             <div class="overlay-body">
                 <div id="export-history-actions" class="history-actions">
-                    <button id="export-history-export" class="history-global-button">Export as Text</button>
-                    <button id="export-history-print" class="history-global-button">Print History</button>
+                    <div class="history-controls-container">
+                        <div class="history-filter-container">
+                            <label for="history-filter">Filter:</label>
+                            <select id="history-filter" class="history-filter">
+                                <option value="all">All</option>
+                                <option value="test-plans">Test Plans</option>
+                                <option value="test-cases">Test Cases</option>
+                                <option value="fail">Fail</option>
+                                <option value="pass">Pass</option>
+                                <option value="bb1">BB1</option>
+                                <option value="bb">BB</option>
+                                <option value="bb2">BB2</option>
+                                <option value="inf">INF</option>
+                                <option value="ac">AC</option>
+                                <option value="lv">LV</option>
+                                <option value="bb2l">BB2L</option>
+                            </select>
+                        </div>
+                        <div class="history-sort-container">
+                            <label for="history-sort">Sort by:</label>
+                            <select id="history-sort" class="history-sort">
+                                <option value="date">Date</option>
+                                <option value="version">Version</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="history-buttons-container">
+                        <button id="export-history-export" class="history-global-button">Export as Text</button>
+                        <button id="export-history-print" class="history-global-button">Print History</button>
+                    </div>
                 </div>
                 <div id="export-history-list" class="history-list"></div>
             </div>

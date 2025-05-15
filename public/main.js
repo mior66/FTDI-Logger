@@ -6819,9 +6819,8 @@ function showExportHistory() {
     const historyOverlay = document.getElementById('export-history-overlay');
     const historyList = document.getElementById('export-history-list');
     const historyActions = document.getElementById('export-history-actions');
-    
-    // Clear the history list
-    historyList.innerHTML = '';
+    const historyFilter = document.getElementById('history-filter');
+    const historySort = document.getElementById('history-sort');
     
     // Update the global actions visibility
     if (exportHistory.length === 0) {
@@ -6830,10 +6829,17 @@ function showExportHistory() {
         historyActions.style.display = 'flex';
     }
     
-    // If there are no history items, show a message
-    if (exportHistory.length === 0) {
-        historyList.innerHTML = '<p class="no-history-message">No export history available.</p>';
-    } else {
+    // Function to filter, sort and display history items
+    const filterAndDisplayHistory = (filterValue = 'all', sortValue = 'date') => {
+        // Clear the history list
+        historyList.innerHTML = '';
+        
+        // If there are no history items, show a message
+        if (exportHistory.length === 0) {
+            historyList.innerHTML = '<p class="no-history-message">No export history available.</p>';
+            return;
+        }
+        
         // Show the common file location at the top
         const locationInfo = document.createElement('div');
         locationInfo.className = 'file-location-info';
@@ -6843,8 +6849,68 @@ function showExportHistory() {
         `;
         historyList.appendChild(locationInfo);
         
-        // Add each history item to the list
-        exportHistory.forEach((item, index) => {
+        // Filter the history items based on the selected filter
+        const filteredHistory = exportHistory.filter(item => {
+            if (filterValue === 'all') return true;
+            
+            // Filter by test type
+            if (filterValue === 'test-plans' && item.testCase.includes('Test Plan')) return true;
+            if (filterValue === 'test-cases' && item.testCase.includes('Test Case')) return true;
+            
+            // Filter by result
+            if (filterValue === 'fail' && item.result === 'FAIL') return true;
+            if (filterValue === 'pass' && item.result === 'PASS') return true;
+            
+            // Filter by device type in title
+            const deviceTypes = {
+                'bb1': 'BB1',
+                'bb': 'BB',
+                'bb2': 'BB2',
+                'inf': 'INF',
+                'ac': 'AC',
+                'lv': 'LV',
+                'bb2l': 'BB2L'
+            };
+            
+            if (deviceTypes[filterValue] && item.title.includes(deviceTypes[filterValue])) return true;
+            
+            return false;
+        });
+        
+        // Sort the filtered history items
+        const sortedHistory = [...filteredHistory].sort((a, b) => {
+            if (sortValue === 'date') {
+                // Sort by date (newest first)
+                return new Date(b.date) - new Date(a.date);
+            } else if (sortValue === 'version') {
+                // Sort by version (title)
+                // Extract version number from title if it exists
+                const getVersion = (title) => {
+                    const versionMatch = title.match(/^([0-9]+\.[0-9]+)/);
+                    return versionMatch ? parseFloat(versionMatch[1]) : 0;
+                };
+                
+                const versionA = getVersion(a.title);
+                const versionB = getVersion(b.title);
+                
+                // If both have version numbers, sort by version
+                if (versionA && versionB) {
+                    return versionB - versionA; // Descending order
+                }
+                
+                // If only one has a version number, prioritize it
+                if (versionA && !versionB) return -1;
+                if (!versionA && versionB) return 1;
+                
+                // If neither has a version number or versions are equal, sort alphabetically
+                return a.title.localeCompare(b.title);
+            }
+            return 0;
+        });
+        
+        // Display sorted and filtered items with index mapping to original array
+        sortedHistory.forEach((item) => {
+            const originalIndex = exportHistory.indexOf(item);
             const historyItem = document.createElement('div');
             historyItem.className = 'history-item';
             
@@ -6878,18 +6944,26 @@ function showExportHistory() {
                         <span class="history-item-test">${testType}</span>
                     </div>
                     <div class="history-item-summary">${summaryText}</div>
-                    <div class="history-item-results">${testResults}</div>
+                    <div class="history-item-results ${/[1-9][0-9]* Fail/.test(testResults) ? 'fail-results' : ''}">${testResults}</div>
                     <div class="history-item-date">${formattedDate}</div>
                 </div>
                 <div class="history-item-actions">
                     <span class="history-item-result ${item.result}">${item.result}</span>
-                    <button class="history-action-button history-clear-button" data-index="${index}">Clear</button>
+                    <button class="history-action-button history-clear-button" data-index="${originalIndex}">Clear</button>
                 </div>
             `;
             
             // Add the item to the list
             historyList.appendChild(historyItem);
         });
+        
+        // Show message if no items match the filter
+        if (sortedHistory.length === 0 && exportHistory.length > 0) {
+            const noMatchMessage = document.createElement('p');
+            noMatchMessage.className = 'no-history-message';
+            noMatchMessage.textContent = `No exports match the "${historyFilter.options[historyFilter.selectedIndex].text}" filter.`;
+            historyList.appendChild(noMatchMessage);
+        }
         
         // Add event listeners to the Clear buttons
         const clearButtons = document.querySelectorAll('.history-clear-button');
@@ -6899,7 +6973,20 @@ function showExportHistory() {
                 removeHistoryItem(index);
             });
         });
-    }
+    };
+    
+    // Initial display with current filter and sort
+    filterAndDisplayHistory(historyFilter.value, historySort.value);
+    
+    // Add event listener for filter changes
+    historyFilter.addEventListener('change', () => {
+        filterAndDisplayHistory(historyFilter.value, historySort.value);
+    });
+    
+    // Add event listener for sort changes
+    historySort.addEventListener('change', () => {
+        filterAndDisplayHistory(historyFilter.value, historySort.value);
+    });
     
     // Show the overlay
     historyOverlay.style.display = 'flex';
@@ -6930,6 +7017,10 @@ function openExportedFile(item) {
 
 // Remove a history item
 function removeHistoryItem(index) {
+    // Store the current filter and sort values before removing the item
+    const currentFilter = document.getElementById('history-filter').value;
+    const currentSort = document.getElementById('history-sort').value;
+    
     // Remove the item from the array
     exportHistory.splice(index, 1);
     
@@ -6938,6 +7029,13 @@ function removeHistoryItem(index) {
     
     // Refresh the history display
     showExportHistory();
+    
+    // Re-apply the filter and sort that were active before removing the item
+    document.getElementById('history-filter').value = currentFilter;
+    document.getElementById('history-sort').value = currentSort;
+    
+    // Trigger the change event to update the display with the current filter and sort
+    document.getElementById('history-filter').dispatchEvent(new Event('change'));
     
     showNotification('History item removed', 'success');
 }
