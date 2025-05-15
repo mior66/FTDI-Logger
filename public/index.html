@@ -485,30 +485,34 @@
             <div class="overlay-body">
                 <div id="export-history-actions" class="history-actions">
                     <div class="history-controls-container">
-                        <div class="history-filter-container">
-                            <label for="history-filter">Filter:</label>
-                            <select id="history-filter" class="history-filter">
-                                <option value="all">All</option>
-                                <option value="test-plans">Test Plans</option>
-                                <option value="test-cases">Test Cases</option>
-                                <option value="fail">Fail</option>
-                                <option value="pass">Pass</option>
-                                <option value="bb1">BB1</option>
-                                <option value="bb">BB</option>
-                                <option value="bb2">BB2</option>
-                                <option value="inf">INF</option>
-                                <option value="ac">AC</option>
-                                <option value="lv">LV</option>
-                                <option value="bb2l">BB2L</option>
-                            </select>
-                        </div>
-                        <div class="history-sort-container">
-                            <label for="history-sort">Sort by:</label>
-                            <select id="history-sort" class="history-sort">
-                                <option value="date">Date</option>
-                                <option value="version">Version</option>
-                            </select>
-                        </div>
+                        <table class="filter-controls-table" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                                <td style="padding-right: 8px;"><label for="history-filter">Filter:</label></td>
+                                <td>
+                                    <select id="history-filter" class="history-filter">
+                                        <option value="all">All</option>
+                                        <option value="test-plans">Test Plans</option>
+                                        <option value="test-cases">Test Cases</option>
+                                        <option value="fail">Fail</option>
+                                        <option value="pass">Pass</option>
+                                        <option value="bb1">BB1</option>
+                                        <option value="bb">BB</option>
+                                        <option value="bb2">BB2</option>
+                                        <option value="inf">INF</option>
+                                        <option value="ac">AC</option>
+                                        <option value="lv">LV</option>
+                                        <option value="bb2l">BB2L</option>
+                                    </select>
+                                </td>
+                                <td style="padding-left: 15px; padding-right: 8px;"><label for="history-sort">Sort by:</label></td>
+                                <td>
+                                    <select id="history-sort" class="history-sort">
+                                        <option value="date">Date</option>
+                                        <option value="version">Version</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
                     <div class="history-buttons-container">
                         <button id="export-history-export" class="history-global-button">Export as Text</button>

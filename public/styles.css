@@ -3415,6 +3415,7 @@ button.primary:hover {
     justify-content: space-between;
     align-items: center;
     gap: 10px;
+    margin-top: 15px;
     margin-bottom: 15px;
     padding: 0 10px;
 }
@@ -3422,11 +3423,15 @@ button.primary:hover {
 .history-controls-container {
     display: flex;
     align-items: center;
-    gap: 15px;
+}
+
+.filter-controls-table {
+    vertical-align: middle;
 }
 
 .history-buttons-container {
     display: flex;
+    align-items: center;
     gap: 10px;
 }
 
@@ -3434,12 +3439,13 @@ button.primary:hover {
 .history-sort-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0;
 }
 
 .history-filter-container label,
 .history-sort-container label {
     font-weight: bold;
+    margin-right: 2px;
     color: #333;
 }
 
