@@ -4441,7 +4441,15 @@ function exportSelectedTestCase() {
         if (summary) {
             textContent += `Summary: ${summary}\n`;
         }
-        textContent += `Sheet: ${currentlyDisplayedTestCase.split('-test-')[0]}\n`;
+        if (description) {
+            textContent += `Description: ${description}\n`;
+        }
+        
+        // Add Test Plan Notes if available
+        const testPlanNotes = document.getElementById('test-plan-notes');
+        if (testPlanNotes && testPlanNotes.value) {
+            textContent += `\nTest Plan Notes:\n${testPlanNotes.value}\n`;
+        }
     }
     
     textContent += `Date: ${new Date().toLocaleString()}\n`;
