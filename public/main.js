@@ -4332,8 +4332,10 @@ function exportManualTestCase(manualTestCaseId) {
     
     // Get the status from the dropdown if it exists
     if (exportStatusDropdown && exportStatusDropdown.value) {
-        // Use the selected status from the dropdown
-        statusStr = ` - ${exportStatusDropdown.value}`;
+        // Only add the status to the filename if it's PASS or FAIL, not INCOMPLETE
+        if (exportStatusDropdown.value === 'PASS' || exportStatusDropdown.value === 'FAIL') {
+            statusStr = ` - ${exportStatusDropdown.value}`;
+        }
     } else if (testLogEntries[manualTestCaseId]) {
         // Fall back to the existing logic if no status is selected
         if (testLogEntries[manualTestCaseId].pass) {
@@ -4359,6 +4361,31 @@ function exportManualTestCase(manualTestCaseId) {
     a.download = filename;
     document.body.appendChild(a);
     a.click();
+    
+    // Get the download path (this will be an approximation since we can't get the actual path)
+    const downloadPath = `${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}${filename}`;
+    
+    // Get the status for the export history
+    let exportResult;
+    
+    if (exportStatusDropdown && exportStatusDropdown.value) {
+        // Use the selected status from the dropdown
+        exportResult = exportStatusDropdown.value;
+    } else {
+        // Fall back to the existing logic if no status is selected
+        exportResult = testLogEntries[manualTestCaseId]?.pass ? 'PASS' : 
+                      (testLogEntries[manualTestCaseId]?.fail ? 'FAIL' : '');
+    }
+    
+    // Add to export history
+    addToExportHistory({
+        title: filename,
+        path: downloadPath,
+        date: new Date().toISOString(),
+        testCase: 'Manual Test Case Exported',
+        summary: description || 'Manual Test',
+        result: exportResult
+    });
     
     setTimeout(() => {
         document.body.removeChild(a);
@@ -4852,7 +4879,19 @@ function exportSelectedTestCase() {
     if (isManualTest) {
         // Get components for manual test case file name
         let firmwareVersion = '';
-        let status = testLogs.pass ? 'Pass' : (testLogs.fail ? 'Fail' : 'Incomplete');
+        let statusStr = '';
+        
+        // Check if a status is selected in the export status dropdown
+        if (exportStatusDropdown && exportStatusDropdown.value) {
+            // Only add the status to the filename if it's PASS or FAIL, not INCOMPLETE
+            if (exportStatusDropdown.value === 'PASS' || exportStatusDropdown.value === 'FAIL') {
+                statusStr = ` - ${exportStatusDropdown.value}`;
+            }
+        } else if (testLogs.pass) {
+            statusStr = ' - PASS';
+        } else if (testLogs.fail) {
+            statusStr = ' - FAIL';
+        }
         
         // Get Firmware Version from input field
         const firmwareElement = document.getElementById('firmware-build');
@@ -4861,13 +4900,25 @@ function exportSelectedTestCase() {
         }
         
         // Format: "Manual Test Case - [Firmware Version] - [Pass/Fail]"
-        filename = `Manual Test Case - ${firmwareVersion ? firmwareVersion + ' - ' : ''}${status}.txt`;
+        filename = `Manual Test Case - ${firmwareVersion ? firmwareVersion + ' - ' : ''}${new Date().toISOString().slice(0, 10)}${statusStr}.txt`;
     } else {
         // Get the components for the file name
         let issueKey = 'unknown';
         let summary = '';
         let firmwareVersion = '';
-        let status = testLogs.pass ? 'Pass' : (testLogs.fail ? 'Fail' : 'Incomplete');
+        let statusStr = '';
+        
+        // Check if a status is selected in the export status dropdown
+        if (exportStatusDropdown && exportStatusDropdown.value) {
+            // Only add the status to the filename if it's PASS or FAIL, not INCOMPLETE
+            if (exportStatusDropdown.value === 'PASS' || exportStatusDropdown.value === 'FAIL') {
+                statusStr = ` - ${exportStatusDropdown.value}`;
+            }
+        } else if (testLogs.pass) {
+            statusStr = ' - PASS';
+        } else if (testLogs.fail) {
+            statusStr = ' - FAIL';
+        }
         
         // Get Issue Key and Summary from test case object
         if (testLogs.testCase) {
@@ -4882,13 +4933,13 @@ function exportSelectedTestCase() {
         }
         
         // Clean up summary for filename (remove special characters, limit length)
-        summary = summary.replace(/[\/:*?"<>|]/g, '').trim();
+        summary = summary.replace(/[\/:\*?"<>|]/g, '').trim();
         if (summary.length > 30) {
             summary = summary.substring(0, 30) + '...';
         }
         
-        // Format: "Test Case - [Firmware Version] - [Issue Key] - [Summary] - [Pass/Fail status]"
-        filename = `Test Case - ${firmwareVersion ? firmwareVersion + ' - ' : ''}${issueKey} - ${summary} - ${status}.txt`;
+        // Format: "Test Case - [Firmware Version] - [Issue Key] - [Summary] - [Date] - [Pass/Fail status]"
+        filename = `Test Case - ${firmwareVersion ? firmwareVersion + ' - ' : ''}${issueKey} - ${summary} - ${new Date().toISOString().slice(0, 10)}${statusStr}.txt`;
     }
     
     // Create a text file and download it
@@ -4906,13 +4957,24 @@ function exportSelectedTestCase() {
     const downloadPath = `${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}${filename}`;
     
     // Add to export history
+    // Get the status for the export history
+    let exportResult;
+    
+    if (exportStatusDropdown && exportStatusDropdown.value) {
+        // Use the selected status from the dropdown
+        exportResult = exportStatusDropdown.value;
+    } else {
+        // Fall back to the existing logic if no status is selected
+        exportResult = testLogs.pass ? 'PASS' : (testLogs.fail ? 'FAIL' : '');
+    }
+    
     addToExportHistory({
         title: filename,
         path: downloadPath,
         date: new Date().toISOString(),
         testCase: 'Test Case Exported',
         summary: isManualTest ? (testLogs.description || 'Manual Test') : (testLogs.testCase?.summary || 'Unknown'),
-        result: testLogs.pass ? 'PASS' : (testLogs.fail ? 'FAIL' : 'INCOMPLETE')
+        result: exportResult
     });
     
     // Clean up
@@ -5143,6 +5205,17 @@ function exportAllTestCases() {
     // Get the download path (this will be an approximation since we can't get the actual path)
     const downloadPath = `${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}${filename}`;
     
+    // Get the status for the export history
+    let exportResult;
+    
+    if (exportStatusDropdown && exportStatusDropdown.value) {
+        // Use the selected status from the dropdown
+        exportResult = exportStatusDropdown.value;
+    } else {
+        // Default to empty if no status is selected
+        exportResult = '';
+    }
+    
     // Add to export history
     addToExportHistory({
         title: filename,
@@ -5150,7 +5223,7 @@ function exportAllTestCases() {
         date: new Date().toISOString(),
         testCase: 'Test Case Exported',
         summary: manualTestDescription || 'Manual Test',
-        result: 'MANUAL'
+        result: exportResult
     });
     
     // Clean up
@@ -5521,8 +5594,20 @@ function exportAllTestCases() {
     const firmwareVersion = currentFirmwareVersion !== 'Not specified' ? currentFirmwareVersion : '';
     const deviceType = currentDeviceType !== 'Unknown' ? currentDeviceType : 'Generic';
     
+    // Check if a status is selected in the export status dropdown
+    const exportStatusDropdown = document.getElementById('export-status-dropdown');
+    let exportResult;
+    
+    if (exportStatusDropdown && exportStatusDropdown.value) {
+        // Use the selected status from the dropdown
+        exportResult = exportStatusDropdown.value;
+    } else {
+        // Fall back to the existing logic if no status is selected
+        exportResult = failedTests > 0 ? 'FAIL' : 'PASS';
+    }
+    
     // Determine if the test plan has failed (only if there are actual failed tests)
-    const testPlanFailed = failedTests > 0;
+    const testPlanFailed = exportResult === 'FAIL';
     const failSuffix = testPlanFailed ? ' - FAIL' : '';
     
     // Construct the filename based on available information
@@ -5546,7 +5631,7 @@ function exportAllTestCases() {
         date: new Date().toISOString(),
         testCase: 'Test Plan Exported',
         summary: `(${passedTests} Pass, ${failedTests} Fail, ${notTestedTests} Not Tested)`,
-        result: testPlanFailed ? 'FAIL' : 'PASS'
+        result: exportResult
     });
     
     showNotification(`All test cases exported as ${filename}`, 'success');
