@@ -4419,17 +4419,19 @@ function exportSelectedTestCase() {
     textContent += `TEST CASE REPORT\n`;
     textContent += `=================\n\n`;
     
+    // Get all the data we need first
+    let issueKey = 'unknown';
+    let summary = '';
+    let description = '';
+    let testPlanNotesValue = '';
+    let notesValue = '';
+    
     if (isManualTest) {
         textContent += `Manual Test Case\n`;
         if (testLogs.description) {
-            textContent += `Description: ${testLogs.description}\n`;
+            description = testLogs.description;
         }
     } else {
-        // Get the test case data directly from the test log entries
-        let issueKey = 'unknown';
-        let summary = '';
-        let description = '';
-        
         // If we have test log entries with a test case object, use its properties
         if (testLogs.testCase) {
             issueKey = testLogs.testCase.issueKey || 'unknown';
@@ -4437,48 +4439,14 @@ function exportSelectedTestCase() {
             description = testLogs.testCase.description || '';
         }
         
-        textContent += `Issue Key: ${issueKey}\n`;
-        if (summary) {
-            textContent += `Summary: ${summary}\n`;
-        }
-        if (description) {
-            textContent += `Description: ${description}\n`;
-        }
-        
-        // Add Test Plan Notes if available
+        // Get Test Plan Notes if available
         const testPlanNotes = document.getElementById('test-plan-notes');
         if (testPlanNotes && testPlanNotes.value) {
-            textContent += `\nTest Plan Notes:\n${testPlanNotes.value}\n`;
+            testPlanNotesValue = testPlanNotes.value;
         }
     }
     
-    textContent += `Date: ${new Date().toLocaleString()}\n`;
-    
-    // Add additional information if available
-    const firmwareVersion = document.getElementById('firmware-build');
-    if (firmwareVersion && firmwareVersion.value) {
-        textContent += `Firmware Version: ${firmwareVersion.value}\n`;
-    }
-    
-    // Add App Version if available - check both the status display and the tracker input
-    const appVersionStatus = document.getElementById('app-version');
-    const appVersionTracker = document.getElementById('app-version-tracker');
-    
-    if (appVersionTracker && appVersionTracker.value) {
-        // First priority: use the value from the input field if available
-        textContent += `App Version: ${appVersionTracker.value}\n`;
-    } else if (appVersionStatus && appVersionStatus.textContent && appVersionStatus.textContent !== '--') {
-        // Second priority: use the value from the status display if available
-        textContent += `App Version: ${appVersionStatus.textContent}\n`;
-    }
-    
-    // Add Phone OS/Version if available
-    const phoneOSVersion = document.getElementById('phone-type');
-    if (phoneOSVersion && phoneOSVersion.value) {
-        textContent += `Phone OS/Version: ${phoneOSVersion.value}\n`;
-    }
-    
-    // Add Notes if available - check both the test notes and the test case notes
+    // Get Notes if available - check both the test notes and the test case notes
     const testNotes = document.getElementById('test-notes');
     
     // Create the test case ID for retrieving notes from the notes field
@@ -4488,22 +4456,71 @@ function exportSelectedTestCase() {
         notesTestCaseId = `${deviceType}-test-${testLogs.testCase.issueKey}`;
     }
     
-    // Check for notes in the following order of priority:
-    // 1. Test notes textarea (if available)
-    // 2. Notes field in the table (using the notesTestCaseId)
-    // 3. Test case notes stored in the global testCaseNotes object
+    // Check for notes in the following order of priority
     if (testNotes && testNotes.value) {
         // First priority: use the value from the test notes textarea
-        textContent += `\nNotes: ${testNotes.value}\n`;
+        notesValue = testNotes.value;
     } else if (notesTestCaseId && window.testCaseNotes && window.testCaseNotes[notesTestCaseId]) {
         // Second priority: use notes from the Notes field in the table
-        textContent += `\nNotes: ${window.testCaseNotes[notesTestCaseId]}\n`;
+        notesValue = window.testCaseNotes[notesTestCaseId];
     } else if (window.testCaseNotes && window.testCaseNotes[currentlyDisplayedTestCase]) {
         // Third priority: use the test case notes if available
-        textContent += `\nNotes: ${window.testCaseNotes[currentlyDisplayedTestCase]}\n`;
+        notesValue = window.testCaseNotes[currentlyDisplayedTestCase];
     }
     
-    textContent += `\n`;
+    // Get date
+    const currentDate = new Date().toLocaleString();
+    
+    // Get firmware version
+    const firmwareVersion = document.getElementById('firmware-build');
+    let firmwareVersionValue = '';
+    if (firmwareVersion && firmwareVersion.value) {
+        firmwareVersionValue = firmwareVersion.value;
+    }
+    
+    // Get app version
+    const appVersionStatus = document.getElementById('app-version');
+    const appVersionTracker = document.getElementById('app-version-tracker');
+    let appVersionValue = '';
+    
+    if (appVersionTracker && appVersionTracker.value) {
+        // First priority: use the value from the input field if available
+        appVersionValue = appVersionTracker.value;
+    } else if (appVersionStatus && appVersionStatus.textContent && appVersionStatus.textContent !== '--') {
+        // Second priority: use the value from the status display if available
+        appVersionValue = appVersionStatus.textContent;
+    }
+    
+    // Get phone OS/version
+    const phoneOSVersion = document.getElementById('phone-type');
+    let phoneOSVersionValue = '';
+    if (phoneOSVersion && phoneOSVersion.value) {
+        phoneOSVersionValue = phoneOSVersion.value;
+    }
+    
+    // Now output in the requested order
+    textContent += `Issue Key: ${issueKey}\n`;
+    if (summary) {
+        textContent += `Summary: ${summary}\n`;
+    }
+    textContent += `Date: ${currentDate}\n`;
+    if (firmwareVersionValue) {
+        textContent += `Firmware Version: ${firmwareVersionValue}\n`;
+    }
+    if (appVersionValue) {
+        textContent += `App Version: ${appVersionValue}\n`;
+    }
+    if (phoneOSVersionValue) {
+        textContent += `Phone OS/Version: ${phoneOSVersionValue}\n\n`;
+    } else {
+        textContent += `\n`; // Add line break even if no phone OS/version
+    }
+    if (description) {
+        textContent += `DESCRIPTION:\n------------------\n${description}\n\n`;
+    }
+    if (notesValue) {
+        textContent += `TEST CASE NOTES:\n------------------\n${notesValue}\n\n`;
+    }
     
     // Add test result information
     // Check if a status is selected in the export status dropdown
@@ -4518,69 +4535,36 @@ function exportSelectedTestCase() {
         result = testLogs.pass ? 'PASS' : (testLogs.fail ? 'FAIL' : 'INCOMPLETE');
     }
     
-    textContent += `TEST RESULT: ${result}\n\n`;
+    textContent += `TEST RESULT:\n------------------\n${result}\n\n`;
     
-    // Add test case details from the table
-    textContent += `TEST CASE DETAILS:\n`;
-    textContent += `------------------\n\n`;
-    
-    // For manual test cases, we don't have a table
-    if (isManualTest) {
-        textContent += `Manual test case with user-provided description\n\n`;
-    } else {
-        const table = selectedTestCaseDisplay.querySelector('table');
-        if (table) {
-        // Get headers
-        const headers = [];
-        const headerRow = table.querySelector('thead tr');
-        if (headerRow) {
-            headerRow.querySelectorAll('th').forEach(th => {
-                headers.push(th.textContent || '');
-            });
-        }
-        
-        // Get all rows data
-        const rows = [];
-        table.querySelectorAll('tbody tr').forEach(row => {
-            const cells = [];
-            row.querySelectorAll('td').forEach(cell => {
-                cells.push(cell.textContent || '');
-            });
-            rows.push(cells);
-        });
-        
-        // Calculate column widths for proper alignment
-        const columnWidths = [];
-        for (let i = 0; i < headers.length; i++) {
-            let maxWidth = headers[i].length;
-            rows.forEach(row => {
-                if (row[i] && row[i].length > maxWidth) {
-                    maxWidth = row[i].length;
-                }
-            });
-            columnWidths.push(maxWidth + 2); // Add padding
-        }
-        
-        // Format headers with proper spacing
-        let headerLine = '';
-        let separatorLine = '';
-        headers.forEach((header, index) => {
-            const paddedHeader = header.padEnd(columnWidths[index]);
-            headerLine += paddedHeader;
-            separatorLine += '-'.repeat(columnWidths[index]);
-        });
-        textContent += headerLine + '\n';
-        textContent += separatorLine + '\n';
-        
-        // Format rows with proper spacing
-        rows.forEach(row => {
-            let formattedRow = '';
-            row.forEach((cell, index) => {
-                formattedRow += (cell || '').padEnd(columnWidths[index]);
-            });
-            textContent += formattedRow + '\n';
-        });
+    // Add Test Plan Notes with formatting
+    if (testPlanNotesValue) {
+        textContent += `Test Plan Notes:\n------------------\n${testPlanNotesValue}\n\n`;
     }
+    
+    // Add Current Test Logs
+    // Check if we have any test logs to display
+    let testLogsSection = '';
+    const hasStartLog = testLogs.start && testLogs.start.timestamp && testLogs.start.text;
+    const hasPassLog = testLogs.pass && testLogs.pass.timestamp && testLogs.pass.text;
+    const hasFailLog = testLogs.fail && testLogs.fail.timestamp && testLogs.fail.text;
+    
+    if (hasStartLog || hasPassLog || hasFailLog) {
+        testLogsSection += `Current Test Logs:\n------------------\n`;
+        
+        // Add start log if it exists
+        if (hasStartLog) {
+            testLogsSection += `START: ${testLogs.start.timestamp} - ${testLogs.start.text}\n`;
+        }
+        
+        // Add result log if available
+        if (hasPassLog) {
+            testLogsSection += `PASS: ${testLogs.pass.timestamp} - ${testLogs.pass.text}\n`;
+        } else if (hasFailLog) {
+            testLogsSection += `FAIL: ${testLogs.fail.timestamp} - ${testLogs.fail.text}\n`;
+        }
+        
+        textContent += testLogsSection;
     }
     
     // Add notes if they exist (moved to appear above the logs)
@@ -4590,41 +4574,16 @@ function exportSelectedTestCase() {
         textContent += `${testLogs.notes}\n\n`;
     }
     
-    // Add test log information
-    textContent += `CURRENT TEST LOGS:\n`;
-    textContent += `-----------------\n\n`;
-    
-    // Check if we have any test logs to display
-    const hasStartLog = testLogs.start && testLogs.start.timestamp && testLogs.start.text;
-    const hasPassLog = testLogs.pass && testLogs.pass.timestamp && testLogs.pass.text;
-    const hasFailLog = testLogs.fail && testLogs.fail.timestamp && testLogs.fail.text;
-    
-    // If no logs exist, indicate this in the export
-    if (!hasStartLog && !hasPassLog && !hasFailLog) {
-        textContent += `No test logs available. Test case was exported without running the test.\n\n`;
-    } else {
-        // Add start log if it exists
-        if (hasStartLog) {
-            textContent += `START: ${testLogs.start.timestamp} - ${testLogs.start.text}\n\n`;
-        }
-        
-        // Add result log if available
-        if (hasPassLog) {
-            textContent += `PASS: ${testLogs.pass.timestamp} - ${testLogs.pass.text}\n\n`;
-        } else if (hasFailLog) {
-            textContent += `FAIL: ${testLogs.fail.timestamp} - ${testLogs.fail.text}\n\n`;
-        }
-    }
-    
     // Only include log entries if we have start and end timestamps
     let relevantLogs = [];
     
-    if (hasStartLog) {
+    // Use the variables we defined earlier
+    if (testLogs.start && testLogs.start.timestamp) {
         // Get all logs between start and pass/fail timestamps
         const startTimestamp = new Date(testLogs.start.timestamp).getTime();
-        const endTimestamp = hasPassLog ? 
+        const endTimestamp = (testLogs.pass && testLogs.pass.timestamp) ? 
             new Date(testLogs.pass.timestamp).getTime() : 
-            (hasFailLog ? new Date(testLogs.fail.timestamp).getTime() : Date.now());
+            ((testLogs.fail && testLogs.fail.timestamp) ? new Date(testLogs.fail.timestamp).getTime() : Date.now());
         
         // Filter logs that fall between the start and end timestamps
         logEntries.forEach(entry => {
