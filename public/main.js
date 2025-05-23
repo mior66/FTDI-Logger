@@ -87,6 +87,10 @@ let selectedTestCases = new Set(); // Store selected test case rows
 let currentlyDisplayedTestCase = null; // Store the currently displayed test case ID
 let testLogEntries = {}; // Store test log entries by test case ID
 
+// Export history variables
+let exportHistory = [];
+const MAX_HISTORY_ITEMS = 50; // Maximum number of history items to store
+
 // Array to store custom filter patterns
 let customFilterPatterns = [];
 
@@ -123,14 +127,17 @@ function init() {
     // Load default settings
     loadDefaultSettings();
     
-    // Load the test plan data automatically
-    loadTestPlanData();
+    // Load the test plan data silently on initial load
+    loadTestPlanData(true);
     
     // Display a random inspirational quote
     displayRandomQuote();
     
     // Initialize environment data chart
     initializeEnvChart();
+    
+    // Load export history from localStorage
+    loadExportHistory();
     
     // Directly add event listener for clear chart button
     document.getElementById('clear-chart-button').onclick = function() {
@@ -140,6 +147,63 @@ function init() {
     // Set up event listeners
     connectButton.addEventListener('click', connectToPort);
     disconnectButton.addEventListener('click', disconnectFromPort);
+    
+    // Set up export history button event listener
+    const exportHistoryButton = document.getElementById('export-history-button');
+    if (exportHistoryButton) {
+        exportHistoryButton.addEventListener('click', showExportHistory);
+    }
+    
+    // Set up export status dropdown event listener
+    const exportStatusDropdown = document.getElementById('export-status-dropdown');
+    if (exportStatusDropdown) {
+        exportStatusDropdown.addEventListener('change', function() {
+            // Reset dropdown styling
+            this.style.backgroundColor = '';
+            this.style.color = '';
+            this.style.fontWeight = '';
+            this.style.borderColor = '';
+            
+            // Apply styling based on selected value
+            if (this.value === 'PASS') {
+                this.style.color = '#2e7d32';
+                this.style.fontWeight = 'bold';
+                this.style.borderColor = '#2e7d32';
+            } else if (this.value === 'FAIL') {
+                this.style.color = '#c62828';
+                this.style.fontWeight = 'bold';
+                this.style.borderColor = '#c62828';
+            } else if (this.value === 'INCOMPLETE') {
+                this.style.color = '#FF8C00';
+                this.style.fontWeight = 'bold';
+                this.style.borderColor = '#FF8C00';
+            }
+        });
+    }
+    
+    // Set up close export history button event listener
+    const closeExportHistoryButton = document.getElementById('close-export-history');
+    if (closeExportHistoryButton) {
+        closeExportHistoryButton.addEventListener('click', hideExportHistory);
+    }
+    
+    // Set up export history export button event listener
+    const exportHistoryExportButton = document.getElementById('export-history-export');
+    if (exportHistoryExportButton) {
+        exportHistoryExportButton.addEventListener('click', exportHistoryAsText);
+    }
+    
+    // Set up export history print button event listener
+    const exportHistoryPrintButton = document.getElementById('export-history-print');
+    if (exportHistoryPrintButton) {
+        exportHistoryPrintButton.addEventListener('click', printHistory);
+    }
+    
+    // Set up export all test cases button event listener
+    const exportAllTestCasesButton = document.getElementById('export-all-test-cases');
+    if (exportAllTestCasesButton) {
+        exportAllTestCasesButton.addEventListener('click', exportAllTestCases);
+    }
 
     clearLogButton.addEventListener('click', clearLog);
     saveLogButton.addEventListener('click', saveLog);
@@ -1342,7 +1406,7 @@ function createLogEntryElement(entry, index) {
     
     // Handle special characters and control codes
     let formattedMessage = entry.message
-        .replace(/\r\n|\r|\n/g, '<br>')
+        .replace(/\r\n|\r|\n/g, '')
         .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
         .replace(/ /g, '&nbsp;');
     
@@ -2594,10 +2658,12 @@ function fetchRestaurantData() {
 
 
 
-// Load test plan data automatically from the server
-function loadTestPlanData() {
-    // Show loading state
-    testPlanTableContainer.innerHTML = '<div class="loading">Loading test plan...</div>';
+// Load test plan data from the server
+function loadTestPlanData(isInitialLoad = false) {
+    // Show loading state only if not initial load
+    if (!isInitialLoad) {
+        testPlanTableContainer.innerHTML = '<div class="loading">Loading test plan...</div>';
+    }
     
     // Add a timestamp to prevent caching
     const cacheBuster = `?timestamp=${Date.now()}`;
@@ -2640,20 +2706,33 @@ function loadTestPlanData() {
             
             testPlanData = data;
             renderTestPlanTabs(data.sheetNames);
+            
+            // Hide the 'Please load test plan' message and show the test plan container
+            document.getElementById('test-plan-message').style.display = 'none';
+            document.getElementById('test-plan').style.display = 'block';
+            
             // Display the first sheet by default
             if (data.sheetNames.length > 0) {
                 displayTestPlanSheet(data.sheetNames[0]);
             }
             console.log('Test plan loaded successfully');
-            showNotification('Test plan reloaded successfully', 'success');
+            
+            // Only show notification if this wasn't an initial load
+            if (!isInitialLoad) {
+                showNotification('Test plan reloaded successfully', 'success');
+            }
         })
         .catch(error => {
             console.error('Error loading test plan:', error);
-            testPlanTableContainer.innerHTML = `
-                <div class="error-message">${error.message}</div>
-                <div class="error-details">Check the console for more details</div>
-            `;
-            showNotification('Failed to load test plan', 'error');
+            
+            // Only update UI and show notification if this wasn't an initial load
+            if (!isInitialLoad) {
+                testPlanTableContainer.innerHTML = `
+                    <div class="error-message">${error.message}</div>
+                    <div class="error-details">Check the console for more details</div>
+                `;
+                showNotification('Failed to load test plan', 'error');
+            }
         });
 }
 
@@ -3677,13 +3756,33 @@ function createManualTestCase() {
         testLogEntries[manualTestCaseId] = {};
     }
     
+    // Enable the export button for manual test cases
+    const exportSelectedTestCaseButton = document.getElementById('export-selected-test-case');
+    if (exportSelectedTestCaseButton) {
+        exportSelectedTestCaseButton.disabled = false;
+    }
+    
     // Create the manual test case display
     selectedTestCaseDisplay.innerHTML = '';
+    
+    const manualTestCaseContainer = document.createElement('div');
+    manualTestCaseContainer.className = 'manual-test-case-container';
+    
+    // Create a header container for the manual test case
+    const headerContainer = document.createElement('div');
+    headerContainer.style.display = 'flex';
+    headerContainer.style.justifyContent = 'space-between';
+    headerContainer.style.alignItems = 'center';
+    headerContainer.style.marginBottom = '10px';
     
     // Create the header
     const header = document.createElement('h3');
     header.textContent = 'Manual Test Case';
-    selectedTestCaseDisplay.appendChild(header);
+    header.style.margin = '0';
+    headerContainer.appendChild(header);
+    
+    manualTestCaseContainer.appendChild(headerContainer);
+    selectedTestCaseDisplay.appendChild(manualTestCaseContainer);
     
     // Create the text box for the manual test case description
     const textBox = document.createElement('textarea');
@@ -4093,22 +4192,198 @@ function selectAllTestCasesInTab(sheetName, displayName) {
     showNotification(`Added all ${testCaseCount} test cases from ${displayName} tab`, 'success');
 }
 
-// Export the selected test case with all logs between start and pass/fail timestamps
+// Export a manual test case
+function exportManualTestCase(manualTestCaseId) {
+    console.log('Exporting manual test case:', manualTestCaseId);
+    
+    // Get the description from the manual test case textarea
+    const descriptionTextarea = document.querySelector('.manual-test-description');
+    const description = descriptionTextarea ? descriptionTextarea.value : '';
+    
+    // Create a text content for the export
+    let textContent = '';
+    
+    // Add test case header information
+    textContent += `MANUAL TEST CASE REPORT\n`;
+    textContent += `======================\n\n`;
+    textContent += `Date: ${new Date().toLocaleString()}\n`;
+    
+    // Add Device Type if available - check the dropdown first, then the status display
+    const deviceTypeDropdown = document.getElementById('deviceType');
+    const deviceTypeDisplay = document.getElementById('device-type');
+    
+    if (deviceTypeDropdown && deviceTypeDropdown.value) {
+        // First priority: use the value from the dropdown if available
+        textContent += `Device Type: ${deviceTypeDropdown.value}\n`;
+    } else if (deviceTypeDisplay && deviceTypeDisplay.textContent && deviceTypeDisplay.textContent !== '--') {
+        // Second priority: use the value from the status display if available
+        textContent += `Device Type: ${deviceTypeDisplay.textContent}\n`;
+    }
+    
+    // Add Firmware Version if available
+    const firmwareBuild = document.getElementById('firmware-build');
+    if (firmwareBuild && firmwareBuild.value) {
+        textContent += `Firmware Version: ${firmwareBuild.value}\n`;
+    }
+    
+    // Add App Version if available - check both the status display and the tracker input
+    const appVersionStatus = document.getElementById('app-version');
+    const appVersionTracker = document.getElementById('app-version-tracker');
+    
+    if (appVersionTracker && appVersionTracker.value) {
+        // First priority: use the value from the input field if available
+        textContent += `App Version: ${appVersionTracker.value}\n`;
+    } else if (appVersionStatus && appVersionStatus.textContent && appVersionStatus.textContent !== '--') {
+        // Second priority: use the value from the status display if available
+        textContent += `App Version: ${appVersionStatus.textContent}\n`;
+    }
+    
+    // Add Phone OS/Version if available
+    const phoneOS = document.getElementById('phone-type');
+    if (phoneOS && phoneOS.value) {
+        textContent += `Phone OS/Version: ${phoneOS.value}\n`;
+    }
+    
+    // Add a blank line before Test Plan Notes
+    textContent += `\n`;
+    
+    // Add Test Plan Notes if available
+    const testNotes = document.getElementById('test-notes');
+    if (testNotes && testNotes.value) {
+        textContent += `Test Plan Notes:\n${testNotes.value}\n`;
+    }
+    
+    textContent += `\n`;
+    
+    // Add test result information
+    // Check if a status is selected in the export status dropdown
+    const exportStatusDropdown = document.getElementById('export-status-dropdown');
+    let result;
+    
+    if (exportStatusDropdown && exportStatusDropdown.value) {
+        // Use the selected status from the dropdown
+        result = exportStatusDropdown.value;
+    } else if (testLogEntries[manualTestCaseId]) {
+        // Fall back to the existing logic if no status is selected
+        result = testLogEntries[manualTestCaseId].pass ? 'PASS' : 
+                (testLogEntries[manualTestCaseId].fail ? 'FAIL' : 'INCOMPLETE');
+    } else {
+        result = 'INCOMPLETE';
+    }
+    
+    textContent += `TEST RESULT: ${result}\n\n`;
+    
+    // Add the manual test case description
+    textContent += `Manual Test Case:\n${description || 'No description provided'}\n\n`;
+    
+    // Add Test Specific Notes/Bugs if available
+    if (window.testCaseNotes && window.testCaseNotes[manualTestCaseId]) {
+        textContent += `Test Specific Notes/Bugs:\n${window.testCaseNotes[manualTestCaseId]}\n\n`;
+    }
+    
+    // Also check in testLogEntries if it exists
+    if (testLogEntries[manualTestCaseId] && testLogEntries[manualTestCaseId].notes) {
+        textContent += `Test Specific Notes/Bugs:\n${testLogEntries[manualTestCaseId].notes}\n\n`;
+    }
+    
+    // Add test logs if available
+    if (testLogEntries[manualTestCaseId]) {
+        const testLogs = testLogEntries[manualTestCaseId];
+        
+        // Add Current Test Logs section if there are any logs
+        if (testLogs.start || testLogs.pass || testLogs.fail) {
+            textContent += `Current Test Logs:\n`;
+            textContent += `----------------\n`;
+            
+            // Add the start log if it exists
+            if (testLogs.start && testLogs.start.timestamp) {
+                textContent += `Start: ${testLogs.start.timestamp}\n`;
+            }
+            
+            // Add the pass log if it exists
+            if (testLogs.pass && testLogs.pass.timestamp) {
+                textContent += `Pass: ${testLogs.pass.timestamp}\n`;
+            }
+            
+            // Add the fail log if it exists
+            if (testLogs.fail && testLogs.fail.timestamp) {
+                textContent += `Fail: ${testLogs.fail.timestamp}\n`;
+            }
+            
+            textContent += `\n`;
+        }
+    }
+    
+    // Create a filename for the export with Device Type and Firmware Version
+    let deviceTypeStr = '';
+    if (deviceTypeDropdown && deviceTypeDropdown.value) {
+        deviceTypeStr = deviceTypeDropdown.value;
+    } else if (deviceTypeDisplay && deviceTypeDisplay.textContent && deviceTypeDisplay.textContent !== '--') {
+        deviceTypeStr = deviceTypeDisplay.textContent;
+    }
+    
+    let firmwareVersionStr = 'No Firmware';
+    if (firmwareBuild && firmwareBuild.value) {
+        firmwareVersionStr = firmwareBuild.value;
+    }
+    
+    // Add Pass/Fail status to filename if available
+    let statusStr = '';
+    
+    // Get the status from the dropdown if it exists
+    if (exportStatusDropdown && exportStatusDropdown.value) {
+        // Use the selected status from the dropdown
+        statusStr = ` - ${exportStatusDropdown.value}`;
+    } else if (testLogEntries[manualTestCaseId]) {
+        // Fall back to the existing logic if no status is selected
+        if (testLogEntries[manualTestCaseId].pass) {
+            statusStr = ' - PASS';
+        } else if (testLogEntries[manualTestCaseId].fail) {
+            statusStr = ' - FAIL';
+        }
+    }
+    
+    // Format the filename, handling empty device type
+    let filename;
+    if (deviceTypeStr) {
+        filename = `Manual Test Case - ${deviceTypeStr} - ${firmwareVersionStr}${statusStr} - ${new Date().toISOString().slice(0, 10)}.txt`;
+    } else {
+        filename = `Manual Test Case - ${firmwareVersionStr}${statusStr} - ${new Date().toISOString().slice(0, 10)}.txt`;
+    }
+    
+    // Create a text file and download it
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+    
+    showNotification(`Manual test case exported as ${filename}`, 'success');
+}
+
+// Export the selected test case with all logs between start and pass/fail timestamps (if available)
 function exportSelectedTestCase() {
+    console.log('Export button clicked');
     if (!currentlyDisplayedTestCase) {
         showNotification('No test selected', 'error');
         return;
     }
     
-    // Get the test logs for the current test case
-    const testLogs = testLogEntries[currentlyDisplayedTestCase];
-    if (!testLogs || !testLogs.start) {
-        showNotification('No test logs available for export', 'error');
-        return;
-    }
-    
     // Check if this is a manual test case
     const isManualTest = currentlyDisplayedTestCase.startsWith('manual-test-');
+    
+    // Initialize or get test logs - no logs required for any test case
+    if (!testLogEntries[currentlyDisplayedTestCase]) {
+        testLogEntries[currentlyDisplayedTestCase] = {};
+    }
+    const testLogs = testLogEntries[currentlyDisplayedTestCase];
     
     // Create a text content for the export
     let textContent = '';
@@ -4123,17 +4398,91 @@ function exportSelectedTestCase() {
             textContent += `Description: ${testLogs.description}\n`;
         }
     } else {
-        // Get the test case data for non-manual test cases
-        const testCaseNumber = currentlyDisplayedTestCase.split('-test-')[1];
-        const sheetName = currentlyDisplayedTestCase.split('-test-')[0];
-        textContent += `Test Case: ${testCaseNumber}\n`;
-        textContent += `Sheet: ${sheetName}\n`;
+        // Get the test case data directly from the test log entries
+        let issueKey = 'unknown';
+        let summary = '';
+        let description = '';
+        
+        // If we have test log entries with a test case object, use its properties
+        if (testLogs.testCase) {
+            issueKey = testLogs.testCase.issueKey || 'unknown';
+            summary = testLogs.testCase.summary || '';
+            description = testLogs.testCase.description || '';
+        }
+        
+        textContent += `Issue Key: ${issueKey}\n`;
+        if (summary) {
+            textContent += `Summary: ${summary}\n`;
+        }
+        textContent += `Sheet: ${currentlyDisplayedTestCase.split('-test-')[0]}\n`;
     }
     
-    textContent += `Date: ${new Date().toLocaleString()}\n\n`;
+    textContent += `Date: ${new Date().toLocaleString()}\n`;
+    
+    // Add additional information if available
+    const firmwareVersion = document.getElementById('firmware-build');
+    if (firmwareVersion && firmwareVersion.value) {
+        textContent += `Firmware Version: ${firmwareVersion.value}\n`;
+    }
+    
+    // Add App Version if available - check both the status display and the tracker input
+    const appVersionStatus = document.getElementById('app-version');
+    const appVersionTracker = document.getElementById('app-version-tracker');
+    
+    if (appVersionTracker && appVersionTracker.value) {
+        // First priority: use the value from the input field if available
+        textContent += `App Version: ${appVersionTracker.value}\n`;
+    } else if (appVersionStatus && appVersionStatus.textContent && appVersionStatus.textContent !== '--') {
+        // Second priority: use the value from the status display if available
+        textContent += `App Version: ${appVersionStatus.textContent}\n`;
+    }
+    
+    // Add Phone OS/Version if available
+    const phoneOSVersion = document.getElementById('phone-type');
+    if (phoneOSVersion && phoneOSVersion.value) {
+        textContent += `Phone OS/Version: ${phoneOSVersion.value}\n`;
+    }
+    
+    // Add Notes if available - check both the test notes and the test case notes
+    const testNotes = document.getElementById('test-notes');
+    
+    // Create the test case ID for retrieving notes from the notes field
+    let notesTestCaseId = '';
+    if (!isManualTest && testLogs.testCase) {
+        const deviceType = document.getElementById('deviceType').value || activeSheetName;
+        notesTestCaseId = `${deviceType}-test-${testLogs.testCase.issueKey}`;
+    }
+    
+    // Check for notes in the following order of priority:
+    // 1. Test notes textarea (if available)
+    // 2. Notes field in the table (using the notesTestCaseId)
+    // 3. Test case notes stored in the global testCaseNotes object
+    if (testNotes && testNotes.value) {
+        // First priority: use the value from the test notes textarea
+        textContent += `\nNotes: ${testNotes.value}\n`;
+    } else if (notesTestCaseId && window.testCaseNotes && window.testCaseNotes[notesTestCaseId]) {
+        // Second priority: use notes from the Notes field in the table
+        textContent += `\nNotes: ${window.testCaseNotes[notesTestCaseId]}\n`;
+    } else if (window.testCaseNotes && window.testCaseNotes[currentlyDisplayedTestCase]) {
+        // Third priority: use the test case notes if available
+        textContent += `\nNotes: ${window.testCaseNotes[currentlyDisplayedTestCase]}\n`;
+    }
+    
+    textContent += `\n`;
     
     // Add test result information
-    const result = testLogs.pass ? 'PASS' : (testLogs.fail ? 'FAIL' : 'INCOMPLETE');
+    // Check if a status is selected in the export status dropdown
+    const exportStatusDropdown = document.getElementById('export-status-dropdown');
+    let result;
+    
+    if (exportStatusDropdown && exportStatusDropdown.value) {
+        // Use the selected status from the dropdown
+        result = exportStatusDropdown.value;
+    } else {
+        // Fall back to the existing logic if no status is selected
+        result = testLogs.pass ? 'PASS' : (testLogs.fail ? 'FAIL' : 'INCOMPLETE');
+    }
+    
     textContent += `TEST RESULT: ${result}\n\n`;
     
     // Add test case details from the table
@@ -4199,117 +4548,136 @@ function exportSelectedTestCase() {
     }
     }
     
-    // Add test log information
-    textContent += `\nCURRENT TEST LOGS:\n`;
-    textContent += `-----------\n\n`;
-    
-    // Add start log
-    textContent += `START: ${testLogs.start.timestamp} - ${testLogs.start.text}\n\n`;
-    
-    // Add result log if available
-    if (testLogs.pass) {
-        textContent += `PASS: ${testLogs.pass.timestamp} - ${testLogs.pass.text}\n\n`;
-    } else if (testLogs.fail) {
-        textContent += `FAIL: ${testLogs.fail.timestamp} - ${testLogs.fail.text}\n\n`;
-    }
-    
-    // Add notes if they exist
+    // Add notes if they exist (moved to appear above the logs)
     if (testLogs.notes && testLogs.notes.trim()) {
-        textContent += `GENERAL NOTES/BUGS:\n`;
+        textContent += `\nTEST SPECIFIC NOTES/BUGS:\n`;
         textContent += `-----------------\n`;
         textContent += `${testLogs.notes}\n\n`;
     }
     
-    // Get all logs between start and pass/fail timestamps
-    const startTimestamp = new Date(testLogs.start.timestamp).getTime();
-    const endTimestamp = testLogs.pass ? 
-        new Date(testLogs.pass.timestamp).getTime() : 
-        (testLogs.fail ? new Date(testLogs.fail.timestamp).getTime() : Date.now());
+    // Add test log information
+    textContent += `CURRENT TEST LOGS:\n`;
+    textContent += `-----------------\n\n`;
     
-    // Filter logs that fall between the start and end timestamps
-    const relevantLogs = [];
-    logEntries.forEach(entry => {
-        const logTime = new Date(entry.timestamp).getTime();
-        if (logTime >= startTimestamp && logTime <= endTimestamp) {
-            relevantLogs.push(entry);
-        }
-    });
+    // Check if we have any test logs to display
+    const hasStartLog = testLogs.start && testLogs.start.timestamp && testLogs.start.text;
+    const hasPassLog = testLogs.pass && testLogs.pass.timestamp && testLogs.pass.text;
+    const hasFailLog = testLogs.fail && testLogs.fail.timestamp && testLogs.fail.text;
     
-    // Add categorized log entries section
-    textContent += `CATEGORIZED LOG ENTRIES:\n`;
-    textContent += `----------------------\n\n`;
-    
-    // Categorize logs by type
-    const errorLogs = [];
-    const failureLogs = [];
-    const unexpectedLogs = [];
-    const exceptionLogs = [];
-    
-    // Filter logs by category
-    relevantLogs.forEach(entry => {
-        const lowerCaseMessage = entry.message.toLowerCase();
-        if (lowerCaseMessage.includes('error')) {
-            errorLogs.push(entry);
+    // If no logs exist, indicate this in the export
+    if (!hasStartLog && !hasPassLog && !hasFailLog) {
+        textContent += `No test logs available. Test case was exported without running the test.\n\n`;
+    } else {
+        // Add start log if it exists
+        if (hasStartLog) {
+            textContent += `START: ${testLogs.start.timestamp} - ${testLogs.start.text}\n\n`;
         }
-        if (lowerCaseMessage.includes('fail') || lowerCaseMessage.includes('failure') || lowerCaseMessage.includes('fails') || lowerCaseMessage.includes('failed')) {
-            failureLogs.push(entry);
+        
+        // Add result log if available
+        if (hasPassLog) {
+            textContent += `PASS: ${testLogs.pass.timestamp} - ${testLogs.pass.text}\n\n`;
+        } else if (hasFailLog) {
+            textContent += `FAIL: ${testLogs.fail.timestamp} - ${testLogs.fail.text}\n\n`;
         }
-        if (lowerCaseMessage.includes('unexpected')) {
-            unexpectedLogs.push(entry);
-        }
-        if (lowerCaseMessage.includes('exception')) {
-            exceptionLogs.push(entry);
-        }
-    });
-    
-    // Add errors section if there are any
-    if (errorLogs.length > 0) {
-        textContent += `ERRORS:\n`;
-        textContent += `-------\n`;
-        errorLogs.forEach(entry => {
-            textContent += `${entry.timestamp} - ${entry.message}\n`;
-        });
-        textContent += `\n`;
     }
     
-    // Add failures section if there are any
-    if (failureLogs.length > 0) {
-        textContent += `FAILURES:\n`;
-        textContent += `---------\n`;
-        failureLogs.forEach(entry => {
-            textContent += `${entry.timestamp} - ${entry.message}\n`;
+    // Only include log entries if we have start and end timestamps
+    let relevantLogs = [];
+    
+    if (hasStartLog) {
+        // Get all logs between start and pass/fail timestamps
+        const startTimestamp = new Date(testLogs.start.timestamp).getTime();
+        const endTimestamp = hasPassLog ? 
+            new Date(testLogs.pass.timestamp).getTime() : 
+            (hasFailLog ? new Date(testLogs.fail.timestamp).getTime() : Date.now());
+        
+        // Filter logs that fall between the start and end timestamps
+        logEntries.forEach(entry => {
+            const logTime = new Date(entry.timestamp).getTime();
+            if (logTime >= startTimestamp && logTime <= endTimestamp) {
+                relevantLogs.push(entry);
+            }
         });
-        textContent += `\n`;
     }
     
-    // Add unexpected section if there are any
-    if (unexpectedLogs.length > 0) {
-        textContent += `UNEXPECTED:\n`;
-        textContent += `-----------\n`;
-        unexpectedLogs.forEach(entry => {
+    // Only add categorized log entries section if we have logs
+    if (relevantLogs.length > 0) {
+        textContent += `CATEGORIZED LOG ENTRIES:\n`;
+        textContent += `----------------------\n\n`;
+    
+        // Categorize logs by type
+        const errorLogs = [];
+        const failureLogs = [];
+        const unexpectedLogs = [];
+        const exceptionLogs = [];
+        
+        relevantLogs.forEach(entry => {
+            const lowerCaseMessage = entry.message.toLowerCase();
+            if (lowerCaseMessage.includes('error')) {
+                errorLogs.push(entry);
+            }
+            if (lowerCaseMessage.includes('fail') || lowerCaseMessage.includes('failure') || lowerCaseMessage.includes('fails') || lowerCaseMessage.includes('failed')) {
+                failureLogs.push(entry);
+            }
+            if (lowerCaseMessage.includes('unexpected')) {
+                unexpectedLogs.push(entry);
+            }
+            if (lowerCaseMessage.includes('exception')) {
+                exceptionLogs.push(entry);
+            }
+        });
+        
+        // Add errors section if there are any
+        if (errorLogs.length > 0) {
+            textContent += `ERRORS:\n`;
+            textContent += `-------\n`;
+            errorLogs.forEach(entry => {
+                textContent += `${entry.timestamp} - ${entry.message}\n`;
+            });
+            textContent += `\n`;
+        }
+        
+        // Add failures section if there are any
+        if (failureLogs.length > 0) {
+            textContent += `FAILURES:\n`;
+            textContent += `---------\n`;
+            failureLogs.forEach(entry => {
+                textContent += `${entry.timestamp} - ${entry.message}\n`;
+            });
+            textContent += `\n`;
+        }
+        
+        // Add unexpected section if there are any
+        if (unexpectedLogs.length > 0) {
+            textContent += `UNEXPECTED:\n`;
+            textContent += `-----------\n`;
+            unexpectedLogs.forEach(entry => {
+                textContent += `${entry.timestamp} - ${entry.message}\n`;
+            });
+            textContent += `\n`;
+        }
+        
+        // Add exceptions section if there are any
+        if (exceptionLogs.length > 0) {
+            textContent += `EXCEPTIONS:\n`;
+            textContent += `-----------\n`;
+            exceptionLogs.forEach(entry => {
+                textContent += `${entry.timestamp} - ${entry.message}\n`;
+            });
+            textContent += `\n`;
+        }
+        
+        // Add all logs section
+        textContent += `COMPLETE LOG ENTRIES:\n`;
+        textContent += `--------------------\n\n`;
+        
+        // Add each log entry
+        relevantLogs.forEach(entry => {
             textContent += `${entry.timestamp} - ${entry.message}\n`;
         });
-        textContent += `\n`;
+    } else {
+        textContent += `No log entries available.\n\n`;
     }
-    
-    // Add exceptions section if there are any
-    if (exceptionLogs.length > 0) {
-        textContent += `EXCEPTIONS:\n`;
-        textContent += `-----------\n`;
-        exceptionLogs.forEach(entry => {
-            textContent += `${entry.timestamp} - ${entry.message}\n`;
-        });
-        textContent += `\n`;
-    }
-    
-    // Add all logs section
-    textContent += `COMPLETE LOG ENTRIES:\n`;
-    textContent += `--------------------\n\n`;
-    
-    // Add each log entry
-    relevantLogs.forEach(entry => {
-        textContent += `${entry.timestamp} - ${entry.message}\n`;
-    });
     
     // Save the errors to a file
     function saveErrors() {
@@ -4479,14 +4847,48 @@ function exportSelectedTestCase() {
     }
 
     // Create a filename for the export
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     let filename;
     
     if (isManualTest) {
-        filename = `manual-test-case-${timestamp}.txt`;
+        // Get components for manual test case file name
+        let firmwareVersion = '';
+        let status = testLogs.pass ? 'Pass' : (testLogs.fail ? 'Fail' : 'Incomplete');
+        
+        // Get Firmware Version from input field
+        const firmwareElement = document.getElementById('firmware-build');
+        if (firmwareElement && firmwareElement.value) {
+            firmwareVersion = firmwareElement.value;
+        }
+        
+        // Format: "Manual Test Case - [Firmware Version] - [Pass/Fail]"
+        filename = `Manual Test Case - ${firmwareVersion ? firmwareVersion + ' - ' : ''}${status}.txt`;
     } else {
-        const testCaseNumber = currentlyDisplayedTestCase.split('-test-')[1];
-        filename = `test-case-${testCaseNumber}-${timestamp}.txt`;
+        // Get the components for the file name
+        let issueKey = 'unknown';
+        let summary = '';
+        let firmwareVersion = '';
+        let status = testLogs.pass ? 'Pass' : (testLogs.fail ? 'Fail' : 'Incomplete');
+        
+        // Get Issue Key and Summary from test case object
+        if (testLogs.testCase) {
+            issueKey = testLogs.testCase.issueKey || 'unknown';
+            summary = testLogs.testCase.summary || '';
+        }
+        
+        // Get Firmware Version from input field
+        const firmwareElement = document.getElementById('firmware-build');
+        if (firmwareElement && firmwareElement.value) {
+            firmwareVersion = firmwareElement.value;
+        }
+        
+        // Clean up summary for filename (remove special characters, limit length)
+        summary = summary.replace(/[\/:*?"<>|]/g, '').trim();
+        if (summary.length > 30) {
+            summary = summary.substring(0, 30) + '...';
+        }
+        
+        // Format: "Test Case - [Firmware Version] - [Issue Key] - [Summary] - [Pass/Fail status]"
+        filename = `Test Case - ${firmwareVersion ? firmwareVersion + ' - ' : ''}${issueKey} - ${summary} - ${status}.txt`;
     }
     
     // Create a text file and download it
@@ -4500,6 +4902,19 @@ function exportSelectedTestCase() {
     document.body.appendChild(a);
     a.click();
     
+    // Get the download path (this will be an approximation since we can't get the actual path)
+    const downloadPath = `${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}${filename}`;
+    
+    // Add to export history
+    addToExportHistory({
+        title: filename,
+        path: downloadPath,
+        date: new Date().toISOString(),
+        testCase: 'Test Case Exported',
+        summary: isManualTest ? (testLogs.description || 'Manual Test') : (testLogs.testCase?.summary || 'Unknown'),
+        result: testLogs.pass ? 'PASS' : (testLogs.fail ? 'FAIL' : 'INCOMPLETE')
+    });
+    
     // Clean up
     setTimeout(() => {
         document.body.removeChild(a);
@@ -4507,6 +4922,634 @@ function exportSelectedTestCase() {
     }, 100);
     
     showNotification(`Test case exported as ${filename}`, 'success');
+}
+
+// Export all test cases with their Pass/Fail status and individual notes
+function exportAllTestCases() {
+    // Get the test plan table
+    const testPlanTable = document.querySelector('#test-data-container table');
+    
+    if (!testPlanTable) {
+        showNotification('No test plan loaded', 'error');
+        return;
+    }
+    
+    // Create a text content for the export
+    let textContent = '';
+    
+    // Add header information
+    textContent += `ALL TEST CASES REPORT\n`;
+    textContent += `====================\n\n`;
+    textContent += `Date: ${new Date().toLocaleString()}\n`;
+    
+    // Add Device Type if available
+    const deviceType = document.getElementById('deviceType');
+    if (deviceType && deviceType.value) {
+        textContent += `Device Type: ${deviceType.value}\n`;
+    }
+    
+    // Add Firmware Version if available
+    const firmwareVersion = document.getElementById('firmware-build');
+    if (firmwareVersion && firmwareVersion.value) {
+        textContent += `Firmware Version: ${firmwareVersion.value}\n`;
+    }
+    
+    // Add App Version if available - check both the status display and the tracker input
+    const appVersionStatus = document.getElementById('app-version');
+    const appVersionTracker = document.getElementById('app-version-tracker');
+    
+    if (appVersionTracker && appVersionTracker.value) {
+        // First priority: use the value from the input field if available
+        textContent += `App Version: ${appVersionTracker.value}\n`;
+    } else if (appVersionStatus && appVersionStatus.textContent && appVersionStatus.textContent !== '--') {
+        // Second priority: use the value from the status display if available
+        textContent += `App Version: ${appVersionStatus.textContent}\n`;
+    }
+    
+    // Add Phone OS/Version if available
+    const phoneOSVersion = document.getElementById('phone-type');
+    if (phoneOSVersion && phoneOSVersion.value) {
+        textContent += `Phone OS/Version: ${phoneOSVersion.value}\n`;
+    }
+    
+    // Test Plan Notes section removed
+    
+    textContent += `\n`;
+    
+    // Get all rows from the table body
+    const rows = testPlanTable.querySelectorAll('tbody tr');
+    
+    if (!rows || rows.length === 0) {
+        showNotification('No test cases available to export', 'error');
+        return;
+    }
+    
+    // Get the headers from the table
+    const headers = [];
+    const headerRow = testPlanTable.querySelector('thead tr');
+    if (headerRow) {
+        headerRow.querySelectorAll('th').forEach(th => {
+            headers.push(th.textContent || '');
+        });
+    }
+    
+    // Find the index of the Issue Key column and Summary column
+    let issueKeyIndex = -1;
+    let summaryIndex = -1;
+    
+    headers.forEach((header, index) => {
+        const headerText = header.toLowerCase();
+        if (headerText.includes('issue') || headerText.includes('key') || headerText.includes('test #') || headerText === 'id') {
+            issueKeyIndex = index;
+        }
+        if (headerText.includes('summary')) {
+            summaryIndex = index;
+        }
+    });
+    
+    // If we couldn't find the Issue Key column, use the first column
+    if (issueKeyIndex === -1) issueKeyIndex = 0;
+    // If we couldn't find the Summary column, use the second column
+    if (summaryIndex === -1) summaryIndex = 1;
+    
+    // Get test statistics from the UI display
+    const passedTests = document.getElementById('passed-tests') ? parseInt(document.getElementById('passed-tests').textContent) || 0 : 0;
+    const failedTests = document.getElementById('failed-tests') ? parseInt(document.getElementById('failed-tests').textContent) || 0 : 0;
+    const notTestedTests = document.getElementById('not-tested-tests') ? parseInt(document.getElementById('not-tested-tests').textContent) || 0 : 0;
+    const passRate = document.getElementById('pass-rate') ? document.getElementById('pass-rate').textContent : '0%';
+    
+    // Calculate total and incomplete tests
+    const totalTests = rows.length;
+    const incompleteTests = totalTests - passedTests - failedTests - notTestedTests;
+    
+    // Add summary statistics before test case details
+    textContent += `TEST STATISTICS:\n`;
+    textContent += `---------------\n`;
+    textContent += `Total Tests: ${totalTests}\n`;
+    textContent += `Passed: ${passedTests}\n`;
+    textContent += `Failed: ${failedTests}\n`;
+    textContent += `Incomplete: ${incompleteTests}\n`;
+    textContent += `Not Started: ${notTestedTests}\n`;
+    textContent += `Pass Rate: ${passRate}\n\n`;
+    
+    // Add test cases section header
+    textContent += `TEST CASES:\n`;
+    textContent += `-----------\n\n`;
+    
+    // Second pass: add each test case with its status and notes
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (!cells || cells.length === 0) return;
+        
+        // Get the Issue Key and Summary from the table cells
+        const issueKey = cells[issueKeyIndex] ? cells[issueKeyIndex].textContent.trim() : 'unknown';
+        const summary = cells[summaryIndex] ? cells[summaryIndex].textContent.trim() : '';
+        
+        // Create a test case ID from the Issue Key
+        const testCaseId = `${activeSheetName}-test-${issueKey}`;
+        const testLogs = testLogEntries[testCaseId] || {};
+        
+        // Get the status from the row
+        let status = 'Not Started';
+        
+        // Check if the last cell in the row contains 'Pass' or 'Fail' text
+        const allCells = Array.from(row.querySelectorAll('td'));
+        if (allCells.length > 0) {
+            const lastCell = allCells[allCells.length - 1];
+            const cellText = lastCell.textContent.trim();
+            
+            if (cellText === 'Pass') {
+                status = 'PASS';
+            } else if (cellText === 'Fail') {
+                status = 'FAIL';
+            }
+        }
+        
+        // If status not found in last cell, check for visual status indicators
+        if (status === 'Not Started') {
+            const statusIndicator = row.querySelector('.status-indicator');
+            if (statusIndicator) {
+                if (statusIndicator.classList.contains('status-pass')) {
+                    status = 'PASS';
+                } else if (statusIndicator.classList.contains('status-fail')) {
+                    status = 'FAIL';
+                } else if (statusIndicator.classList.contains('status-in-progress')) {
+                    status = 'INCOMPLETE';
+                }
+            }
+        }
+        
+        // If still not found, check for pass/fail buttons that are highlighted
+        if (status === 'Not Started') {
+            const passButton = row.querySelector('.pass-button.active');
+            const failButton = row.querySelector('.fail-button.active');
+            
+            if (passButton) {
+                status = 'PASS';
+            } else if (failButton) {
+                status = 'FAIL';
+            }
+        }
+        
+        // As a last resort, check the test logs
+        if (status === 'Not Started') {
+            if (testLogs.pass) {
+                status = 'PASS';
+            } else if (testLogs.fail) {
+                status = 'FAIL';
+            } else if (testLogs.start) {
+                status = 'INCOMPLETE';
+            }
+        }
+        
+        // Add test case header
+        textContent += `Issue Key: ${issueKey}\n`;
+        textContent += `Summary: ${summary}\n`;
+        
+        // Add test case notes if available
+        if (window.testCaseNotes && window.testCaseNotes[testCaseId]) {
+            textContent += `Test Specific Notes/Bugs:\n${window.testCaseNotes[testCaseId]}\n`;
+        }
+        
+        // Add timestamps if available
+        if (testLogs.start) {
+            textContent += `Start: ${testLogs.start.timestamp}\n`;
+        }
+        if (testLogs.pass) {
+            textContent += `Pass: ${testLogs.pass.timestamp}\n`;
+        } else if (testLogs.fail) {
+            textContent += `Fail: ${testLogs.fail.timestamp}\n`;
+        }
+        
+        textContent += `\n`; // Add a blank line between test cases
+    });
+    
+    // Create a filename for the export
+    let deviceTypeStr = deviceType && deviceType.value ? deviceType.value : 'Unknown';
+    let firmwareVersionStr = firmwareVersion && firmwareVersion.value ? firmwareVersion.value : '';
+    let filename = `Test Cases - ${deviceTypeStr} - ${firmwareVersionStr || 'No Firmware'} - ${new Date().toISOString().slice(0, 10)}.txt`;
+    
+    // Create a text file and download it
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create a download link and trigger the download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Get the download path (this will be an approximation since we can't get the actual path)
+    const downloadPath = `${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}${filename}`;
+    
+    // Add to export history
+    addToExportHistory({
+        title: filename,
+        path: downloadPath,
+        date: new Date().toISOString(),
+        testCase: 'Test Case Exported',
+        summary: manualTestDescription || 'Manual Test',
+        result: 'MANUAL'
+    });
+    
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+    
+    showNotification(`Manual test case exported as ${filename}`, 'success');
+}
+
+// Export all test cases with their Pass/Fail status and individual notes
+function exportAllTestCases() {
+    // Check if test plan is loaded
+    const testPlanTable = document.querySelector('#test-data-container table');
+    if (!testPlanTable) {
+        showNotification('No test plan loaded', 'error');
+        return;
+    }
+    
+    // Get all rows from the table body
+    const rows = testPlanTable.querySelectorAll('tbody tr');
+    if (!rows || rows.length === 0) {
+        showNotification('No test cases available to export', 'error');
+        return;
+    }
+    
+    // Get metadata for the export
+    const currentDeviceType = document.getElementById('deviceType').value || 'Unknown';
+    const currentFirmwareVersion = document.getElementById('firmware-build').value || 'Not specified';
+    const currentAppVersion = document.getElementById('app-version-tracker').value || 'Not specified';
+    const currentPhoneOSVersion = document.getElementById('phone-type').value || 'Not specified';
+    const currentTestPlanNotes = document.getElementById('test-plan-notes').value || '';
+    const currentTimestamp = new Date().toLocaleString();
+    
+    // Get the headers from the table
+    const headers = [];
+    const headerRow = testPlanTable.querySelector('thead tr');
+    if (headerRow) {
+        headerRow.querySelectorAll('th').forEach(th => {
+            headers.push(th.textContent || '');
+        });
+    }
+    
+    // Find the index of the Issue Key column and Summary column
+    let issueKeyIndex = -1;
+    let summaryIndex = -1;
+    let descriptionIndex = -1;
+    
+    headers.forEach((header, index) => {
+        const headerText = header.toLowerCase();
+        if (headerText.includes('issue') || headerText.includes('key') || headerText.includes('test #') || headerText === 'id') {
+            issueKeyIndex = index;
+        }
+        if (headerText.includes('summary')) {
+            summaryIndex = index;
+        }
+        if (headerText.includes('description')) {
+            descriptionIndex = index;
+        }
+    });
+    
+    // If we couldn't find the columns, use defaults
+    if (issueKeyIndex === -1) issueKeyIndex = 0;
+    if (summaryIndex === -1) summaryIndex = 1;
+    if (descriptionIndex === -1) descriptionIndex = 2;
+    
+    // Create a workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([]);
+    
+    // Calculate test results summary
+    let totalTests = 0;
+    let passedTests = 0;
+    let failedTests = 0;
+    let notTestedTests = 0;
+    
+    // Count the different statuses
+    rows.forEach(row => {
+        totalTests++;
+        
+        // Get the status from the last cell (Pass/Fail column)
+        const cells = row.querySelectorAll('td');
+        const lastCell = cells[cells.length - 1];
+        
+        // Check for dropdown or text content
+        let status = 'Not Tested';
+        const statusDropdown = lastCell.querySelector('select');
+        
+        if (statusDropdown) {
+            const selectedOption = statusDropdown.options[statusDropdown.selectedIndex];
+            if (selectedOption) {
+                const selectedText = selectedOption.textContent.trim();
+                if (selectedText.toLowerCase().includes('pass')) {
+                    status = 'Pass';
+                    passedTests++;
+                } else if (selectedText.toLowerCase().includes('fail')) {
+                    status = 'Fail';
+                    failedTests++;
+                } else {
+                    notTestedTests++;
+                }
+            } else {
+                notTestedTests++;
+            }
+        } else if (lastCell.textContent.trim()) {
+            const cellText = lastCell.textContent.trim().toLowerCase();
+            if (cellText.includes('pass')) {
+                status = 'Pass';
+                passedTests++;
+            } else if (cellText.includes('fail')) {
+                status = 'Fail';
+                failedTests++;
+            } else {
+                notTestedTests++;
+            }
+        } else {
+            notTestedTests++;
+        }
+    });
+    
+    // Calculate pass rate based only on Pass vs. Fail (ignoring Not Tested)
+    // Only consider tests that have been executed (Pass or Fail)
+    const executedTests = passedTests + failedTests;
+    const passRate = executedTests > 0 ? Math.round((passedTests / executedTests) * 100) : 0;
+    
+    // Prepare the header data
+    const headerData = [
+        ['FTDI LOGGER - TEST PLAN EXPORT', '', '', '', ''],
+        ['', '', '', '', ''],
+        ['Generated on:', currentTimestamp, '', '', ''],
+        ['Device Type:', currentDeviceType, '', '', ''],
+        ['Firmware Version:', currentFirmwareVersion, '', '', ''],
+        ['App Version:', currentAppVersion, '', '', ''],
+        ['Phone OS/Version:', currentPhoneOSVersion, '', '', ''],
+        ['Test Plan Notes:', currentTestPlanNotes, '', '', ''],
+        ['', '', '', '', ''],
+        ['TEST PLAN RESULTS', '', '', '', ''],
+        ['Total Tests:', totalTests, '', '', ''],
+        ['Passed:', passedTests, '', '', ''],
+        ['Failed:', failedTests, '', '', ''],
+        ['Not Tested:', notTestedTests, '', '', ''],
+        ['Pass Rate:', `${passRate}%`, '', '', ''],
+        ['', '', '', '', ''],
+        ['Test Case ID', 'Summary', 'Description', 'Status', 'Notes']
+    ];
+    
+    // Add the header data to the worksheet
+    XLSX.utils.sheet_add_aoa(ws, headerData, { origin: 'A1' });
+    
+    // Process each row in the table to create data rows
+    // ... (rest of the code remains the same)
+    const dataRows = [];
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (!cells || cells.length === 0) return;
+        
+        // Get the Issue Key and Summary from the table cells
+        const issueKey = cells[issueKeyIndex] ? cells[issueKeyIndex].textContent.trim() : 'unknown';
+        const summary = cells[summaryIndex] ? cells[summaryIndex].textContent.trim() : '';
+        const description = cells[descriptionIndex] ? cells[descriptionIndex].textContent.trim() : '';
+        
+        // Create a test case ID from the Issue Key
+        const testCaseId = activeSheetName ? `${activeSheetName}-test-${issueKey}` : `test-${issueKey}`;
+        
+        // Get the status from the row - default to 'Not Tested'
+        let status = 'Not Tested';
+        
+        // Find the Pass/Fail column - it's usually the last column in the table
+        const allCells = Array.from(row.querySelectorAll('td'));
+        if (allCells.length > 0) {
+            // Check the last cell first (most likely to contain Pass/Fail)
+            const lastCell = allCells[allCells.length - 1];
+            
+            // Check for a dropdown in the cell
+            const statusDropdown = lastCell.querySelector('select');
+            if (statusDropdown) {
+                // Get the selected option's text
+                const selectedOption = statusDropdown.options[statusDropdown.selectedIndex];
+                const selectedText = selectedOption ? selectedOption.text : '';
+                
+                if (selectedText === 'Pass') {
+                    status = 'Pass';
+                } else if (selectedText === 'Fail') {
+                    status = 'Fail';
+                }
+            } 
+            // If no dropdown, check the cell text directly
+            else {
+                const cellText = lastCell.textContent.trim();
+                
+                if (cellText === 'Pass') {
+                    status = 'Pass';
+                } else if (cellText === 'Fail') {
+                    status = 'Fail';
+                }
+            }
+        }
+        
+        // If still no status from the last cell, check other indicators
+        if (status === 'Not Tested') {
+            // Check for status indicators in the row
+            const statusIndicator = row.querySelector('.status-indicator');
+            if (statusIndicator) {
+                if (statusIndicator.classList.contains('status-pass')) {
+                    status = 'Pass';
+                } else if (statusIndicator.classList.contains('status-fail')) {
+                    status = 'Fail';
+                }
+            }
+            // Check for pass/fail buttons
+            else {
+                const passButton = row.querySelector('.pass-button.active');
+                const failButton = row.querySelector('.fail-button.active');
+                
+                if (passButton) {
+                    status = 'Pass';
+                } else if (failButton) {
+                    status = 'Fail';
+                }
+            }
+        }
+        
+        // Get notes from the editable Notes field if available
+        let notes = '';
+        
+        // Check all possible sources for notes in this priority order
+        // 1. Check for notes in the table row itself (new notes field)
+        const notesCell = row.querySelector('.notes-field');
+        if (notesCell && notesCell.innerText.trim()) {
+            notes = notesCell.innerText.trim();
+        }
+        // 2. Check for notes in the contenteditable div if it exists
+        else {
+            const notesField = document.querySelector(`div.notes-field[data-test-case-id="${testCaseId}"]`);
+            if (notesField && notesField.innerText.trim()) {
+                notes = notesField.innerText.trim();
+            }
+            // 3. Check the global testCaseNotes object with the current testCaseId
+            else if (window.testCaseNotes && window.testCaseNotes[testCaseId]) {
+                notes = window.testCaseNotes[testCaseId];
+            }
+            // 4. Try with a different format of the testCaseId (without sheet name)
+            else if (window.testCaseNotes && window.testCaseNotes[`test-${issueKey}`]) {
+                notes = window.testCaseNotes[`test-${issueKey}`];
+            }
+            // 5. Try with device type instead of sheet name
+            else {
+                const deviceType = document.getElementById('deviceType').value;
+                const alternateTestCaseId = `${deviceType}-test-${issueKey}`;
+                if (window.testCaseNotes && window.testCaseNotes[alternateTestCaseId]) {
+                    notes = window.testCaseNotes[alternateTestCaseId];
+                }
+            }
+        }
+
+        // Add the test case data to the array
+        dataRows.push([issueKey, summary, description, status, notes]);
+    });
+
+    // Add the data rows to the worksheet
+    XLSX.utils.sheet_add_aoa(ws, dataRows, { origin: `A${headerData.length + 1}` });
+
+    // Apply explicit cell styles to ensure formatting works
+    // Format the title row
+    if (!ws['!cols']) ws['!cols'] = [];
+    ws['!cols'] = [
+        { width: 15 },  // Test Case ID
+        { width: 30 },  // Summary
+        { width: 50 },  // Description
+        { width: 15 },  // Status
+        { width: 30 }   // Notes
+    ];
+    
+    // Apply styles to each cell individually for better compatibility
+    // Title row - make it larger and bolder
+    ws['A1'] = { 
+        v: ws['A1'].v, // Keep the original value
+        s: { 
+            font: { bold: true, sz: 20, color: { rgb: "FFFFFF" } }, 
+            fill: { fgColor: { rgb: "0D5C23" } }, 
+            alignment: { horizontal: "center" } 
+        }
+    };
+    
+    // Merge cells for the title row
+    ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } } // Merge A1:E1 for the title
+    ];
+    
+    // Format the metadata section - make headers bold and slightly larger
+    for (let i = 2; i < headerData.length - 1; i++) { 
+        // Bold and increase size of the labels in column A
+        const cellA = `A${i+1}`;
+        if (ws[cellA] && ws[cellA].v) {
+            ws[cellA] = {
+                v: ws[cellA].v,
+                s: { font: { bold: true, sz: 12 } }
+            };
+        }
+        
+        // Add some formatting to the values in column B
+        const cellB = `B${i+1}`;
+        if (ws[cellB]) {
+            ws[cellB] = {
+                v: ws[cellB].v,
+                s: { font: { sz: 11 } }
+            };
+        }
+    }
+
+    // Format the column headers row - make them bolder and slightly larger
+    const columnHeaderRow = headerData.length;
+    const columns = ['A', 'B', 'C', 'D', 'E'];
+    columns.forEach(col => {
+        const cellRef = `${col}${columnHeaderRow}`;
+        if (ws[cellRef]) {
+            // Replace the cell completely with new object containing both value and style
+            ws[cellRef] = {
+                v: ws[cellRef].v, // Keep the original value
+                s: { 
+                    font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } },
+                    fill: { fgColor: { rgb: "0D5C23" } },
+                    alignment: { horizontal: "center" },
+                    border: {
+                        top: { style: 'thin', color: { rgb: "000000" } },
+                        bottom: { style: 'thin', color: { rgb: "000000" } }
+                    }
+                }
+            };
+        }
+    });
+    
+    // Add explicit style to the first row of data for better separation
+    const dataStartRow = headerData.length + 1;
+    columns.forEach(col => {
+        const cellRef = `${col}${dataStartRow}`;
+        if (ws[cellRef]) {
+            const originalValue = ws[cellRef].v;
+            ws[cellRef] = {
+                v: originalValue,
+                s: {
+                    border: {
+                        top: { style: 'thin', color: { rgb: "CCCCCC" } }
+                    }
+                }
+            };
+        }
+    });
+
+    // Set column widths
+    ws['!cols'] = [
+        { width: 15 },  // Test Case ID
+        { width: 30 },  // Summary
+        { width: 50 },  // Description
+        { width: 15 },  // Status
+        { width: 30 }   // Notes
+    ];
+
+    // Add the worksheet to the workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Test Cases');
+
+    // Generate filename with Firmware Version, Device Type, Today's Date, and FAIL status if needed
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    // Get firmware version and device type from the form
+    const firmwareVersion = currentFirmwareVersion !== 'Not specified' ? currentFirmwareVersion : '';
+    const deviceType = currentDeviceType !== 'Unknown' ? currentDeviceType : 'Generic';
+    
+    // Determine if the test plan has failed (only if there are actual failed tests)
+    const testPlanFailed = failedTests > 0;
+    const failSuffix = testPlanFailed ? ' - FAIL' : '';
+    
+    // Construct the filename based on available information
+    let filename = '';
+    if (firmwareVersion) {
+        filename = `${firmwareVersion} - ${deviceType} - ${formattedDate}${failSuffix}.xlsx`;
+    } else {
+        filename = `${deviceType} - ${formattedDate}${failSuffix}.xlsx`;
+    }
+
+    // Write the workbook and trigger download
+    XLSX.writeFile(wb, filename);
+
+    // Get the download path (this will be an approximation since we can't get the actual path)
+    const downloadPath = `${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}${filename}`;
+    
+    // Add to export history with appropriate result status
+    addToExportHistory({
+        title: filename,
+        path: downloadPath,
+        date: new Date().toISOString(),
+        testCase: 'Test Plan Exported',
+        summary: `(${passedTests} Pass, ${failedTests} Fail, ${notTestedTests} Not Tested)`,
+        result: testPlanFailed ? 'FAIL' : 'PASS'
+    });
+    
+    showNotification(`All test cases exported as ${filename}`, 'success');
 }
 
 // Update the state of test action buttons based on connection and test case selection
@@ -4525,8 +5568,8 @@ function updateTestActionButtonsState() {
     testPassButton.disabled = !isConnected || !hasSelectedTestCase || !hasRecentLogEntry || !hasStartLog;
     testFailButton.disabled = !isConnected || !hasSelectedTestCase || !hasRecentLogEntry || !hasStartLog;
     
-    // Enable/disable export button based on test case selection and having start log
-    exportSelectedTestCaseButton.disabled = !hasSelectedTestCase || !hasStartLog;
+    // Always enable the export button as long as a test case is selected, regardless of connection status or logs
+    exportSelectedTestCaseButton.disabled = !hasSelectedTestCase;
 }
 
 // Add a test start log entry
@@ -4617,7 +5660,7 @@ function updateTestLogDisplay() {
     
     // Add a heading for the test logs
     const logHeading = document.createElement('h4');
-    logHeading.textContent = 'Current Test Logs';
+    logHeading.textContent = 'Current Test Logs:';
     logContainer.appendChild(logHeading);
     
     // Add the start log if it exists
@@ -4649,7 +5692,7 @@ function updateTestLogDisplay() {
     notesSection.className = 'test-notes-section';
     
     const notesHeading = document.createElement('h4');
-    notesHeading.textContent = 'General Notes/Bugs';
+    notesHeading.textContent = 'Test Specific Notes/Bugs:';
     notesSection.appendChild(notesHeading);
     
     // Create editable textarea for notes
@@ -5890,6 +6933,298 @@ function updateParsedLineTypesList() {
             parsedLineTypesList.appendChild(filterTag);
         });
     }
+}
+
+// Load export history from localStorage
+function loadExportHistory() {
+    const savedHistory = localStorage.getItem('exportHistory');
+    if (savedHistory) {
+        try {
+            exportHistory = JSON.parse(savedHistory);
+            console.log(`Loaded ${exportHistory.length} export history items`);
+        } catch (error) {
+            console.error('Error loading export history:', error);
+            exportHistory = [];
+        }
+    }
+}
+
+// Save export history to localStorage
+function saveExportHistory() {
+    try {
+        localStorage.setItem('exportHistory', JSON.stringify(exportHistory));
+        console.log(`Saved ${exportHistory.length} export history items`);
+    } catch (error) {
+        console.error('Error saving export history:', error);
+        // If localStorage is full, remove the oldest items and try again
+        if (error.name === 'QuotaExceededError' && exportHistory.length > 10) {
+            exportHistory = exportHistory.slice(-10); // Keep only the 10 most recent items
+            localStorage.setItem('exportHistory', JSON.stringify(exportHistory));
+            console.log('Trimmed export history to the 10 most recent items');
+        }
+    }
+}
+
+// Add an item to the export history
+function addToExportHistory(item) {
+    // Add the new item to the beginning of the array
+    exportHistory.unshift(item);
+    
+    // Limit the history to MAX_HISTORY_ITEMS
+    if (exportHistory.length > MAX_HISTORY_ITEMS) {
+        exportHistory = exportHistory.slice(0, MAX_HISTORY_ITEMS);
+    }
+    
+    // Save the updated history to localStorage
+    saveExportHistory();
+    
+    console.log('Added item to export history:', item.title);
+}
+
+// Show the export history popup
+function showExportHistory() {
+    const historyOverlay = document.getElementById('export-history-overlay');
+    const historyList = document.getElementById('export-history-list');
+    const historyActions = document.getElementById('export-history-actions');
+    
+    // Clear the history list
+    historyList.innerHTML = '';
+    
+    // Update the global actions visibility
+    if (exportHistory.length === 0) {
+        historyActions.style.display = 'none';
+    } else {
+        historyActions.style.display = 'flex';
+    }
+    
+    // If there are no history items, show a message
+    if (exportHistory.length === 0) {
+        historyList.innerHTML = '<p class="no-history-message">No export history available.</p>';
+    } else {
+        // Show the common file location at the top
+        const locationInfo = document.createElement('div');
+        locationInfo.className = 'file-location-info';
+        locationInfo.innerHTML = `
+            <div class="file-location-label">File Location:</div>
+            <div class="file-location-path">${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}</div>
+        `;
+        historyList.appendChild(locationInfo);
+        
+        // Add each history item to the list
+        exportHistory.forEach((item, index) => {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            
+            // Format the date
+            const date = new Date(item.date);
+            const formattedDate = date.toLocaleString();
+            
+            // Extract test type and test results for better formatting
+            const testType = item.testCase;
+            
+            // Parse the summary to extract test results
+            let testResults = '';
+            if (item.summary.includes('(') && item.summary.includes(')')) {
+                const resultsMatch = item.summary.match(/\((.*?)\)/);
+                if (resultsMatch && resultsMatch[1]) {
+                    testResults = resultsMatch[1];
+                }
+            }
+            
+            // Get the summary without the test results
+            let summaryText = item.summary;
+            if (testResults) {
+                summaryText = item.summary.replace(`(${testResults})`, '').trim();
+            }
+            
+            // Create the item content
+            historyItem.innerHTML = `
+                <div class="history-item-details">
+                    <div class="history-item-title">${item.title}</div>
+                    <div class="history-item-info">
+                        <span class="history-item-test">${testType}</span>
+                    </div>
+                    <div class="history-item-summary">${summaryText}</div>
+                    <div class="history-item-results">${testResults}</div>
+                    <div class="history-item-date">${formattedDate}</div>
+                </div>
+                <div class="history-item-actions">
+                    <span class="history-item-result ${item.result}">${item.result}</span>
+                    <button class="history-action-button history-clear-button" data-index="${index}">Clear</button>
+                </div>
+            `;
+            
+            // Add the item to the list
+            historyList.appendChild(historyItem);
+        });
+        
+        // Add event listeners to the Clear buttons
+        const clearButtons = document.querySelectorAll('.history-clear-button');
+        clearButtons.forEach(button => {
+            button.addEventListener('click', (event) => {
+                const index = parseInt(event.target.getAttribute('data-index'));
+                removeHistoryItem(index);
+            });
+        });
+    }
+    
+    // Show the overlay
+    historyOverlay.style.display = 'flex';
+}
+
+// Hide the export history popup
+function hideExportHistory() {
+    const historyOverlay = document.getElementById('export-history-overlay');
+    historyOverlay.style.display = 'none';
+}
+
+// Open an exported file
+function openExportedFile(item) {
+    // We can't directly open files from the file system due to browser security restrictions
+    // Instead, show a notification with instructions
+    showNotification(`Please open the file at: ${item.path}`, 'info', 5000);
+    
+    // For Excel files, we could potentially create a new one with the same data
+    if (item.title.endsWith('.xlsx')) {
+        showNotification('Excel files must be opened manually from your Downloads folder', 'info', 5000);
+    }
+    
+    // For text files, we could potentially create a new one with similar content
+    if (item.title.endsWith('.txt')) {
+        showNotification('Text files must be opened manually from your Downloads folder', 'info', 5000);
+    }
+}
+
+// Remove a history item
+function removeHistoryItem(index) {
+    // Remove the item from the array
+    exportHistory.splice(index, 1);
+    
+    // Save the updated history
+    saveExportHistory();
+    
+    // Refresh the history display
+    showExportHistory();
+    
+    showNotification('History item removed', 'success');
+}
+
+// Export the history as a text file
+function exportHistoryAsText() {
+    // Create the text content
+    let textContent = 'FTDI Logger - Export History\n';
+    textContent += '==============================\n\n';
+    
+    if (exportHistory.length === 0) {
+        textContent += 'No export history available.\n';
+    } else {
+        exportHistory.forEach((item, index) => {
+            const date = new Date(item.date);
+            const formattedDate = date.toLocaleString();
+            
+            textContent += `${index + 1}. ${item.title}\n`;
+            textContent += `   Test Case: ${item.testCase}\n`;
+            textContent += `   Summary: ${item.summary}\n`;
+            textContent += `   Result: ${item.result}\n`;
+            textContent += `   Date: ${formattedDate}\n`;
+            textContent += `   Path: ${item.path}\n\n`;
+        });
+    }
+    
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+    const filename = `export_history_${timestamp}.txt`;
+    
+    // Create a text file and download it
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create a download link and trigger the download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+    
+    showNotification(`Export history saved as ${filename}`, 'success');
+}
+
+// Print the history
+function printHistory() {
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    
+    // Create the HTML content
+    let htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>FTDI Logger - Export History</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                h1 { color: #0d5c23; }
+                .history-item { margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 15px; }
+                .history-title { font-weight: bold; font-size: 16px; }
+                .history-info { margin: 5px 0; }
+                .history-result { font-weight: bold; }
+                .history-result.PASS { color: #0d5c23; }
+                .history-result.FAIL { color: #c5221f; }
+                .history-result.INCOMPLETE { color: #f9a825; }
+                .history-result.MANUAL { color: #3f51b5; }
+                .history-result.MULTIPLE { color: #00796b; }
+                .history-date, .history-path { color: #777; font-size: 12px; }
+                @media print { 
+                    body { font-size: 12px; }
+                    h1 { font-size: 18px; }
+                }
+            </style>
+        </head>
+        <body>
+            <h1>FTDI Logger - Export History</h1>
+    `;
+    
+    if (exportHistory.length === 0) {
+        htmlContent += '<p>No export history available.</p>';
+    } else {
+        exportHistory.forEach((item) => {
+            const date = new Date(item.date);
+            const formattedDate = date.toLocaleString();
+            
+            htmlContent += `
+                <div class="history-item">
+                    <div class="history-title">${item.title}</div>
+                    <div class="history-info">Test Case: ${item.testCase}</div>
+                    <div class="history-info">Summary: ${item.summary}</div>
+                    <div class="history-info">Result: <span class="history-result ${item.result}">${item.result}</span></div>
+                    <div class="history-date">Date: ${formattedDate}</div>
+                    <div class="history-path">Path: ${item.path}</div>
+                </div>
+            `;
+        });
+    }
+    
+    htmlContent += `
+        </body>
+        </html>
+    `;
+    
+    // Write the HTML content to the new window
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Wait for the content to load before printing
+    printWindow.onload = function() {
+        printWindow.print();
+        // Close the window after printing (optional)
+        // printWindow.close();
+    };
 }
 
 // Initialize the application when the DOM is loaded

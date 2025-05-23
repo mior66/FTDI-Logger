@@ -62,6 +62,53 @@ body {
     background-color: #0a4a1c;
 }
 
+/* Status dropdown styling */
+.status-dropdown {
+    padding: 4px 8px;
+    font-size: 12px;
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    height: 28px; /* Exact match for the small-button height */
+    vertical-align: middle;
+    box-sizing: border-box;
+    line-height: 1;
+}
+
+.status-dropdown:hover {
+    border-color: #0d5c23;
+}
+
+.status-dropdown option {
+    padding: 4px;
+}
+
+/* Style for Pass option */
+.status-dropdown option[value="PASS"],
+.pass-option {
+    background-color: #2e7d32 !important;
+    color: white !important;
+    font-weight: bold !important;
+}
+
+/* Style for Fail option */
+.status-dropdown option[value="FAIL"],
+.fail-option {
+    background-color: #c62828 !important;
+    color: white !important;
+    font-weight: bold !important;
+}
+
+/* Style for Incomplete option */
+.status-dropdown option[value="INCOMPLETE"],
+.incomplete-option {
+    background-color: #FF8C00 !important;
+    color: white !important;
+    font-weight: bold !important;
+}
+
 header {
     background: linear-gradient(135deg, #0a2a12, #0d5c23);
     color: white;
@@ -355,7 +402,7 @@ header {
 }
 
 .chart-container {
-    height: 250px;
+    height: 180px;
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
     padding: 10px;
@@ -505,7 +552,7 @@ gap: 15px;
 background-color: #fff;
 padding: 20px;
 border-radius: 0 0 8px 8px;
-margin-bottom: 20px;
+margin-bottom: 10px;
 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 align-items: center;
 }
@@ -1081,7 +1128,8 @@ button.primary:hover {
 }
 
 .device-selection {
-    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
 }
 
 .device-dropdown {
@@ -1231,8 +1279,123 @@ button.primary:hover {
 .test-table {
     width: 100%;
     border-collapse: collapse;
+    margin-bottom: 20px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Notes icon and popup styles */
+.notes-icon {
+    cursor: pointer;
+    color: #0d5c23;
+    margin-left: 5px;
+    font-size: 16px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.notes-icon:hover {
+    opacity: 1;
+}
+
+/* Styles for the editable notes field - exactly matching the original Labels field */
+.notes-field {
+    display: inline-block;
+    width: 100%;
+    min-height: 1em;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
+
+/* Styles for the notes field in the Test Case Tracking area */
+.test-case-notes {
     margin-top: 10px;
-    font-size: 14px;
+    padding: 8px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    border-left: 3px solid #0d5c23;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.notes-field:empty:before {
+    content: 'Add notes here...';
+    color: #999;
+}
+
+.notes-field:focus {
+    outline: none;
+    background-color: rgba(13, 92, 35, 0.05);
+}
+
+.notes-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    width: 400px;
+    max-width: 90%;
+}
+
+.notes-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.notes-popup-header h3 {
+    margin: 0;
+    color: #0d5c23;
+}
+
+.close-notes-popup {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+}
+
+.notes-textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.save-notes-btn {
+    background-color: #0d5c23;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.save-notes-btn:hover {
+    background-color: #0a4018;
+}
+
+.notes-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
 }
 
 .test-table th,
@@ -1836,6 +1999,56 @@ button.primary:hover {
     border-bottom: 2px solid #d0e3ff;
 }
 
+/* Custom Alert Modal */
+.custom-alert-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.custom-alert-content {
+    background-color: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    width: 300px;
+    overflow: hidden;
+}
+
+.custom-alert-header {
+    background-color: #0d5c23;
+    color: white;
+    padding: 10px 15px;
+    font-weight: bold;
+}
+
+.custom-alert-message {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.custom-alert-button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border: none;
+    border-top: 1px solid #eee;
+    cursor: pointer;
+    font-size: 14px;
+    text-align: center;
+}
+
+.custom-alert-button:hover {
+    background-color: #e5e5e5;
+}
+
 /* Modal styles */
 .modal {
     display: block;
@@ -2040,7 +2253,12 @@ button.primary:hover {
     color: #e74c3c;
 }
 
-/* Test case notes styles */
+/* Adjust spacing for Test Plan header to match spacing between other fields */
+#test-plan-message {
+    margin-top: -10px; /* Reduce space between Notes and Test Plan header */
+}
+
+/* Test Case Notes */
 .test-case-notes-container {
     margin-top: 15px;
     border-top: 1px solid #eee;
@@ -2122,13 +2340,7 @@ button.primary:hover {
     background-color: rgba(255, 255, 255, 0.3);
 }
 
-.selected-test-case-panel .export-button {
-    background-color: rgba(13, 92, 35, 0.3);
-}
-
-.selected-test-case-panel .export-button:hover {
-    background-color: rgba(13, 92, 35, 0.5);
-}
+/* Export button styling removed to match other buttons */
 
 #selected-test-case-display {
     padding: 15px;
@@ -2157,8 +2369,138 @@ button.primary:hover {
 #selected-test-case-display .test-case-placeholder {
     color: #999;
     text-align: center;
-    padding: 20px;
+    padding: 10px; /* Reduced padding to make it more compact */
     font-style: italic;
+}
+
+.test-case-details {
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    display: grid;
+    grid-template-columns: 30% 70%;
+    grid-gap: 10px;
+}
+
+.test-case-id {
+    font-size: 14px;
+    grid-column: 1 / 2;
+    grid-row: 1;
+}
+
+.test-case-summary {
+    font-size: 14px;
+    grid-column: 2 / 3;
+    grid-row: 1;
+}
+
+.test-case-description {
+    font-size: 14px;
+    line-height: 1.5;
+    grid-column: 1 / 3;
+    grid-row: 2;
+    margin-top: 10px;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+}
+
+.test-case-zen-v1 {
+    font-size: 14px;
+    grid-column: 1 / 2;
+    grid-row: 3;
+    margin-top: 10px;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+}
+
+.test-case-mysa-lv {
+    font-size: 14px;
+    grid-column: 2 / 3;
+    grid-row: 3;
+    margin-top: 10px;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+}
+
+.test-log-container {
+    margin-top: 20px;
+}
+
+.test-log-entries {
+    margin-bottom: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+
+.log-entry {
+    padding: 1px 8px;
+    margin: 0;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    line-height: 1.1;
+}
+
+/* New compact log style */
+.compact-logs .log-entry {
+    padding: 0 8px;
+    margin: 0;
+    border-bottom: none;
+}
+
+.log-start {
+    background-color: #e3f2fd;
+}
+
+.log-pass {
+    background-color: #e8f5e9;
+}
+
+.log-fail {
+    background-color: #ffebee;
+}
+
+.log-icon {
+    margin-right: 10px;
+}
+
+.log-timestamp {
+    margin-right: 10px;
+    color: #666;
+    font-size: 12px;
+}
+
+.log-type {
+    font-weight: bold;
+}
+
+.test-action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+/* Make test case rows clickable */
+#test-data-container tbody tr {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#test-data-container tbody tr:hover {
+    background-color: #f0f8ff;
+}
+
+/* Test note styling */
+.test-note {
+    margin: 15px 0;
+    padding: 10px;
+    background-color: #e8f5e9;
+    border-left: 4px solid #4caf50;
+    border-radius: 4px;
 }
 
 .test-case-header-container {
@@ -2999,4 +3341,302 @@ button.primary:hover {
     outline: none;
     border-color: #0d5c23;
     box-shadow: 0 0 5px rgba(13, 92, 35, 0.3);
+}
+
+/* Automated Settings Styles */
+.automated-settings-wrapper {
+    margin: 20px 0;
+}
+
+.automated-settings-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.automated-settings-header {
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #0a2a12, #0d5c23);
+    color: white;
+    border-bottom: 1px solid #0a2a12;
+}
+
+.automated-settings-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.thermostat-status-inline {
+    padding: 15px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Export History Overlay Styles */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.overlay-content {
+    background-color: #fff;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #0a2a12, #0d5c23);
+    color: white;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.overlay-header h2 {
+    margin: 0;
+    color: white;
+    font-size: 1.4rem;
+    font-weight: bold;
+}
+
+.close-button {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #0d5c23;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.close-button:hover {
+    background-color: #f8f8f8;
+    color: #c5221f;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.overlay-body {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(80vh - 70px);
+}
+
+.history-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.history-global-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    background-color: #0d5c23;
+    color: white;
+    transition: background-color 0.2s;
+}
+
+.history-global-button:hover {
+    background-color: #0a4a1c;
+}
+
+.file-location-info {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #f0f0f0;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.file-location-label {
+    font-weight: bold;
+    margin-right: 10px;
+    color: #555;
+}
+
+.file-location-path {
+    font-family: monospace;
+    color: #666;
+}
+
+.history-list {
+    margin-top: 20px;
+    max-height: 500px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #f9f9f9;
+    transition: background-color 0.2s;
+}
+
+.history-item:hover {
+    background-color: #f0f0f0;
+}
+
+.history-item-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.history-item-title {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #0d5c23;
+}
+
+.history-item-info {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.history-item-test {
+    color: #555;
+    font-weight: bold;
+}
+
+.history-item-summary {
+    color: #555;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.history-item-results {
+    color: #555;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+    font-style: italic;
+}
+
+.history-item-result {
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin-right: 10px;
+}
+
+.history-item-result.PASS {
+    background-color: #e6f4ea;
+    color: #0d5c23;
+}
+
+.history-item-result.FAIL {
+    background-color: #fce8e6;
+    color: #c5221f;
+}
+
+.history-item-result.INCOMPLETE {
+    background-color: #fff8e1;
+    color: #f9a825;
+}
+
+.history-item-result.MANUAL {
+    background-color: #e8eaf6;
+    color: #3f51b5;
+}
+
+.history-item-result.MULTIPLE {
+    background-color: #e0f2f1;
+    color: #00796b;
+}
+
+.history-item-date {
+    color: #777;
+    font-size: 0.85rem;
+}
+
+.history-item-path {
+    color: #999;
+    font-size: 0.8rem;
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.history-item-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.history-action-button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+}
+
+.history-open-button {
+    background-color: #0d5c23;
+    color: white;
+}
+
+.history-open-button:hover {
+    background-color: #094019;
+}
+
+.history-clear-button {
+    background-color: #c5221f;
+    color: white;
+}
+
+.history-clear-button:hover {
+    background-color: #a11c19;
+}
+
+.no-history-message {
+    text-align: center;
+    color: #777;
+    padding: 20px;
+    font-style: italic;
 }
