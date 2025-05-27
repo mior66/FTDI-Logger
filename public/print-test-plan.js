@@ -81,11 +81,11 @@ function printTestPlan() {
                 .metadata-label { font-weight: bold; }
                 .statistics { margin-bottom: 20px; }
                 .statistics-item { margin: 5px 0; }
-                .test-case { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #ddd; }
-                .test-case-header { font-weight: bold; margin-bottom: 5px; }
-                .test-case-info { margin: 3px 0; }
-                .test-case-description { margin: 8px 0; white-space: pre-wrap; }
-                .test-case-notes { margin-top: 5px; white-space: pre-wrap; }
+                .test-case { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #ddd; }
+                .test-case-header { font-weight: bold; margin-bottom: 3px; }
+                .test-case-info { margin: 2px 0; }
+                .test-case-description { margin: 3px 0; white-space: normal; }
+                .test-case-notes { margin-top: 3px; white-space: normal; }
                 .status { font-weight: bold; }
                 .status-pass { color: #0d5c23; }
                 .status-fail { color: #c5221f; }
@@ -133,10 +133,7 @@ function printTestPlan() {
     
     // Add Test Plan Notes if available
     if (testPlanNotes) {
-        htmlContent += `
-            <h2>Test Plan Notes</h2>
-            <div class="test-plan-notes">${testPlanNotes}</div>
-        `;
+        htmlContent += `<h2>Test Plan Notes</h2><div class="test-plan-notes">${testPlanNotes}</div>`;
     }
     
     htmlContent += `<h2>Test Cases</h2>`;
@@ -223,11 +220,7 @@ function printTestPlan() {
         const notes = window.testCaseNotes && window.testCaseNotes[testCaseId] ? window.testCaseNotes[testCaseId] : '';
         
         // Add test case to HTML content
-        htmlContent += `
-            <div class="test-case">
-                <div class="test-case-header">${issueKey}: ${summary}</div>
-                <div class="test-case-info"><span class="metadata-label">Status:</span> <span class="status ${statusClass}">${status}</span></div>
-        `;
+        htmlContent += `<div class="test-case"><div class="test-case-header">${issueKey}: ${summary}</div><div class="test-case-info"><span class="metadata-label">Status:</span> <span class="status ${statusClass}">${status}</span></div>`;
         
         // Add description if available
         if (description) {
@@ -246,26 +239,18 @@ function printTestPlan() {
         
         // Add notes if available
         if (notes) {
-            htmlContent += `
-                <div class="notes-section">
-                    <div class="notes-label">Notes:</div>
-                    <div class="test-case-notes">${notes}</div>
-                </div>
-            `;
+            htmlContent += `<div class="notes-section"><div class="notes-label">Notes:</div><div class="test-case-notes">${notes}</div></div>`;
         }
         
         htmlContent += `</div>`;
         
-        // Add page break after every 10 test cases (except the last page)
-        if ((index + 1) % 10 === 0 && index < rows.length - 1) {
+        // Add page break after every 15 test cases (except the last page)
+        if ((index + 1) % 15 === 0 && index < rows.length - 1) {
             htmlContent += `<div class="page-break"></div>`;
         }
     });
     
-    htmlContent += `
-        </body>
-        </html>
-    `;
+    htmlContent += `</body></html>`;
     
     // Write the HTML content to the new window
     printWindow.document.open();
