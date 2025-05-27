@@ -3621,9 +3621,6 @@ button.primary:hover {
     color: white;
 }
 
-.history-open-button:hover {
-    background-color: #094019;
-}
 
 .history-clear-button {
     background-color: #c5221f;
