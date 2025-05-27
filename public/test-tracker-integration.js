@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let testResults = {};
     let currentSheetName = null;
     let currentDeviceType = '';
+    let originalLVTestCases = []; // Store original LV test cases for category filtering
     let filteredTestCases = [];
     
     // Both panels are now visible by default and the Manual Testing button has been removed
@@ -41,12 +42,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (loadFileBtn) {
                         loadFileBtn.textContent = 'Load Test Plan';
                     }
+                    
+                    // Show the LV category filter dropdown
+                    const lvCategoryFilterContainer = document.getElementById('lv-category-filter-container');
+                    if (lvCategoryFilterContainer) {
+                        lvCategoryFilterContainer.style.display = 'flex';
+                    }
                 } else {
                     // For other device types
                     // Update file upload text
                     const fileUploadText = document.querySelector('.file-upload-container p');
                     if (fileUploadText) {
                         fileUploadText.textContent = `Upload your ${currentDeviceType} test cases Excel file:`;
+                    }
+                    
+                    // Hide the LV category filter dropdown
+                    const lvCategoryFilterContainer = document.getElementById('lv-category-filter-container');
+                    if (lvCategoryFilterContainer) {
+                        lvCategoryFilterContainer.style.display = 'none';
                     }
                     
                     // Update button text
@@ -67,7 +80,34 @@ document.addEventListener('DOMContentLoaded', function() {
     if (loadFileBtn) {
         loadFileBtn.addEventListener('click', function() {
             if (!fileUpload.files.length) {
-                alert('Please select a file first.');
+                // Custom alert with 'Warning:' instead of 'localhost:3000 says'
+                const warningMessage = 'Please select a file first.';
+                
+                // Create a custom modal dialog
+                const modal = document.createElement('div');
+                modal.className = 'custom-alert-modal';
+                modal.innerHTML = `
+                    <div class="custom-alert-content">
+                        <div class="custom-alert-header">Warning:</div>
+                        <div class="custom-alert-message">${warningMessage}</div>
+                        <button class="custom-alert-button">OK</button>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Add event listener to the OK button
+                const okButton = modal.querySelector('.custom-alert-button');
+                okButton.addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                });
+                
+                // Also close when clicking outside the modal
+                modal.addEventListener('click', function(event) {
+                    if (event.target === modal) {
+                        document.body.removeChild(modal);
+                    }
+                });
                 return;
             }
             
@@ -110,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
             testResults = {};
             currentSheetName = null;
             filteredTestCases = [];
+            originalLVTestCases = []; // Reset the original LV test cases array
             
             // Clear the test data container
             testDataContainer.innerHTML = '';
@@ -119,6 +160,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Clear file input
             fileUpload.value = '';
+            
+            // Reset and disable the LV category filter dropdown
+            const lvCategoryFilter = document.getElementById('lv-category-filter');
+            if (lvCategoryFilter) {
+                lvCategoryFilter.value = 'all'; // Reset to 'All' option
+                lvCategoryFilter.disabled = true;
+            }
         });
     }
     
@@ -144,6 +192,23 @@ document.addEventListener('DOMContentLoaded', function() {
     function processDeviceTestCases(workbook, deviceType) {
         console.log(`Processing ${deviceType} test cases`);
         filteredTestCases = [];
+        
+        // If this is an LV device type, enable the category filter dropdown
+        if (deviceType === 'LV') {
+            const lvCategoryFilter = document.getElementById('lv-category-filter');
+            if (lvCategoryFilter) {
+                // Enable the dropdown
+                lvCategoryFilter.disabled = false;
+                
+                // Add event listener to filter test cases when category changes
+                lvCategoryFilter.addEventListener('change', function() {
+                    filterLVTestCasesByCategory(this.value);
+                });
+                
+                // Reset to 'All' option
+                lvCategoryFilter.value = 'all';
+            }
+        }
         
         try {
             // Process the first sheet with label filtering for all device types
@@ -295,9 +360,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         mysaLV: mysaLVIndex >= 0 ? row[mysaLVIndex] : '',
                         labels: labels.join(', '),
                         status: 'not-tested', // Default status
-                        isSubRow: isSubRow // Flag to identify sub-rows
+                        isSubRow: isSubRow, // Flag to identify sub-rows
+                        notes: '' // Field to store user notes
                     });
                 }
+            }
+            
+            // Store original LV test cases for filtering
+            if (deviceType === 'LV') {
+                originalLVTestCases = [...filteredTestCases];
             }
             
             // Display the filtered test cases
@@ -316,6 +387,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function processLVTestPlan(workbook) {
         // Clear previous data
         testDataContainer.innerHTML = '';
+        
+        // Enable the LV category filter dropdown
+        const lvCategoryFilter = document.getElementById('lv-category-filter');
+        if (lvCategoryFilter) {
+            // Enable the dropdown
+            lvCategoryFilter.disabled = false;
+            
+            // Add event listener to filter test cases when category changes
+            lvCategoryFilter.addEventListener('change', function() {
+                filterLVTestCasesByCategory(this.value);
+            });
+            
+            // Reset to 'All' option
+            lvCategoryFilter.value = 'all';
+        }
         
         // Create tabs container if it doesn't exist
         let tabsContainer = document.getElementById('tabs-container');
@@ -579,6 +665,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value="not-tested">Not Tested</option>
                                 <option value="pass">Pass</option>
                                 <option value="fail">Fail</option>
+                                <option value="in-progress">In Progress</option>
                             </select>
                         </td>`;
                     }
@@ -664,6 +751,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value="not-tested">Not Tested</option>
                                 <option value="pass">Pass</option>
                                 <option value="fail">Fail</option>
+                                <option value="in-progress">In Progress</option>
                             </select>
                         </td>`;
                     }
@@ -694,6 +782,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <option value="not-tested">Not Tested</option>
                             <option value="pass">Pass</option>
                             <option value="fail">Fail</option>
+                                <option value="in-progress">In Progress</option>
                         </select>
                     </td>`;
                 }
@@ -708,6 +797,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add the table to the content container
         document.getElementById('test-content-container').innerHTML = tableHTML;
+        
+        // Store original LV test cases for filtering
+        originalLVTestCases = [...filteredTestCases];
         
         // Add CSS for CN test styling and single-line Issue Key display
         const style = document.createElement('style');
@@ -796,7 +888,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (deviceType === 'LV') {
             headers = ['Issue Key', 'Summary', 'Description', 'Zen V1', 'Mysa LV', 'Pass/Fail'];
         } else {
-            headers = ['Issue Key', 'Summary', 'Description', 'Labels', 'Pass/Fail'];
+            headers = ['Issue Key', 'Summary', 'Description', 'Notes', 'Pass/Fail'];
         }
         headers.forEach((header, index) => {
             // Add a special class for the Issue Key column header
@@ -824,46 +916,60 @@ document.addEventListener('DOMContentLoaded', function() {
             if (deviceType === 'LV') {
                 // Issue Key for LV - using the same fixed width approach as for non-LV
                 const issueKey = testCase.issueKey || 'N/A';
-                tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${issueKey}</td>`;
+                tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${issueKey}
+                </td>`;
                 
-                // Summary for LV
-                tableHTML += `<td>${testCase.summary || 'N/A'}</td>`;
+                // Summary for LV - remove LV label if present
+                let summary = testCase.summary || 'N/A';
+                // Remove 'LV' prefix if it exists
+                summary = summary.replace(/^\s*LV\s*[-:]*\s*/i, '');
+                // Use the same styling as other device types with explicit width
+                tableHTML += `<td style="width: 20%;">${summary}</td>`;
                 
-                // Description - clean and preserve line breaks
+                // Description - clean and preserve line breaks, further increased width to give space to Zen V1 and Mysa LV
                 let description = testCase.description || 'N/A';
                 description = cleanDescription(description);
-                tableHTML += `<td>${description.replace(/\n/g, '<br>')}</td>`;
+                tableHTML += `<td style="width: 45%;">${description.replace(/\n/g, '<br>')}</td>`;
                 
-                // Zen V1 column - preserve line breaks
+                // Zen V1 column - preserve line breaks and set fixed width
                 const zenV1 = testCase.zenV1 || '';
-                tableHTML += `<td>${zenV1.replace(/\n/g, '<br>')}</td>`;
+                tableHTML += `<td style="width: 20%;">${zenV1.replace(/\n/g, '<br>')}</td>`;
                 
-                // Mysa LV column - preserve line breaks
+                // Mysa LV column - preserve line breaks and set fixed width
                 const mysaLV = testCase.mysaLV || '';
-                tableHTML += `<td>${mysaLV.replace(/\n/g, '<br>')}</td>`;
+                tableHTML += `<td style="width: 20%;">${mysaLV.replace(/\n/g, '<br>')}</td>`;
             } else {
                 // Issue Key on a single line - using a fixed width approach
                 const issueKey = testCase.issueKey || 'N/A';
-                tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${issueKey}</td>`;
+                tableHTML += `<td style="width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${issueKey}
+                </td>`;
                 
-                // Summary as a separate column
-                tableHTML += `<td>${testCase.summary || 'N/A'}</td>`;
+                // Summary as a separate column with explicit width
+                tableHTML += `<td style="width: 20%;">${testCase.summary || 'N/A'}</td>`;
                 
-                // Description - clean and preserve line breaks
+                // Description - clean and preserve line breaks with further increased width
                 let description = testCase.description || 'N/A';
                 description = cleanDescription(description);
-                tableHTML += `<td>${description.replace(/\n/g, '<br>')}</td>`;
+                tableHTML += `<td style="width: 45%;">${description.replace(/\n/g, '<br>')}</td>`;
                 
-                // Labels column for non-LV device types
-                tableHTML += `<td>${testCase.labels || 'N/A'}</td>`;
+                // Notes field for non-LV device types - using contenteditable div with increased width
+                const testCaseId = `${deviceType}-test-${testCase.issueKey}`;
+                const savedNotes = window.testCaseNotes && window.testCaseNotes[testCaseId] ? window.testCaseNotes[testCaseId] : '';
+                tableHTML += `<td style="width: 20%;">
+                    <div class="notes-field" data-test-case-id="${testCaseId}" contenteditable="true" 
+                    onblur="saveNotes(this, '${testCaseId}')">${savedNotes}</div>
+                </td>`;
             }
             
-            // Pass/Fail dropdown
-            tableHTML += '<td>';
+            // Pass/Fail dropdown with constrained width
+            tableHTML += '<td style="width: 10%;">';
             tableHTML += '<select class="status-select" onchange="updateTestStatus(this)">';
             tableHTML += '<option value="not-tested" selected>Not Tested</option>';
             tableHTML += '<option value="pass">Pass</option>';
             tableHTML += '<option value="fail">Fail</option>';
+            tableHTML += '<option value="in-progress">In Progress</option>';
             tableHTML += '</select>';
             tableHTML += '</td>';
             
@@ -891,6 +997,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.classList.add('pass-selected');
                 } else if (status === 'fail') {
                     this.classList.add('fail-selected');
+                } else if (status === 'in-progress') {
+                    this.classList.add('in-progress-selected');
+                } else if (status === 'not-tested') {
+                    this.classList.add('incomplete-selected');
                 }
                 
                 // Update summary stats
@@ -915,12 +1025,47 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Function to filter LV test cases by category
+    function filterLVTestCasesByCategory(category) {
+        // If no category selected or 'all' selected, show all test cases
+        if (!category || category === 'all') {
+            filteredTestCases = [...originalLVTestCases];
+        } else {
+            // Filter test cases based on the Issue Key prefix
+            filteredTestCases = originalLVTestCases.filter(testCase => {
+                const issueKey = testCase.issueKey || '';
+                
+                switch(category) {
+                    case 'heat':
+                        return issueKey.startsWith('H-');
+                    case 'cool':
+                        return issueKey.startsWith('C-');
+                    case 'general':
+                        return issueKey.startsWith('G-');
+                    case 'pairing':
+                        return issueKey.startsWith('CP-');
+                    case 'specific':
+                        return issueKey.startsWith('CN-');
+                    default:
+                        return true;
+                }
+            });
+        }
+        
+        // Display the filtered test cases
+        displayFilteredTestCases('LV');
+        
+        // Update summary statistics
+        updateSummaryStats();
+    }
+    
     // Update the summary statistics
     function updateSummaryStats() {
         // Calculate totals
         let totalTests = filteredTestCases.length;
         let totalPassed = 0;
         let totalFailed = 0;
+        let totalInProgress = 0;
         let totalNotTested = 0;
         
         filteredTestCases.forEach(testCase => {
@@ -928,6 +1073,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 totalPassed++;
             } else if (testCase.status === 'fail') {
                 totalFailed++;
+            } else if (testCase.status === 'in-progress') {
+                totalInProgress++;
             } else {
                 totalNotTested++;
             }
@@ -941,6 +1088,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('total-tests').textContent = totalTests;
         document.getElementById('passed-tests').textContent = totalPassed;
         document.getElementById('failed-tests').textContent = totalFailed;
+        document.getElementById('in-progress-tests').textContent = totalInProgress;
         document.getElementById('not-tested-tests').textContent = totalNotTested;
         document.getElementById('pass-rate').textContent = `${passRate}%`;
         
@@ -952,6 +1100,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="stat-item">Total: <span class="stat-value">${totalTests}</span></div>
                     <div class="stat-item">Passed: <span class="stat-value pass">${totalPassed}</span></div>
                     <div class="stat-item">Failed: <span class="stat-value fail">${totalFailed}</span></div>
+                    <div class="stat-item">In Progress: <span class="stat-value in-progress">${totalInProgress}</span></div>
                     <div class="stat-item">Not Tested: <span class="stat-value">${totalNotTested}</span></div>
                 </div>
             `;
@@ -993,14 +1142,48 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add test case ID/number
         const idElement = document.createElement('div');
         idElement.className = 'test-case-id';
-        idElement.innerHTML = `<strong>ID:</strong> ${testCase.issueKey || 'N/A'}`;
+        idElement.innerHTML = `<strong>Issue Key:</strong> ${testCase.issueKey || 'N/A'}`;
         detailsContainer.appendChild(idElement);
+        
+        // Add summary
+        const summaryElement = document.createElement('div');
+        summaryElement.className = 'test-case-summary';
+        let summary = testCase.summary || 'N/A';
+        // Remove 'LV' prefix if it exists
+        summary = summary.replace(/^\s*LV\s*[-:]*\s*/i, '');
+        summaryElement.innerHTML = `<strong>Summary:</strong> ${summary}`;
+        detailsContainer.appendChild(summaryElement);
         
         // Add description
         const descElement = document.createElement('div');
         descElement.className = 'test-case-description';
         descElement.innerHTML = `<strong>Description:</strong><br>${testCase.description ? testCase.description.replace(/\n/g, '<br>') : 'N/A'}`;
         detailsContainer.appendChild(descElement);
+        
+        // For LV tests, add Zen V1 and Mysa LV fields if they exist
+        if (testCase.zenV1 !== undefined) {
+            const zenV1Element = document.createElement('div');
+            zenV1Element.className = 'test-case-zen-v1';
+            zenV1Element.innerHTML = `<strong>Zen V1:</strong><br>${testCase.zenV1 ? testCase.zenV1.replace(/\n/g, '<br>') : 'N/A'}`;
+            detailsContainer.appendChild(zenV1Element);
+        }
+        
+        if (testCase.mysaLV !== undefined) {
+            const mysaLVElement = document.createElement('div');
+            mysaLVElement.className = 'test-case-mysa-lv';
+            mysaLVElement.innerHTML = `<strong>Mysa LV:</strong><br>${testCase.mysaLV ? testCase.mysaLV.replace(/\n/g, '<br>') : 'N/A'}`;
+            detailsContainer.appendChild(mysaLVElement);
+        }
+        
+        // Add Notes field
+        const notesElement = document.createElement('div');
+        notesElement.className = 'test-case-notes';
+        // Get the test case ID for retrieving notes
+        const notesTestCaseId = `${currentDeviceType}-test-${testCase.issueKey}`;
+        // Get notes from the global notes object or from the contenteditable div
+        const notes = window.testCaseNotes && window.testCaseNotes[notesTestCaseId] ? window.testCaseNotes[notesTestCaseId] : '';
+        notesElement.innerHTML = `<strong>Notes:</strong><br>${notes ? notes.replace(/\n/g, '<br>') : 'No notes added yet'}`;
+        detailsContainer.appendChild(notesElement);
         
         selectedTestCaseDisplay.appendChild(detailsContainer);
         
@@ -1075,30 +1258,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     select.classList.add('pass-selected');
                 } else if (status === 'fail') {
                     select.classList.add('fail-selected');
+                } else if (status === 'in-progress') {
+                    select.classList.add('in-progress-selected');
+                } else if (status === 'not-tested') {
+                    select.classList.add('incomplete-selected');
                 }
             }
         }
         
-        // Update summary stats
-        updateSummaryStats();
-    }
     
-    // Function to update test status (called from inline event handler)
-    window.updateTestStatus = function(selectElement) {
-        const row = selectElement.closest('tr');
-        const index = parseInt(row.dataset.index);
-        const status = selectElement.value;
-        
-        // Update the test case status
-        filteredTestCases[index].status = status;
-        
-        // Apply color styling based on selection
-        selectElement.className = 'status-select';
-        if (status === 'pass') {
-            selectElement.classList.add('pass-selected');
-        } else if (status === 'fail') {
-            selectElement.classList.add('fail-selected');
-        }
+    // Store as currently displayed test case - this is the key part that makes the buttons work
+    currentlyDisplayedTestCase = testCaseId;
         
         // Update summary stats
         updateSummaryStats();
@@ -1106,4 +1276,113 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize
     updateSummaryStats();
+    
+    // Notes popup functionality
+    let currentNoteIndex = -1;
+    
+    // Function to open the notes popup
+    window.openNotesPopup = function(index) {
+        currentNoteIndex = index;
+        const testCase = filteredTestCases[index];
+        if (!testCase) return;
+        
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'notes-overlay';
+        document.body.appendChild(overlay);
+        
+        // Create popup
+        const popup = document.createElement('div');
+        popup.className = 'notes-popup';
+        
+        // Create popup header
+        const popupHeader = document.createElement('div');
+        popupHeader.className = 'notes-popup-header';
+        
+        const popupTitle = document.createElement('h3');
+        popupTitle.textContent = `Notes for ${testCase.issueKey}`;
+        popupHeader.appendChild(popupTitle);
+        
+        const closeButton = document.createElement('button');
+        closeButton.className = 'close-notes-popup';
+        closeButton.innerHTML = '&times;';
+        closeButton.onclick = closeNotesPopup;
+        popupHeader.appendChild(closeButton);
+        
+        popup.appendChild(popupHeader);
+        
+        // Create textarea for notes
+        const textarea = document.createElement('textarea');
+        textarea.className = 'notes-textarea';
+        textarea.value = testCase.notes || '';
+        textarea.placeholder = 'Add your notes here...';
+        popup.appendChild(textarea);
+        
+        // Create save button
+        const saveButton = document.createElement('button');
+        saveButton.className = 'save-notes-btn';
+        saveButton.textContent = 'Save Notes';
+        saveButton.onclick = function() {
+            saveNotes(textarea.value);
+        };
+        popup.appendChild(saveButton);
+        
+        document.body.appendChild(popup);
+        
+        // Focus the textarea
+        textarea.focus();
+        
+        // Close popup when clicking on overlay
+        overlay.addEventListener('click', closeNotesPopup);
+    };
+    
+    // Function to save notes
+    function saveNotes(notesText) {
+        if (currentNoteIndex >= 0 && currentNoteIndex < filteredTestCases.length) {
+            // Save the notes to the test case
+            filteredTestCases[currentNoteIndex].notes = notesText;
+            
+            // Close the popup
+            closeNotesPopup();
+            
+            // Provide visual feedback that notes were saved
+            const row = document.querySelector(`tr[data-index="${currentNoteIndex}"]`);
+            if (row) {
+                const notesIcon = row.querySelector('.notes-icon');
+                if (notesIcon) {
+                    // Change color or add a class to indicate notes exist
+                    if (notesText.trim()) {
+                        notesIcon.style.opacity = '1';
+                    } else {
+                        notesIcon.style.opacity = '0.7';
+                    }
+                }
+            }
+        }
+    }
+    
+    // Function to close the notes popup
+    function closeNotesPopup() {
+        // Remove the overlay and popup
+        const overlay = document.querySelector('.notes-overlay');
+        const popup = document.querySelector('.notes-popup');
+        
+        if (overlay) document.body.removeChild(overlay);
+        if (popup) document.body.removeChild(popup);
+        
+        currentNoteIndex = -1;
+    }
+    
+    // Function to save notes directly from the contenteditable div in the table
+    window.saveNotes = function(element, testCaseId) {
+        // Initialize the testCaseNotes object if it doesn't exist
+        if (!window.testCaseNotes) {
+            window.testCaseNotes = {};
+        }
+        
+        // Save the notes
+        window.testCaseNotes[testCaseId] = element.innerText;
+        
+        console.log(`Saved notes for ${testCaseId}:`, element.innerText);
+    }
 });

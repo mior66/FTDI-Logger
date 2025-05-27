@@ -109,10 +109,11 @@
             <div class="test-case-header">
                 <h3>Test Case Tracking</h3>
                 <div class="test-case-controls">
-                    <select id="export-status-dropdown" class="status-dropdown" style="margin-right: 5px;">
+                    <select id="export-status-dropdown" class="status-dropdown" style="margin-right: 5px;" onchange="this.style.backgroundColor = this.value === 'PASS' ? '#2e7d32' : this.value === 'FAIL' ? '#c62828' : this.value === 'IN_PROGRESS' ? '#FF8C00' : this.value === 'INCOMPLETE' ? '#1976D2' : ''; this.style.color = this.value ? 'white' : '';">
                         <option value="">Status</option>
                         <option value="PASS" class="pass-option">PASS</option>
                         <option value="FAIL" class="fail-option">FAIL</option>
+                        <option value="IN_PROGRESS" class="in-progress-option">IN PROGRESS</option>
                         <option value="INCOMPLETE" class="incomplete-option">INCOMPLETE</option>
                     </select>
                     <button id="export-selected-test-case" class="small-button export-button">Test Case Export</button>
@@ -173,6 +174,10 @@
                             <div style="display: flex; align-items: center; margin-right: 15px;">
                                 <span class="stat-label">Fail:</span>
                                 <span id="failed-tests" class="stat-value" style="margin-left: 5px; color: #c62828;">0</span>
+                            </div>
+                            <div style="display: flex; align-items: center; margin-right: 15px;">
+                                <span class="stat-label">In Progress:</span>
+                                <span id="in-progress-tests" class="stat-value" style="margin-left: 5px; color: #FF8C00;">0</span>
                             </div>
                             <div style="display: flex; align-items: center; margin-right: 15px;">
                                 <span class="stat-label">Not Tested:</span>

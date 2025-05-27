@@ -101,12 +101,25 @@ body {
     font-weight: bold !important;
 }
 
+/* Style for In Progress option */
+.status-dropdown option[value="IN_PROGRESS"],
+.in-progress-option {
+    background-color: #FF8C00 !important; /* Orange color */
+    color: white !important;
+    font-weight: bold !important;
+}
+
 /* Style for Incomplete option */
 .status-dropdown option[value="INCOMPLETE"],
 .incomplete-option {
-    background-color: #FF8C00 !important;
+    background-color: #1976D2 !important; /* Blue color */
     color: white !important;
     font-weight: bold !important;
+}
+
+/* Additional styles for test results */
+.in-progress {
+    color: #FF8C00 !important;
 }
 
 header {
@@ -1503,6 +1516,16 @@ button.primary:hover {
     color: white;
 }
 
+.status-select option[value="in-progress"] {
+    background-color: #FF8C00;
+    color: white;
+}
+
+.status-select option[value="not-tested"] {
+    background-color: #1976D2;
+    color: white;
+}
+
 /* Sub-row styling */
 .sub-row td:first-child {
     padding-left: 20px;
@@ -1524,6 +1547,18 @@ button.primary:hover {
     background-color: #c62828;
     color: white;
     border-color: #b71c1c;
+}
+
+.status-select.in-progress-selected {
+    background-color: #FF8C00;
+    color: white;
+    border-color: #E67E00;
+}
+
+.status-select.incomplete-selected {
+    background-color: #1976D2;
+    color: white;
+    border-color: #0D47A1;
 }
 
 /* Expandable Test Case Styles */

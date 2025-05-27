@@ -5272,6 +5272,7 @@ function exportAllTestCases() {
     let totalTests = 0;
     let passedTests = 0;
     let failedTests = 0;
+    let inProgressTests = 0;
     let notTestedTests = 0;
     
     // Count the different statuses
@@ -5296,6 +5297,9 @@ function exportAllTestCases() {
                 } else if (selectedText.toLowerCase().includes('fail')) {
                     status = 'Fail';
                     failedTests++;
+                } else if (selectedText.toLowerCase().includes('progress')) {
+                    status = 'In Progress';
+                    inProgressTests++;
                 } else {
                     notTestedTests++;
                 }
@@ -5310,6 +5314,9 @@ function exportAllTestCases() {
             } else if (cellText.includes('fail')) {
                 status = 'Fail';
                 failedTests++;
+            } else if (cellText.includes('progress')) {
+                status = 'In Progress';
+                inProgressTests++;
             } else {
                 notTestedTests++;
             }
@@ -5338,6 +5345,7 @@ function exportAllTestCases() {
         ['Total Tests:', totalTests, '', '', ''],
         ['Passed:', passedTests, '', '', ''],
         ['Failed:', failedTests, '', '', ''],
+        ['In Progress:', inProgressTests, '', '', ''],
         ['Not Tested:', notTestedTests, '', '', ''],
         ['Pass Rate:', `${passRate}%`, '', '', ''],
         ['', '', '', '', ''],
@@ -5453,12 +5461,67 @@ function exportAllTestCases() {
             }
         }
 
+        // Check for IN_PROGRESS status from the dropdown
+        if (status === 'Not Tested') {
+            // Check if there's a status dropdown with IN_PROGRESS selected
+            const statusDropdown = row.querySelector('select.status-dropdown');
+            if (statusDropdown && statusDropdown.value === 'IN_PROGRESS') {
+                status = 'In Progress';
+            }
+        }
+        
         // Add the test case data to the array
         dataRows.push([issueKey, summary, description, status, notes]);
     });
 
     // Add the data rows to the worksheet
     XLSX.utils.sheet_add_aoa(ws, dataRows, { origin: `A${headerData.length + 1}` });
+    
+    // Apply cell coloring to the status column based on the status value
+    dataRows.forEach((row, idx) => {
+        const rowIndex = headerData.length + 1 + idx;
+        const statusCellRef = XLSX.utils.encode_cell({r: rowIndex, c: 3}); // Column D (index 3) is the Status column
+        const status = row[3]; // Status is the 4th column (index 3)
+        
+        // Set the cell style based on the status
+        if (status === 'Pass') {
+            // Green for Pass
+            ws[statusCellRef] = {
+                v: status,
+                s: {
+                    fill: { fgColor: { rgb: "2E7D32" } }, // Green
+                    font: { bold: true, color: { rgb: "FFFFFF" } } // White text
+                }
+            };
+        } else if (status === 'Fail') {
+            // Red for Fail
+            ws[statusCellRef] = {
+                v: status,
+                s: {
+                    fill: { fgColor: { rgb: "C62828" } }, // Red
+                    font: { bold: true, color: { rgb: "FFFFFF" } } // White text
+                }
+            };
+        } else if (status === 'In Progress') {
+            // Orange for In Progress
+            ws[statusCellRef] = {
+                v: status,
+                s: {
+                    fill: { fgColor: { rgb: "FF8C00" } }, // Orange
+                    font: { bold: true, color: { rgb: "FFFFFF" } } // White text
+                }
+            };
+        } else if (status === 'Incomplete') {
+            // Blue for Incomplete
+            ws[statusCellRef] = {
+                v: status,
+                s: {
+                    fill: { fgColor: { rgb: "1976D2" } }, // Blue
+                    font: { bold: true, color: { rgb: "FFFFFF" } } // White text
+                }
+            };
+        }
+    });
 
     // Apply explicit cell styles to ensure formatting works
     // Format the title row
@@ -5496,6 +5559,57 @@ function exportAllTestCases() {
                 v: ws[cellA].v,
                 s: { font: { bold: true, sz: 12 } }
             };
+        }
+        
+        // Color the Test Plan Results section
+        if (ws[cellA] && ws[cellA].v === 'Passed:') {
+            // Green for Passed total
+            const cellB = `B${i+1}`;
+            if (ws[cellB]) {
+                ws[cellB] = {
+                    v: ws[cellB].v,
+                    s: {
+                        fill: { fgColor: { rgb: "2E7D32" } }, // Green
+                        font: { bold: true, color: { rgb: "FFFFFF" } } // White text
+                    }
+                };
+            }
+        } else if (ws[cellA] && ws[cellA].v === 'Failed:') {
+            // Red for Failed total
+            const cellB = `B${i+1}`;
+            if (ws[cellB]) {
+                ws[cellB] = {
+                    v: ws[cellB].v,
+                    s: {
+                        fill: { fgColor: { rgb: "C62828" } }, // Red
+                        font: { bold: true, color: { rgb: "FFFFFF" } } // White text
+                    }
+                };
+            }
+        } else if (ws[cellA] && ws[cellA].v === 'In Progress:') {
+            // Orange for In Progress total
+            const cellB = `B${i+1}`;
+            if (ws[cellB]) {
+                ws[cellB] = {
+                    v: ws[cellB].v,
+                    s: {
+                        fill: { fgColor: { rgb: "FF8C00" } }, // Orange
+                        font: { bold: true, color: { rgb: "FFFFFF" } } // White text
+                    }
+                };
+            }
+        } else if (ws[cellA] && ws[cellA].v === 'Not Tested:') {
+            // Blue for Not Tested total
+            const cellB = `B${i+1}`;
+            if (ws[cellB]) {
+                ws[cellB] = {
+                    v: ws[cellB].v,
+                    s: {
+                        fill: { fgColor: { rgb: "1976D2" } }, // Blue
+                        font: { bold: true, color: { rgb: "FFFFFF" } } // White text
+                    }
+                };
+            }
         }
         
         // Add some formatting to the values in column B
