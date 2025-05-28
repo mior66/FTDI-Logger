@@ -5712,6 +5712,38 @@ function exportAllTestCases() {
     // Write the workbook and trigger download
     XLSX.writeFile(wb, filename);
 
+    // Create a text version of the test plan
+    const txtFilename = filename.replace('.xlsx', '.txt');
+    const txtContent = generateTextTestPlan(headerData, dataRows, {
+        deviceType: currentDeviceType,
+        firmwareVersion: currentFirmwareVersion,
+        appVersion: currentAppVersion,
+        phoneOSVersion: currentPhoneOSVersion,
+        timestamp: currentTimestamp,
+        testPlanNotes: currentTestPlanNotes,
+        totalTests,
+        passedTests,
+        failedTests,
+        inProgressTests,
+        notTestedTests,
+        passRate
+    });
+    
+    // Create a download link for the text file
+    const textBlob = new Blob([txtContent], { type: 'text/plain' });
+    const textUrl = URL.createObjectURL(textBlob);
+    const textLink = document.createElement('a');
+    textLink.href = textUrl;
+    textLink.download = txtFilename;
+    document.body.appendChild(textLink);
+    textLink.click();
+    
+    // Clean up the text file download link
+    setTimeout(() => {
+        document.body.removeChild(textLink);
+        URL.revokeObjectURL(textUrl);
+    }, 100);
+
     // Get the download path (this will be an approximation since we can't get the actual path)
     const downloadPath = `${navigator.platform.includes('Win') ? 'C:\\Downloads\\' : '~/Downloads/'}${filename}`;
     
@@ -7669,6 +7701,74 @@ function printTestPlan() {
     printWindow.onload = function() {
         printWindow.focus();
     };
+}
+
+// Generate a nicely formatted text version of the test plan
+function generateTextTestPlan(headerData, dataRows, metadata) {
+    let textContent = '';
+    
+    // Add title and metadata
+    textContent += 'FTDI LOGGER - TEST PLAN EXPORT\n';
+    textContent += '==============================\n\n';
+    
+    // Add metadata
+    textContent += `Generated on: ${metadata.timestamp}\n`;
+    textContent += `Device Type: ${metadata.deviceType}\n`;
+    textContent += `Firmware Version: ${metadata.firmwareVersion}\n`;
+    textContent += `App Version: ${metadata.appVersion}\n`;
+    textContent += `Phone OS/Version: ${metadata.phoneOSVersion}\n`;
+    
+    // Add test plan notes if available
+    if (metadata.testPlanNotes) {
+        textContent += '\nTest Plan Notes:\n';
+        textContent += '-----------------\n';
+        textContent += `${metadata.testPlanNotes}\n`;
+    }
+    
+    // Add test results summary
+    textContent += '\nTEST PLAN RESULTS\n';
+    textContent += '-----------------\n';
+    textContent += `Total Tests: ${metadata.totalTests}\n`;
+    textContent += `Passed: ${metadata.passedTests}\n`;
+    textContent += `Failed: ${metadata.failedTests}\n`;
+    textContent += `In Progress: ${metadata.inProgressTests}\n`;
+    textContent += `Not Tested: ${metadata.notTestedTests}\n`;
+    textContent += `Pass Rate: ${metadata.passRate}%\n`;
+    
+    // Add test case details
+    textContent += '\nTEST CASES\n';
+    textContent += '==========\n\n';
+    
+    // Process each test case
+    dataRows.forEach((row, index) => {
+        const testCaseId = row[0];
+        const summary = row[1];
+        const description = row[2];
+        const status = row[3];
+        const notes = row[4];
+        
+        // Add test case header with ID and status
+        textContent += `TEST CASE: ${testCaseId} [${status}]\n`;
+        textContent += '-'.repeat(testCaseId.length + status.length + 13) + '\n';
+        
+        // Add summary
+        textContent += `Summary: ${summary}\n\n`;
+        
+        // Add description if available
+        if (description) {
+            textContent += `Description:\n${description}\n\n`;
+        }
+        
+        // Add notes if available
+        if (notes) {
+            textContent += `Notes:\n${notes}\n\n`;
+        }
+        
+        // Add separator between test cases
+        textContent += '\n' + '='.repeat(50) + '\n\n';
+    });
+    
+    return textContent;
 }
 
 // Initialize the application when the DOM is loaded
