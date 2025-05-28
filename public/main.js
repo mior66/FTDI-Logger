@@ -5386,26 +5386,43 @@ function exportAllTestCases() {
             // Check for a dropdown in the cell
             const statusDropdown = lastCell.querySelector('select');
             if (statusDropdown) {
-                // Get the selected option's text
-                const selectedOption = statusDropdown.options[statusDropdown.selectedIndex];
-                const selectedText = selectedOption ? selectedOption.text : '';
-                
-                if (selectedText === 'Pass') {
+                // First check the value of the dropdown
+                if (statusDropdown.value === 'PASS') {
                     status = 'Pass';
-                } else if (selectedText === 'Fail') {
+                } else if (statusDropdown.value === 'FAIL') {
                     status = 'Fail';
+                } else if (statusDropdown.value === 'IN_PROGRESS') {
+                    status = 'In Progress';
+                } else if (statusDropdown.value === 'INCOMPLETE') {
+                    status = 'Incomplete';
+                } else {
+                    // Fallback to checking the selected option's text
+                    const selectedOption = statusDropdown.options[statusDropdown.selectedIndex];
+                    const selectedText = selectedOption ? selectedOption.textContent.trim().toLowerCase() : '';
+                    
+                    if (selectedText.includes('pass')) {
+                        status = 'Pass';
+                    } else if (selectedText.includes('fail')) {
+                        status = 'Fail';
+                    } else if (selectedText.includes('progress')) {
+                        status = 'In Progress';
+                    } else if (selectedText.includes('incomplete')) {
+                        status = 'Incomplete';
+                    }
                 }
             } 
             // If no dropdown, check the cell text directly
             else {
-                const cellText = lastCell.textContent.trim();
+                const cellText = lastCell.textContent.trim().toLowerCase();
                 
-                if (cellText === 'Pass') {
+                if (cellText.includes('pass')) {
                     status = 'Pass';
-                } else if (cellText === 'Fail') {
+                } else if (cellText.includes('fail')) {
                     status = 'Fail';
-                } else if (cellText === 'In Progress') {
+                } else if (cellText.includes('progress')) {
                     status = 'In Progress';
+                } else if (cellText.includes('incomplete')) {
+                    status = 'Incomplete';
                 }
             }
         }
@@ -5421,17 +5438,38 @@ function exportAllTestCases() {
                     status = 'Fail';
                 } else if (statusIndicator.classList.contains('status-in-progress')) {
                     status = 'In Progress';
+                } else if (statusIndicator.classList.contains('status-incomplete')) {
+                    status = 'Incomplete';
                 }
             }
             // Check for pass/fail buttons
             else {
                 const passButton = row.querySelector('.pass-button.active');
                 const failButton = row.querySelector('.fail-button.active');
+                const inProgressButton = row.querySelector('.in-progress-button.active');
                 
                 if (passButton) {
                     status = 'Pass';
                 } else if (failButton) {
                     status = 'Fail';
+                } else if (inProgressButton) {
+                    status = 'In Progress';
+                }
+            }
+        }
+        
+        // Check for the export-status-dropdown if we still don't have a status
+        if (status === 'Not Tested') {
+            const exportStatusDropdown = row.querySelector('#export-status-dropdown');
+            if (exportStatusDropdown && exportStatusDropdown.value) {
+                if (exportStatusDropdown.value === 'PASS') {
+                    status = 'Pass';
+                } else if (exportStatusDropdown.value === 'FAIL') {
+                    status = 'Fail';
+                } else if (exportStatusDropdown.value === 'IN_PROGRESS') {
+                    status = 'In Progress';
+                } else if (exportStatusDropdown.value === 'INCOMPLETE') {
+                    status = 'Incomplete';
                 }
             }
         }
