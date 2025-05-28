@@ -173,10 +173,14 @@ function init() {
                 this.style.color = '#c62828';
                 this.style.fontWeight = 'bold';
                 this.style.borderColor = '#c62828';
-            } else if (this.value === 'INCOMPLETE') {
+            } else if (this.value === 'IN_PROGRESS') {
                 this.style.color = '#FF8C00';
                 this.style.fontWeight = 'bold';
                 this.style.borderColor = '#FF8C00';
+            } else if (this.value === 'INCOMPLETE') {
+                this.style.color = '#1976D2';
+                this.style.fontWeight = 'bold';
+                this.style.borderColor = '#1976D2';
             }
         });
     }

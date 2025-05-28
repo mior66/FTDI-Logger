@@ -9,6 +9,47 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        /* Status dropdown option styles */
+        .pass-option {
+            background-color: #2e7d32 !important;
+            color: white !important;
+        }
+        .fail-option {
+            background-color: #c62828 !important;
+            color: white !important;
+        }
+        .in-progress-option {
+            background-color: #FF8C00 !important;
+            color: white !important;
+        }
+        .incomplete-option {
+            background-color: #1976D2 !important;
+            color: white !important;
+        }
+        
+        /* Fix for dropdown option styling in different browsers */
+        select.status-dropdown option:checked {
+            box-shadow: 0 0 10px 100px var(--selected-color) inset;
+            -webkit-text-fill-color: white;
+        }
+        
+        select.status-dropdown option[value="PASS"]:checked {
+            --selected-color: #2e7d32;
+        }
+        
+        select.status-dropdown option[value="FAIL"]:checked {
+            --selected-color: #c62828;
+        }
+        
+        select.status-dropdown option[value="IN_PROGRESS"]:checked {
+            --selected-color: #FF8C00;
+        }
+        
+        select.status-dropdown option[value="INCOMPLETE"]:checked {
+            --selected-color: #1976D2;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -111,10 +152,10 @@
                 <div class="test-case-controls">
                     <select id="export-status-dropdown" class="status-dropdown" style="margin-right: 5px;" onchange="this.style.backgroundColor = this.value === 'PASS' ? '#2e7d32' : this.value === 'FAIL' ? '#c62828' : this.value === 'IN_PROGRESS' ? '#FF8C00' : this.value === 'INCOMPLETE' ? '#1976D2' : ''; this.style.color = this.value ? 'white' : '';">
                         <option value="">Status</option>
-                        <option value="PASS" class="pass-option">PASS</option>
-                        <option value="FAIL" class="fail-option">FAIL</option>
-                        <option value="IN_PROGRESS" class="in-progress-option">IN PROGRESS</option>
-                        <option value="INCOMPLETE" class="incomplete-option">INCOMPLETE</option>
+                        <option value="PASS" style="color: #2e7d32; font-weight: bold;">PASS</option>
+                        <option value="FAIL" style="color: #c62828; font-weight: bold;">FAIL</option>
+                        <option value="IN_PROGRESS" style="color: #FF8C00; font-weight: bold;">IN PROGRESS</option>
+                        <option value="INCOMPLETE" style="color: #1976D2; font-weight: bold;">INCOMPLETE</option>
                     </select>
                     <button id="export-selected-test-case" class="small-button export-button">Test Case Export</button>
                     <button id="export-history-button" class="small-button">History</button>
