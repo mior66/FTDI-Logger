@@ -5400,6 +5400,8 @@ function exportAllTestCases() {
                     status = 'Pass';
                 } else if (cellText === 'Fail') {
                     status = 'Fail';
+                } else if (cellText === 'In Progress') {
+                    status = 'In Progress';
                 }
             }
         }
@@ -5413,6 +5415,8 @@ function exportAllTestCases() {
                     status = 'Pass';
                 } else if (statusIndicator.classList.contains('status-fail')) {
                     status = 'Fail';
+                } else if (statusIndicator.classList.contains('status-in-progress')) {
+                    status = 'In Progress';
                 }
             }
             // Check for pass/fail buttons
@@ -7669,3 +7673,17 @@ function printTestPlan() {
 
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', init);
+
+// Function to toggle the visibility of the logging section
+function toggleLoggingSection() {
+    const content = document.getElementById('logging-section-content');
+    const toggle = document.getElementById('logging-toggle');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggle.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        toggle.textContent = '▶';
+    }
+}

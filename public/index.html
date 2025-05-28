@@ -243,12 +243,18 @@
             </div>
         </div>
         
+        <!-- Collapsible Header for Test Log Tracking and everything below -->
+        <div class="collapsible-header" style="display: flex; justify-content: space-between; align-items: center; background-color: #0a2a12; color: white; padding: 10px 15px; cursor: pointer; border-radius: 5px; margin-top: 15px;" onclick="toggleLoggingSection()">
+            <h2 style="margin: 0;">Test Log Tracking</h2>
+            <span id="logging-toggle" style="font-size: 20px;">▶</span>
+        </div>
+        
+        <!-- Collapsible content wrapper for everything from Test Log Tracking down -->
+        <div id="logging-section-content" style="display: none;">
+        
         <!-- Test Log Tracking Section -->
         <div class="automated-settings-wrapper">
             <div class="automated-settings-container">
-                <div class="automated-settings-header">
-                    <h2>Test Log Tracking</h2>
-                </div>
                 <div class="thermostat-status-inline" style="width: 100%;">
                     <span class="status-label">Status:</span>
                     <span id="status-value" class="status-value">--</span>
@@ -506,6 +512,9 @@
                 <div id="export-history-list" class="history-list"></div>
             </div>
         </div>
+    </div>
+    
+    <!-- Close the logging-section-content div -->
     </div>
 </body>
 </html>
