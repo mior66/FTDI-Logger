@@ -5529,41 +5529,51 @@ function exportAllTestCases() {
         const statusCellRef = XLSX.utils.encode_cell({r: rowIndex, c: 3}); // Column D (index 3) is the Status column
         const status = row[3]; // Status is the 4th column (index 3)
         
-        // Set the cell style based on the status
-        if (status === 'Pass') {
+        // Set the cell style based on the status (case-insensitive comparison)
+        const statusLower = status.toLowerCase();
+        
+        if (statusLower.includes('pass')) {
             // Green for Pass
             ws[statusCellRef] = {
-                v: status,
+                v: 'Pass', // Standardize the display text
                 s: {
                     fill: { fgColor: { rgb: "2E7D32" } }, // Green
                     font: { bold: true, color: { rgb: "FFFFFF" } } // White text
                 }
             };
-        } else if (status === 'Fail') {
+        } else if (statusLower.includes('fail')) {
             // Red for Fail
             ws[statusCellRef] = {
-                v: status,
+                v: 'Fail', // Standardize the display text
                 s: {
                     fill: { fgColor: { rgb: "C62828" } }, // Red
                     font: { bold: true, color: { rgb: "FFFFFF" } } // White text
                 }
             };
-        } else if (status === 'In Progress') {
+        } else if (statusLower.includes('progress')) {
             // Orange for In Progress
             ws[statusCellRef] = {
-                v: status,
+                v: 'In Progress', // Standardize the display text
                 s: {
                     fill: { fgColor: { rgb: "FF8C00" } }, // Orange
                     font: { bold: true, color: { rgb: "FFFFFF" } } // White text
                 }
             };
-        } else if (status === 'Incomplete') {
+        } else if (statusLower.includes('incomplete')) {
             // Blue for Incomplete
             ws[statusCellRef] = {
-                v: status,
+                v: 'Incomplete', // Standardize the display text
                 s: {
                     fill: { fgColor: { rgb: "1976D2" } }, // Blue
                     font: { bold: true, color: { rgb: "FFFFFF" } } // White text
+                }
+            };
+        } else {
+            // Default case for Not Tested or any other status
+            ws[statusCellRef] = {
+                v: status,
+                s: {
+                    font: { bold: true }
                 }
             };
         }
@@ -7743,6 +7753,7 @@ function printTestPlan() {
     printWindow.onload = function() {
         printWindow.focus();
     };
+
 }
 
 // Generate a nicely formatted text version of the test plan
