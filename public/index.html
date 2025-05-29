@@ -97,7 +97,7 @@
                 <h3>Serial Port Connection</h3>
                 <div class="serial-port-controls">
                     <select id="port-select">
-                        <option value="">-- Select Port --</option>
+                        <option value="" class="bold-option">-- Select Port --</option>
                     </select>
                     <button id="connect-button" style="background-color: #1976D2; color: white;">Connect</button>
                     <button id="disconnect-button" style="background-color: #757575; color: white;" disabled>Disconnect</button>
@@ -112,6 +112,10 @@
                     document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('bug-list-mysa-button').addEventListener('click', function() {
                             window.open('https://empoweredhomes.atlassian.net/issues/?filter=10571', '_blank');
+                        });
+                        
+                        document.getElementById('lunch-idea-button').addEventListener('click', function() {
+                            window.open('https://www.eatthis.com/easy-lunch-ideas/', '_blank');
                         });
                         
                         document.getElementById('todays-news-button').addEventListener('click', function() {
@@ -132,7 +136,7 @@
                 <h3>Test Case Tracking</h3>
                 <div class="test-case-controls">
                     <select id="export-status-dropdown" class="status-dropdown" style="margin-right: 5px;" onchange="this.style.backgroundColor = this.value === 'PASS' ? '#2e7d32' : this.value === 'FAIL' ? '#c62828' : this.value === 'IN_PROGRESS' ? '#FF8C00' : this.value === 'INCOMPLETE' ? '#1976D2' : ''; this.style.color = this.value ? 'white' : '';">
-                        <option value="">Status</option>
+                        <option value="" class="bold-option">-- Select Status --</option>
                         <option value="PASS" style="color: #2e7d32; font-weight: bold;">PASS</option>
                         <option value="FAIL" style="color: #c62828; font-weight: bold;">FAIL</option>
                         <option value="IN_PROGRESS" style="color: #FF8C00; font-weight: bold;">IN PROGRESS</option>
@@ -148,7 +152,7 @@
             </div>
             
         <!-- Collapsible Header for Test Plan Tracking -->
-        <div class="collapsible-header" style="display: flex; justify-content: space-between; align-items: center; background-color: #0a2a12; color: white; padding: 10px 15px; cursor: pointer; border-radius: 5px; margin-top: 15px;" onclick="toggleTestPlanSection()">
+        <div class="collapsible-header" style="display: flex; justify-content: space-between; align-items: center; background-color: #0a2a12; color: white; padding: 10px 15px; cursor: pointer; border-radius: 6px 6px 0 0; margin-top: 15px; margin-bottom: 0;" onclick="toggleTestPlanSection()">
             <h2 style="margin: 0;">Test Plan Tracking</h2>
             <span id="test-plan-toggle" style="font-size: 20px;">▼</span>
         </div>
@@ -532,7 +536,7 @@
             </div>
             <div class="overlay-body">
                 <div id="export-history-actions" class="history-actions">
-                    <button id="export-history-export" class="history-global-button">Export as Text</button>
+                    <button id="export-history-export" class="history-global-button">Export History</button>
                     <button id="export-history-print" class="history-global-button">Print History</button>
                 </div>
                 <div id="export-history-list" class="history-list"></div>

@@ -5814,7 +5814,7 @@ function exportAllTestCases() {
         path: downloadPath,
         date: new Date().toISOString(),
         testCase: 'Test Plan Exported',
-        summary: `(${passedTests} Pass, ${failedTests} Fail, ${notTestedTests} Not Tested)`,
+        summary: `(${passedTests} Pass, ${failedTests} Fail, ${inProgressTests} In Progress, ${notTestedTests} Not Tested)`,
         result: exportResult
     });
     
@@ -7765,7 +7765,7 @@ function printTestPlan() {
 
 }
 
-// Generate a nicely formatted text version of the test plan
+// Generate a nicely formatted text version of the test plan in a tabular format
 function generateTextTestPlan(headerData, dataRows, metadata) {
     let textContent = '';
     
@@ -7797,40 +7797,60 @@ function generateTextTestPlan(headerData, dataRows, metadata) {
     textContent += `Not Tested: ${metadata.notTestedTests}\n`;
     textContent += `Pass Rate: ${metadata.passRate}%\n`;
     
-    // Add test case details
+    // Add test case details in a tabular format
     textContent += '\nTEST CASES\n';
     textContent += '==========\n\n';
     
-    // Process each test case
-    dataRows.forEach((row, index) => {
+    // Define column widths for the table
+    const idWidth = 15;
+    const summaryWidth = 50;
+    const statusWidth = 15;
+    const notesWidth = 30;
+    
+    // Create table header
+    const headerRow = 
+        padRight('Test ID', idWidth) + 
+        padRight('Summary', summaryWidth) + 
+        padRight('Status', statusWidth) + 
+        'Notes';
+    
+    textContent += headerRow + '\n';
+    textContent += '-'.repeat(idWidth + summaryWidth + statusWidth + notesWidth) + '\n';
+    
+    // Process each test case and add as a row in the table
+    dataRows.forEach((row) => {
         const testCaseId = row[0];
         const summary = row[1];
-        const description = row[2];
+        // Skip description (row[2])
         const status = row[3];
-        const notes = row[4];
+        const notes = row[4] || '';
         
-        // Add test case header with ID and status
-        textContent += `TEST CASE: ${testCaseId} [${status}]\n`;
-        textContent += '-'.repeat(testCaseId.length + status.length + 13) + '\n';
+        // Format each row with fixed-width columns
+        const tableRow = 
+            padRight(testCaseId, idWidth) + 
+            padRight(truncateText(summary, summaryWidth - 3), summaryWidth) + 
+            padRight(status, statusWidth) + 
+            truncateText(notes, notesWidth);
         
-        // Add summary
-        textContent += `Summary: ${summary}\n\n`;
-        
-        // Add description if available
-        if (description) {
-            textContent += `Description:\n${description}\n\n`;
-        }
-        
-        // Add notes if available
-        if (notes) {
-            textContent += `Notes:\n${notes}\n\n`;
-        }
-        
-        // Add separator between test cases
-        textContent += '\n' + '='.repeat(50) + '\n\n';
+        textContent += tableRow + '\n';
     });
     
     return textContent;
+}
+
+// Helper function to pad a string to a fixed width
+function padRight(text, width) {
+    text = text || '';
+    return (text + ' '.repeat(width)).substring(0, width);
+}
+
+// Helper function to truncate text with ellipsis if too long
+function truncateText(text, maxLength) {
+    text = text || '';
+    if (text.length <= maxLength) {
+        return text;
+    }
+    return text.substring(0, maxLength - 3) + '...';
 }
 
 // Initialize the application when the DOM is loaded
