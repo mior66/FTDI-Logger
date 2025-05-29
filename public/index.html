@@ -92,17 +92,15 @@
         </header>
         
         <div class="connection-panel">
-            <!-- First row: Serial port controls -->
-            <div class="connection-row" style="display: flex; align-items: center; margin-bottom: 5px; width: 100%; border: 1px solid rgba(13, 92, 35, 0.3); border-radius: 4px; padding: 8px; background-color: rgba(13, 92, 35, 0.2);">
-                <div class="form-group" style="margin-right: 15px;">
-                    <label for="port-select" style="font-weight: bold;">Serial Port:</label>
+            <!-- Serial port controls with matching header style -->
+            <div class="serial-port-header">
+                <h3>Serial Port Connection:&nbsp;&nbsp;&nbsp;&nbsp;</h3>
+                <div class="serial-port-controls">
                     <select id="port-select">
                         <option value="">-- Select Port --</option>
                     </select>
-                </div>
-                <div class="form-group">
-                    <button id="connect-button" class="primary">Connect</button>
-                    <button id="disconnect-button" disabled>Disconnect</button>
+                    <button id="connect-button" style="background-color: #1976D2; color: white;">Connect</button>
+                    <button id="disconnect-button" style="background-color: #757575; color: white;" disabled>Disconnect</button>
                     <button id="test-start-button" style="background-color: #FF8C00; color: white;" disabled>Start</button>
                     <button id="test-pass-button" style="background-color: #2e7d32; color: white;" disabled>Pass</button>
                     <button id="test-fail-button" style="background-color: #c62828; color: white;" disabled>Fail</button>

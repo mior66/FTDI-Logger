@@ -163,6 +163,31 @@ header {
     margin-bottom: 5px;
 }
 
+/* Serial Port Header Style - matches test case tracking header */
+.serial-port-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #0a2a12, #0d5c23);
+    color: white;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+.serial-port-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.serial-port-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
 /* Individual header button style */
 .header-button {
     display: inline-block;
@@ -195,7 +220,7 @@ header {
     text-decoration: none;
     border-radius: 6px;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.9rem; /* Match header button font size */
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     text-align: center;
