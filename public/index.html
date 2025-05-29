@@ -109,19 +109,11 @@
                     <button id="test-pass-button" style="background-color: #2e7d32; color: white;" disabled>Pass</button>
                     <button id="test-fail-button" style="background-color: #c62828; color: white;" disabled>Fail</button>
                 </div>
-                <span style="margin-left: 16px;"></span>
-                <div class="divider-graphic">
-                    <svg width="750" height="20" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="10" cy="10" r="4" fill="none" stroke="#2e7d32" stroke-width="1.5"/>
-                        <circle cx="25" cy="10" r="3" fill="none" stroke="#2e7d32" stroke-width="1.5"/>
-                        <circle cx="40" cy="10" r="2" fill="none" stroke="#2e7d32" stroke-width="1.5"/>
-                        <path d="M50 10 H740" stroke="#2e7d32" stroke-width="1.5" stroke-dasharray="5,5"/>
-                        <circle cx="740" cy="10" r="2" fill="none" stroke="#2e7d32" stroke-width="1.5"/>
-                    </svg>
+                <div style="flex-grow: 1; margin: 0 20px; display: flex; align-items: center; justify-content: center;">
+                    <div style="height: 2px; background: linear-gradient(to right, rgba(46, 125, 50, 0), rgba(46, 125, 50, 0.7), rgba(46, 125, 50, 0)); width: 100%;"></div>
                 </div>
                 <div class="form-group" style="display: flex; margin-left: auto;">
-                    <button id="bug-list-button" class="primary bug-list-button" style="margin-right: 2px;">Bug List - LV <span class="bug-icon">🐞</span></button>
-                    <button id="bug-list-mysa-button" class="primary bug-list-button" style="margin-right: 2px;">Bug List - Mysa <span class="bug-icon">🐞</span></button>
+                    <button id="bug-list-mysa-button" class="primary bug-list-button" style="margin-right: 2px;">JIRA Bug List <span class="bug-icon">🐞</span></button>
                     <button id="work-tasks-button" class="primary work-tasks-button" style="margin-right: 2px;">Work Tasks <span class="tasks-icon">📋</span></button>
                     <button id="lunch-idea-button" class="primary lunch-button" style="margin-right: 2px;">Lunch Idea's <span class="lightbulb">💡</span></button>
                     <button id="todays-sports-button" class="primary sports-button" style="margin-right: 2px;">Today's Sports <span class="sports-icon">🏆</span></button>
@@ -169,9 +161,15 @@
             
             <!-- Test Tracker Panel (Now shown by default) -->
             <div id="test-tracker-panel" style="display: block;">
-                <!-- Test Plan Tracking header -->
-                <div class="test-case-header">
-                    <h3>Test Plan Tracking</h3>
+                <!-- Collapsible Header for Test Plan Tracking -->
+                <div class="collapsible-header" style="display: flex; justify-content: space-between; align-items: center; background-color: #0a2a12; color: white; padding: 10px 15px; cursor: pointer; border-radius: 5px; margin-top: 15px;" onclick="toggleTestPlanSection()">
+                    <h2 style="margin: 0;">Test Plan Tracking</h2>
+                    <span id="test-plan-toggle" style="font-size: 20px;">▼</span>
+                </div>
+                
+                <!-- Collapsible content wrapper for Test Plan Tracking -->
+                <div id="test-plan-section-content" style="display: block;">
+                <div class="test-case-header" style="margin-top: 10px;">
                 </div>
                 
                 <div class="tracker-top-controls">

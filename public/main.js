@@ -2454,9 +2454,11 @@ function displayRandomQuote() {
 
 // Suggest random lunch places in St. John's with ratings of at least 4 out of 5
 function suggestLunchPlaces() {
+    console.log('Suggesting lunch places...');
     // Fetch restaurant data (only open restaurants)
     fetchRestaurantData()
         .then(restaurants => {
+            console.log('Received restaurant data:', restaurants);
             // Get previously suggested restaurants from session storage
             const previousSuggestions = JSON.parse(sessionStorage.getItem('previousLunchSuggestions') || '[]');
             console.log('Previous suggestions:', previousSuggestions);
@@ -2632,7 +2634,7 @@ function fetchRestaurantData() {
                     return currentHour >= openingHour || currentHour < closingHour;
                 } else {
                     // Normal case - if current hour is between opening and closing hours
-                    return currentHour >= openingHour && currentHour < closingHour;
+                    return currentHour >= openingHour && currentHour <= closingHour;
                 }
             } catch (error) {
                 console.error('Error parsing restaurant hours:', hours, error);
@@ -7831,6 +7833,20 @@ document.addEventListener('DOMContentLoaded', init);
 function toggleLoggingSection() {
     const content = document.getElementById('logging-section-content');
     const toggle = document.getElementById('logging-toggle');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggle.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        toggle.textContent = '▶';
+    }
+}
+
+// Function to toggle the visibility of the test plan section
+function toggleTestPlanSection() {
+    const content = document.getElementById('test-plan-section-content');
+    const toggle = document.getElementById('test-plan-toggle');
     
     if (content.style.display === 'none') {
         content.style.display = 'block';
