@@ -172,7 +172,25 @@ header {
     background: linear-gradient(135deg, #0a2a12, #0d5c23);
     color: white;
     margin-bottom: 15px;
-    width: 100%;
+    position: relative; /* For absolute positioning of pseudo-elements */
+    border-radius: 8px 8px 0 0; /* Rounded corners at the top */
+    box-sizing: border-box; /* Include padding in width calculation */
+    margin-left: -20px; /* Offset the container padding on left */
+    margin-right: -20px; /* Offset the container padding on right */
+    width: calc(100% + 40px); /* Full width plus container padding on both sides */
+}
+
+/* Add a pseudo-element to ensure the right side extends fully */
+.serial-port-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -1px; /* Ensure it connects with the edge */
+    width: 20px; /* Width of extension */
+    height: 100%;
+    background: #0d5c23; /* Solid color matching the right edge of the gradient */
+    border-radius: 0 8px 0 0; /* Rounded corner on the top right */
+    z-index: -1; /* Place behind the main header */
 }
 
 .serial-port-header h3 {
