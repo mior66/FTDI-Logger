@@ -71,7 +71,7 @@
                 <div class="action-buttons">
                     <button id="bug-list-mysa-button" class="action-button">JIRA Bug List <span class="bug-icon">🐞</span></button>
                     <button id="work-tasks-button" class="action-button">Work Tasks <span class="tasks-icon">📋</span></button>
-                    <button id="lunch-idea-button" class="action-button">Lunch Idea's <span class="lightbulb">💡</span></button>
+                    <button id="lunch-idea-button" class="action-button" onclick="suggestLunchPlaces()">Lunch Idea's <span class="lightbulb">💡</span></button>
                     <button id="todays-sports-button" class="action-button">Today's Sports <span class="sports-icon">🏆</span></button>
                     <button id="todays-news-button" class="action-button">Today's News <span class="news-icon">📰</span></button>
                 </div>
@@ -114,9 +114,11 @@
                             window.open('https://empoweredhomes.atlassian.net/issues/?filter=10571', '_blank');
                         });
                         
-                        document.getElementById('lunch-idea-button').addEventListener('click', function() {
-                            window.open('https://www.eatthis.com/easy-lunch-ideas/', '_blank');
-                        });
+                        // Ensure lunch ideas button works
+                        var lunchButton = document.getElementById('lunch-idea-button');
+                        lunchButton.onclick = function() {
+                            suggestLunchPlaces();
+                        };
                         
                         document.getElementById('todays-news-button').addEventListener('click', function() {
                             window.open('https://www.cnn.com', '_blank');

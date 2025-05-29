@@ -2415,9 +2415,21 @@ button.primary:hover {
 }
 
 /* Test Case Notes */
-.test-case-notes-container {
+.test-case-flex-container {
+    display: flex;
+    gap: 20px;
     margin-top: 15px;
-    border-top: 1px solid #eee;
+}
+
+.test-case-content-container {
+    flex: 3;
+}
+
+.test-case-notes-container {
+    flex: 1;
+    min-width: 250px;
+    border-left: 1px solid #eee;
+    margin-top: 0;
 }
 
 .test-case-notes-toggle {
@@ -3077,6 +3089,8 @@ button.primary:hover {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     border-radius: 8px;
     overflow: hidden;
+    color: #333;
+    z-index: 9999;
 }
 
 .lunch-suggestion-container {

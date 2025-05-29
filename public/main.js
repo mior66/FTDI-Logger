@@ -2536,8 +2536,160 @@ function suggestLunchPlaces() {
                 <div class="suggestion-time">Suggestions as of ${currentTime}</div>
             </div>`;
             
-            // Show the suggestions in a notification
-            showNotification(message, 'lunch-suggestion');
+            // Show the suggestions directly in a new window
+            try {
+                // Open the window directly with a unique name to avoid popup issues
+                const lunchWindow = window.open('', 'ftdiLunchSuggestions', 'width=500,height=650');
+                if (!lunchWindow) {
+                    console.error('Failed to open lunch window');
+                    return;
+                }
+                lunchWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>FTDI Logger - Lunch Suggestions</title>
+                    <style>
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            padding: 20px;
+                            max-width: 600px;
+                            margin: 0 auto;
+                            background-color: #f8f8f8;
+                            color: #333;
+                        }
+                        h1 {
+                            color: white;
+                            background-color: #0a2a12;
+                            padding: 15px;
+                            margin: -20px -20px 20px -20px;
+                            text-align: center;
+                            border-bottom: 3px solid #0d5c23;
+                            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                        }
+                        .restaurant-item {
+                            margin-bottom: 15px;
+                            padding: 15px;
+                            border-left: 4px solid #0d5c23;
+                            background-color: white;
+                            border-radius: 0 5px 5px 0;
+                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                            transition: transform 0.2s;
+                        }
+                        .restaurant-item:hover {
+                            transform: translateX(3px);
+                        }
+                        .restaurant-name {
+                            font-size: 18px;
+                            font-weight: bold;
+                            margin-bottom: 5px;
+                        }
+                        .restaurant-name a {
+                            color: #0d5c23;
+                            text-decoration: none;
+                        }
+                        .restaurant-name a:hover {
+                            text-decoration: underline;
+                        }
+                        .restaurant-rating {
+                            color: #ff9800;
+                            margin-bottom: 5px;
+                        }
+                        .rating-number {
+                            color: #666;
+                            font-size: 12px;
+                        }
+                        .restaurant-details {
+                            display: flex;
+                            justify-content: space-between;
+                            color: #666;
+                            font-size: 13px;
+                            margin-top: 8px;
+                        }
+                        .cuisine-type {
+                            font-style: italic;
+                            background-color: #f0f0f0;
+                            padding: 2px 6px;
+                            border-radius: 3px;
+                        }
+                        .hours-info {
+                            color: #0d5c23;
+                            font-weight: 500;
+                        }
+                        .suggestion-footer {
+                            margin-top: 15px;
+                            padding: 15px;
+                            background-color: #f0f0f0;
+                            border-radius: 5px;
+                            font-size: 12px;
+                            color: #666;
+                        }
+                        .suggestion-info {
+                            margin-bottom: 5px;
+                        }
+                        .suggestion-time {
+                            margin-top: 10px;
+                            font-style: italic;
+                            text-align: right;
+                            color: #0d5c23;
+                        }
+                        .button-container {
+                            display: flex;
+                            justify-content: center;
+                            margin-top: 20px;
+                            gap: 10px;
+                        }
+                        .action-button {
+                            padding: 10px 20px;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-weight: bold;
+                            transition: background-color 0.2s;
+                        }
+                        .print-button {
+                            background-color: #0d5c23;
+                        }
+                        .print-button:hover {
+                            background-color: #094c1b;
+                        }
+                        .close-button {
+                            background-color: #555;
+                        }
+                        .close-button:hover {
+                            background-color: #444;
+                        }
+                        @media print {
+                            body {
+                                padding: 0;
+                                background-color: white;
+                            }
+                            .no-print {
+                                display: none;
+                            }
+                            .restaurant-item {
+                                box-shadow: none;
+                                page-break-inside: avoid;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>🍽️ Lunch Suggestions</h1>
+                    ${message}
+                    <div class="no-print button-container">
+                        <button onclick="window.print();" class="action-button print-button">Print Suggestions</button>
+                        <button onclick="self.close();" class="action-button close-button">Close Window</button>
+                    </div>
+                </body>
+                </html>
+            `);
+                lunchWindow.document.close();
+            } catch (error) {
+                console.error('Error opening lunch suggestions window:', error);
+                alert('There was an error showing lunch suggestions. Please check console for details.');
+            }
         })
         .catch(error => {
             console.error('Error fetching restaurant data:', error);
@@ -3688,8 +3840,13 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices, targetElemen
     table.appendChild(tbody);
     contentContainer.appendChild(table);
     
-    // Add the content container to the display
-    displayTarget.appendChild(contentContainer);
+    // Create a flex container to hold both the test case content and notes side by side
+    const flexContainer = document.createElement('div');
+    flexContainer.className = 'test-case-flex-container';
+    
+    // Add the content container to the flex container
+    contentContainer.className = 'test-case-content-container';
+    flexContainer.appendChild(contentContainer);
     
     // Add event listener to the collapse button
     collapseButton.addEventListener('click', () => {
@@ -3720,7 +3877,7 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices, targetElemen
         updateTestLogDisplay();
     }
     
-    // Add expandable notes section
+    // Create notes section (now on the right side)
     const notesContainer = document.createElement('div');
     notesContainer.className = 'test-case-notes-container';
     
@@ -3751,6 +3908,14 @@ function displaySelectedTestCase(testCaseId, sheetName, rowIndices, targetElemen
     });
     
     notesContent.appendChild(notesTextarea);
+    
+    // Add the notes container to the flex container
+    notesContainer.appendChild(notesToggle);
+    notesContainer.appendChild(notesContent);
+    flexContainer.appendChild(notesContainer);
+    
+    // Add the flex container to the display
+    displayTarget.appendChild(flexContainer);
 }
 
 // Clear the selected test case panel
