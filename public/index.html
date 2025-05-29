@@ -57,26 +57,24 @@
             <p id="quote-text" class="quote-text"></p>
         </div>
         <header>
-            <div class="header-left">
+            <div class="header-content">
                 <h1>FTDI Logger and Test Tracker</h1>
-
-                <div class="button-container left-aligned">
-                    <!-- Single column of buttons aligned with header -->
-                    <div class="button-row">
-                        <div class="button-cell"><a href="https://csp.mysa.cloud/" class="test-plan-link mysa-hq-link" target="_blank">CSP PROD</a></div>
-                    </div>
-                    <div class="button-row">
-                        <div class="button-cell"><a href="https://csp.mysa-dev.cloud/" class="test-plan-link mysa-hq-link" target="_blank">CSP DEV</a></div>
-                    </div>
-                    <div class="button-row">
-                        <div class="button-cell"><a href="https://github.com/orgs/empoweredhomes/repositories" class="test-plan-link open-plan-link" target="_blank">Open GitHub</a></div>
-                    </div>
-                    <div class="button-row">
-                        <div class="button-cell"><a href="https://docs.google.com/spreadsheets/d/13ChFbZGavVREYhuHa2vPmY_SQCH5IuecG_Nw2LbL3t4/edit?gid=1763151684#gid=1763151684" class="test-plan-link config-codes-link" target="_blank">LV Config Codes</a></div>
-                    </div>
-                </div>
                 
-                <!-- Button scripts are now directly in the button-group -->
+                <div class="header-buttons">
+                    <a href="https://csp.mysa.cloud/" class="header-button" target="_blank">CSP PROD</a>
+                    <a href="https://csp.mysa-dev.cloud/" class="header-button" target="_blank">CSP DEV</a>
+                    <a href="https://github.com/orgs/empoweredhomes/repositories" class="header-button" target="_blank">GitHub</a>
+                    <a href="https://docs.google.com/spreadsheets/d/13ChFbZGavVREYhuHa2vPmY_SQCH5IuecG_Nw2LbL3t4/edit?gid=1763151684#gid=1763151684" class="header-button" target="_blank">LV Config</a>
+                    <button id="test-history-button" class="header-button">Test History</button>
+                    <button id="bug-history-button" class="header-button">Bug History</button>
+                </div>
+                <div class="action-buttons">
+                    <button id="bug-list-mysa-button" class="action-button">JIRA Bug List <span class="bug-icon">🐞</span></button>
+                    <button id="work-tasks-button" class="action-button">Work Tasks <span class="tasks-icon">📋</span></button>
+                    <button id="lunch-idea-button" class="action-button">Lunch Idea's <span class="lightbulb">💡</span></button>
+                    <button id="todays-sports-button" class="action-button">Today's Sports <span class="sports-icon">🏆</span></button>
+                    <button id="todays-news-button" class="action-button">Today's News <span class="news-icon">📰</span></button>
+                </div>
             </div>
             <div class="header-right">
                 <div class="env-data-container">
@@ -112,13 +110,6 @@
                 <div style="flex-grow: 1; margin: 0 20px; display: flex; align-items: center; justify-content: center;">
                     <div style="height: 2px; background: linear-gradient(to right, rgba(46, 125, 50, 0), rgba(46, 125, 50, 0.7), rgba(46, 125, 50, 0)); width: 100%;"></div>
                 </div>
-                <div class="form-group" style="display: flex; margin-left: auto;">
-                    <button id="bug-list-mysa-button" class="primary bug-list-button" style="margin-right: 2px;">JIRA Bug List <span class="bug-icon">🐞</span></button>
-                    <button id="work-tasks-button" class="primary work-tasks-button" style="margin-right: 2px;">Work Tasks <span class="tasks-icon">📋</span></button>
-                    <button id="lunch-idea-button" class="primary lunch-button" style="margin-right: 2px;">Lunch Idea's <span class="lightbulb">💡</span></button>
-                    <button id="todays-sports-button" class="primary sports-button" style="margin-right: 2px;">Today's Sports <span class="sports-icon">🏆</span></button>
-                    <button id="todays-news-button" class="primary news-button">Today's News <span class="news-icon">📰</span></button>
-                </div>
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('bug-list-mysa-button').addEventListener('click', function() {
@@ -150,7 +141,6 @@
                         <option value="INCOMPLETE" style="color: #1976D2; font-weight: bold;">INCOMPLETE</option>
                     </select>
                     <button id="export-selected-test-case" class="small-button export-button">Test Case Export</button>
-                    <button id="export-history-button" class="small-button">History</button>
                     <button id="manual-test-button" class="small-button">Manual</button>
                     <button id="clear-selected-test-case" class="small-button">Clear</button>
                 </div>

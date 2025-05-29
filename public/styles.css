@@ -134,10 +134,80 @@ header {
     text-align: center;
 }
 
-.header-left {
+/* Header content with centered title and buttons */
+.header-content {
     flex: 0 0 30%;
-    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
     padding-right: 20px;
+}
+
+/* Header buttons container */
+.header-buttons {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+/* Action buttons container */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+/* Individual header button style */
+.header-button {
+    display: inline-block;
+    padding: 8px 16px;
+    background: linear-gradient(to bottom, #10752e, #0c5c24);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(to bottom, #138a37, #0e6c2a);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Individual action button style */
+.action-button {
+    display: inline-block;
+    padding: 6px 14px;
+    background: linear-gradient(to bottom, #1976D2, #1565C0);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(to bottom, #1E88E5, #1976D2);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .header-right {
@@ -2545,6 +2615,56 @@ button.primary:hover {
     margin-bottom: 10px;
     padding-bottom: 5px;
     border-bottom: 1px solid #eee;
+}
+
+.test-case-header-contheader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 0;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #0d5c23;
+}
+
+/* New header content layout */
+.header-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+/* Header buttons container */
+.header-buttons {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+
+/* Individual header button style */
+.header-button {
+    display: inline-block;
+    padding: 8px 16px;
+    background: linear-gradient(to bottom, #0d5c23, #0a4a1c);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(to bottom, #10752e, #0c5c24);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 #selected-test-case-display .test-case-title {

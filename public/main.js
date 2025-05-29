@@ -149,9 +149,16 @@ function init() {
     disconnectButton.addEventListener('click', disconnectFromPort);
     
     // Set up export history button event listener
-    const exportHistoryButton = document.getElementById('export-history-button');
-    if (exportHistoryButton) {
-        exportHistoryButton.addEventListener('click', showExportHistory);
+    const testHistoryButton = document.getElementById('test-history-button');
+    const bugHistoryButton = document.getElementById('bug-history-button');
+    if (testHistoryButton) {
+        testHistoryButton.addEventListener('click', showExportHistory);
+    }
+    
+    if (bugHistoryButton) {
+        bugHistoryButton.addEventListener('click', function() {
+            alert('Bug History feature coming soon!');
+        });
     }
     
     // Set up export status dropdown event listener
